@@ -1,12 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WinstonBot
 {
@@ -14,14 +10,14 @@ namespace WinstonBot
     {
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
-        private MessageDatabase _messageDB;
+        private IServiceProvider _services;
 
         // Retrieve client and CommandService instance via ctor
-        public CommandHandler(DiscordSocketClient client, CommandService commands, MessageDatabase messageDB)
+        public CommandHandler(IServiceProvider services, DiscordSocketClient client)
         {
-            _commands = commands;
+            _commands = services.GetService<CommandService>();
             _client = client;
-            _messageDB = messageDB;
+            _services = services;
         }
 
         public async Task InstallCommandsAsync()
@@ -41,7 +37,7 @@ namespace WinstonBot
             // If you do not use Dependency Injection, pass null.
             // See Dependency Injection guide for more information.
             await _commands.AddModulesAsync(assembly: Assembly.GetEntryAssembly(),
-                                            services: null);
+                                            services: _services);
         }
 
         private async Task HandleReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
@@ -52,10 +48,12 @@ namespace WinstonBot
             }
 
             var userMessage = await message.GetOrDownloadAsync();
+            var messageDb = _services.GetService<MessageDatabase>();
+
             if (reaction.UserId != this._client.CurrentUser.Id &&
                 reaction.Emote.Name == Commands.HostModule.CompleteEmoji &&
                 userMessage.Author.Id == this._client.CurrentUser.Id &&
-                _messageDB.HasMessage(message.Id))
+                messageDb.HasMessage(message.Id))
             {
                 Console.WriteLine("Group was completed.");
             }
@@ -77,17 +75,14 @@ namespace WinstonBot
                 return;
 
             // Create a WebSocket-based command context based on the message
-            var context = new Commands.CommandContext(_client, message)
-            {
-                MessageDatabase = _messageDB
-            };
+            var context = new Commands.CommandContext(_client, message);
 
             // Execute the command with the command context we just
             // created, along with the service provider for precondition checks.
             await _commands.ExecuteAsync(
                 context: context,
                 argPos: argPos,
-                services: null);
+                services: _services);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 using WinstonBot;
 
 public class Program
@@ -12,6 +12,12 @@ public class Program
 
 	public static void Main(string[] args)
 		=> new Program().MainAsync().GetAwaiter().GetResult();
+
+	public IServiceProvider BuildServiceProvider() => new ServiceCollection()
+		.AddSingleton(_client)
+		.AddSingleton<CommandService>()
+		.AddSingleton(_messageDB)
+		.BuildServiceProvider();
 
 	public async Task MainAsync()
 	{
@@ -24,7 +30,7 @@ public class Program
 		await _client.LoginAsync(TokenType.Bot, token);
 		await _client.StartAsync();
 
-		_commandHandler = new CommandHandler(_client, new CommandService(), _messageDB);
+		_commandHandler = new CommandHandler(BuildServiceProvider(), _client);
 		await _commandHandler.InstallCommandsAsync();
 
 		await Task.Delay(-1);

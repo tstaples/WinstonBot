@@ -1,7 +1,5 @@
 ﻿using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
-using System.Collections.Concurrent;
 
 namespace WinstonBot.Commands
 {
@@ -11,9 +9,23 @@ namespace WinstonBot.Commands
 		public static string SignupEmoteName = "winstonface";
 		public static string CompleteEmoji = "\u2705";
 
+		private MessageDatabase _messageDB;
+
+		public HostModule(MessageDatabase messageDB)
+        {
+			_messageDB = messageDB;
+        }
+
 		[Group("aod")]
 		public class AoD : ModuleBase<CommandContext>
 		{
+			private MessageDatabase _messageDB;
+
+			public AoD(MessageDatabase messageDB)
+			{
+				_messageDB = messageDB;
+			}
+
 			[Command("queued")]
 			public async Task Queued()
 			{
@@ -30,7 +42,7 @@ namespace WinstonBot.Commands
 
 				var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up");
 
-				Context.MessageDatabase.AddMessage(message.Id);
+				_messageDB.AddMessage(message.Id);
 
 				await message.AddReactionAsync(signUpEmote);
 				await message.AddReactionAsync(completeEmote);
