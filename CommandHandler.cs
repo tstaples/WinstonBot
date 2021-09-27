@@ -3,6 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using WinstonBot.Services;
 
 namespace WinstonBot
 {
@@ -51,11 +52,13 @@ namespace WinstonBot
             var messageDb = _services.GetService<MessageDatabase>();
 
             if (reaction.UserId != this._client.CurrentUser.Id &&
-                reaction.Emote.Name == Commands.HostModule.CompleteEmoji &&
+                reaction.Emote.Name == EmoteDatabase.CompleteEmoji.Name &&
                 userMessage.Author.Id == this._client.CurrentUser.Id &&
                 messageDb.HasMessage(message.Id))
             {
                 Console.WriteLine("Group was completed.");
+                var groupCompletionService = _services.GetService<GroupCompletionService>();
+                groupCompletionService.CompleteGroup(_client, userMessage, channel);
             }
         }
 
