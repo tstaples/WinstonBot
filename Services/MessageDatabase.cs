@@ -11,16 +11,23 @@ namespace WinstonBot.Services
             AoD
         }
 
+        public enum GroupType
+        {
+            Default,
+            Queued
+        }
+
         public class MessageData
         {
-            public MessageType type { get; set; }
+            public MessageType Type { get; set; }
+            public GroupType GroupType { get; set; }
         }
 
         private ConcurrentDictionary<ulong, MessageData> _hostMessages = new ConcurrentDictionary<ulong, MessageData>();
 
-        public void AddMessage(ulong messageId, MessageType messageType)
+        public void AddMessage(ulong messageId, MessageType messageType, GroupType groupType)
         {
-            _hostMessages.TryAdd(messageId, new MessageData { type = messageType});
+            _hostMessages.TryAdd(messageId, new MessageData { Type = messageType, GroupType = groupType });
         }
 
         public bool HasMessage(ulong messageId)

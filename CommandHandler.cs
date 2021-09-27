@@ -49,16 +49,26 @@ namespace WinstonBot
             }
 
             var userMessage = await message.GetOrDownloadAsync();
+
+            if (reaction.UserId == this._client.CurrentUser.Id ||
+                userMessage.Author.Id != this._client.CurrentUser.Id)
+            {
+                return;
+            }
+
             var messageDb = _services.GetService<MessageDatabase>();
 
-            if (reaction.UserId != this._client.CurrentUser.Id &&
-                reaction.Emote.Name == EmoteDatabase.CompleteEmoji.Name &&
-                userMessage.Author.Id == this._client.CurrentUser.Id &&
+            // TODO: if someone tries to signup that doesn't have the necessary role PM them and refer to the rules channel.
+
+            if (reaction.Emote.Name == EmoteDatabase.CompleteEmoji.Name &&
                 messageDb.HasMessage(message.Id))
             {
                 Console.WriteLine("Group was completed.");
+
+                var messageData = messageDb.GetMessageData(message.Id);
+
                 var groupCompletionService = _services.GetService<GroupCompletionService>();
-                groupCompletionService.CompleteGroup(_client, userMessage, channel);
+                groupCompletionService.CompleteGroup(_client, userMessage, channel, messageData.Type, messageData.GroupType);
             }
         }
 

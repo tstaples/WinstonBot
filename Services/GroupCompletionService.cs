@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WinstonBot.GroupHandlers;
 
 namespace WinstonBot.Services
 {
@@ -12,30 +13,24 @@ namespace WinstonBot.Services
     {
         private readonly EmoteDatabase _emoteDatabase;
 
+        private Dictionary<MessageDatabase.MessageType, IGroupHandler> _groupHandlers = new Dictionary<MessageDatabase.MessageType, IGroupHandler>();
+
         public GroupCompletionService(EmoteDatabase emoteDatabase)
         {
             _emoteDatabase = emoteDatabase;
+
+            _groupHandlers = new Dictionary<MessageDatabase.MessageType, IGroupHandler>()
+            {
+                { MessageDatabase.MessageType.AoD, new AoDGroupHandler(_emoteDatabase) }
+            };
         }
 
-        public async void CompleteGroup(DiscordSocketClient client, IUserMessage message, ISocketMessageChannel channel)
+        public async void CompleteGroup(DiscordSocketClient client, IUserMessage message, ISocketMessageChannel channel, MessageDatabase.MessageType messageType, MessageDatabase.GroupType groupType)
         {
-            List<IUser> userReactions = new List<IUser>();
-            var aodEmote = _emoteDatabase.Get(client, EmoteDatabase.AoDEmote);
-            IAsyncEnumerable<IReadOnlyCollection<IUser>> reactionUsers = message.GetReactionUsersAsync(aodEmote, 10);
-            await foreach (var users in reactionUsers)
+            IGroupHandler handler;
+            if (_groupHandlers.TryGetValue(messageType, out handler))
             {
-                foreach (IUser user in users)
-                {
-                    if (!user.IsBot)
-                    {
-                        userReactions.Add(user);
-                    }
-                }
-            }
-
-            foreach (IUser user in userReactions)
-            {
-                Console.WriteLine(user.Username);
+                await handler.CompleteGroup(client, message, channel, groupType);
             }
         }
     }
