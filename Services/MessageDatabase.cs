@@ -23,5 +23,11 @@ namespace WinstonBot.Services
         {
             return _hostMessages[messageId];
         }
+
+        public void RemoveMessage(ulong messageId)
+        {
+            IMessageHandler handler;
+            _hostMessages.TryRemove(messageId, out handler);
+        }
     }
 }

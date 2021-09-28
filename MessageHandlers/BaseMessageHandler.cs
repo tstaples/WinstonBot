@@ -18,7 +18,7 @@ namespace WinstonBot.MessageHandlers
             ServiceProvider = serviceProvider;
         }
 
-        public virtual Task ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction) { return Task.CompletedTask; }
-        public virtual Task MessageRepliedTo(SocketUserMessage messageParam) { return Task.CompletedTask; }
+        public virtual Task<bool> ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction) { return Task.FromResult(false); }
+        public virtual Task<bool> MessageRepliedTo(SocketUserMessage messageParam) { return Task.FromResult(false); }
     }
 }

@@ -63,7 +63,11 @@ namespace WinstonBot
             if (messageDb.HasMessage(message.Id))
             {
                 var handler = messageDb.GetMessageHandler(message.Id);
-                await handler.ReactionAdded(userMessage, channel, reaction);
+                var handled = await handler.ReactionAdded(userMessage, channel, reaction);
+                if (handled)
+                {
+                    messageDb.RemoveMessage(message.Id);
+                }
             }
         }
 
@@ -83,7 +87,11 @@ namespace WinstonBot
                 messageDb.HasMessage(message.Reference.MessageId.Value))
             {
                 var handler = messageDb.GetMessageHandler(message.Reference.MessageId.Value);
-                await handler.MessageRepliedTo(message);
+                var handled = await handler.MessageRepliedTo(message);
+                if (handled)
+                {
+                    messageDb.RemoveMessage(message.Id);
+                }
             }
             // Determine if the message is a command based on the prefix and make sure no bots trigger commands
             else if (message.HasCharPrefix('!', ref argPos) ||

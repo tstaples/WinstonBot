@@ -11,7 +11,7 @@ namespace WinstonBot.MessageHandlers
 {
     public interface IMessageHandler
     {
-        public Task ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction);
-        public Task MessageRepliedTo(SocketUserMessage message);
+        public Task<bool> ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction);
+        public Task<bool> MessageRepliedTo(SocketUserMessage message);
     }
 }
