@@ -74,13 +74,13 @@ namespace WinstonBot.MessageHandlers
                 SocketTextChannel teamConfirmationChannel = Context.Guild.GetTextChannel(configService.Configuration.TeamConfirmationChannelId);
                 if (teamConfirmationChannel == null)
                 {
-                    await channel.SendMessageAsync("Failed to find team confirmation channel");
+                    await channel.SendMessageAsync("Failed to find team confirmation channel. Please use config set teamconfirmationchannel <channel> to set it.");
                     return false;
                 }
 
-                var newMessage = await teamConfirmationChannel.SendMessageAsync("Team is: " + String.Join(' ', names));
+                var newMessage = await teamConfirmationChannel.SendMessageAsync("Pending Team is: " + String.Join(' ', names));
 
-                ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context));
+                ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context, channel));
 
                 var completeEmote = emoteDB.Get(client, CompleteEmoji);
                 await newMessage.AddReactionAsync(completeEmote);
@@ -90,8 +90,11 @@ namespace WinstonBot.MessageHandlers
 
         public class TeamConfirmation : BaseMessageHandler
         {
-            public TeamConfirmation(Commands.CommandContext context) : base(context)
+            private ISocketMessageChannel _channelToSendFinalTeamTo;
+
+            public TeamConfirmation(Commands.CommandContext context, ISocketMessageChannel channelToSendFinalTeamTo) : base(context)
             {
+                _channelToSendFinalTeamTo = channelToSendFinalTeamTo;
             }
 
             public override async Task<bool> ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction)
@@ -105,7 +108,7 @@ namespace WinstonBot.MessageHandlers
                 List<string> names = message.MentionedUserIds.Select(userId => client.GetUser(userId).Mention).ToList();
 
                 // Send team to main channel
-                await channel.SendMessageAsync("Team confirmed: " + String.Join(' ', names));
+                await _channelToSendFinalTeamTo.SendMessageAsync("Team confirmed: " + String.Join(' ', names));
 
                 // Log team in DB
                 // Create cancelation/deletion handler (remove team from DB and send a team confirmation again so they can edit).
@@ -124,13 +127,13 @@ namespace WinstonBot.MessageHandlers
                 SocketTextChannel teamConfirmationChannel = Context.Guild.GetTextChannel(configService.Configuration.TeamConfirmationChannelId);
                 if (teamConfirmationChannel == null)
                 {
-                    await messageParam.Channel.SendMessageAsync("Failed to find team confirmation channel");
+                    await messageParam.Channel.SendMessageAsync("Failed to find team confirmation channel. Please use config set teamconfirmationchannel <channel> to set it.");
                     return false;
                 }
 
                 var newMessage = await teamConfirmationChannel.SendMessageAsync("Revised Team is: " + String.Join(' ', newNames));
 
-                ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context));
+                ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context, _channelToSendFinalTeamTo));
 
                 await newMessage.AddReactionAsync(emoteDB.Get(client, CompleteEmoji));
                 return true;

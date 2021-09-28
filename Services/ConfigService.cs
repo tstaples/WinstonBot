@@ -46,6 +46,7 @@ namespace WinstonBot.Services
             _config = newConfig;
             string value = JsonConvert.SerializeObject(_config);
             File.WriteAllText(_configPath, value);
+            Console.WriteLine("Updated config file");
         }
     }
 }
