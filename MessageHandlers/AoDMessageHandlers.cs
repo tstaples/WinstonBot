@@ -24,7 +24,7 @@ namespace WinstonBot.MessageHandlers
 
         public class QueueCompleted : BaseMessageHandler
         {
-            public QueueCompleted(IServiceProvider serviceProvider) : base(serviceProvider)
+            public QueueCompleted(Commands.CommandContext context) : base(context)
             {
             }
 
@@ -39,8 +39,8 @@ namespace WinstonBot.MessageHandlers
                     return false;
                 }
 
-                var emoteDB = ServiceProvider.GetService<EmoteDatabase>();
-                var client = ServiceProvider.GetService<DiscordSocketClient>();
+                var emoteDB = ServiceProvider.GetRequiredService<EmoteDatabase>();
+                var client = ServiceProvider.GetRequiredService<DiscordSocketClient>();
 
                 var aodEmote = emoteDB.Get(client, AoDEmote);
 
@@ -70,10 +70,17 @@ namespace WinstonBot.MessageHandlers
                     return false;
                 }
 
-                // TODO: send this to the secret channel
-                var newMessage = await channel.SendMessageAsync("Team is: " + String.Join(' ', names));
+                var configService = ServiceProvider.GetRequiredService<ConfigService>();
+                SocketTextChannel teamConfirmationChannel = Context.Guild.GetTextChannel(configService.Configuration.TeamConfirmationChannelId);
+                if (teamConfirmationChannel == null)
+                {
+                    await channel.SendMessageAsync("Failed to find team confirmation channel");
+                    return false;
+                }
 
-                ServiceProvider.GetService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(ServiceProvider));
+                var newMessage = await teamConfirmationChannel.SendMessageAsync("Team is: " + String.Join(' ', names));
+
+                ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context));
 
                 var completeEmote = emoteDB.Get(client, CompleteEmoji);
                 await newMessage.AddReactionAsync(completeEmote);
@@ -83,7 +90,7 @@ namespace WinstonBot.MessageHandlers
 
         public class TeamConfirmation : BaseMessageHandler
         {
-            public TeamConfirmation(IServiceProvider serviceProvider) : base(serviceProvider)
+            public TeamConfirmation(Commands.CommandContext context) : base(context)
             {
             }
 
@@ -94,7 +101,7 @@ namespace WinstonBot.MessageHandlers
                     return false;
                 }
 
-                var client = ServiceProvider.GetService<DiscordSocketClient>();
+                var client = ServiceProvider.GetRequiredService<DiscordSocketClient>();
                 List<string> names = message.MentionedUserIds.Select(userId => client.GetUser(userId).Mention).ToList();
 
                 // Send team to main channel
@@ -110,12 +117,20 @@ namespace WinstonBot.MessageHandlers
                 // parse out new team and set this handler as the handler for the new message
                 List<string> newNames = messageParam.MentionedUsers.Select(user => user.Mention).ToList();
 
-                var emoteDB = ServiceProvider.GetService<EmoteDatabase>();
-                var client = ServiceProvider.GetService<DiscordSocketClient>();
+                var emoteDB = ServiceProvider.GetRequiredService<EmoteDatabase>();
+                var client = ServiceProvider.GetRequiredService<DiscordSocketClient>();
 
-                var newMessage = await messageParam.Channel.SendMessageAsync("Revised Team is: " + String.Join(' ', newNames));
+                var configService = ServiceProvider.GetRequiredService<ConfigService>();
+                SocketTextChannel teamConfirmationChannel = Context.Guild.GetTextChannel(configService.Configuration.TeamConfirmationChannelId);
+                if (teamConfirmationChannel == null)
+                {
+                    await messageParam.Channel.SendMessageAsync("Failed to find team confirmation channel");
+                    return false;
+                }
 
-                ServiceProvider.GetService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(ServiceProvider));
+                var newMessage = await teamConfirmationChannel.SendMessageAsync("Revised Team is: " + String.Join(' ', newNames));
+
+                ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context));
 
                 await newMessage.AddReactionAsync(emoteDB.Get(client, CompleteEmoji));
                 return true;

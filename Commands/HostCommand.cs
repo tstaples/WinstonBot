@@ -40,7 +40,7 @@ namespace WinstonBot.Commands
 
 				var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up");
 
-				var handler = new AoDMessageHandlers.QueueCompleted(Context.ServiceProvider);
+				var handler = new AoDMessageHandlers.QueueCompleted(Context);
 				MessageDB.AddMessage(message.Id, handler);
 
 				await message.AddReactionAsync(signUpEmote);

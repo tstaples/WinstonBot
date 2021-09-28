@@ -15,10 +15,5 @@ namespace WinstonBot
             return client.Guilds.SelectMany(x => x.Emotes)
                 .FirstOrDefault(x => x.Name.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1);
         }
-
-        public static ulong GetChannelIdByName(DiscordSocketClient client, string channelName)
-        {
-            return 0;
-        }
     }
 }

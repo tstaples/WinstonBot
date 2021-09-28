@@ -6,16 +6,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WinstonBot.Services;
+using WinstonBot.Commands;
 
 namespace WinstonBot.MessageHandlers
 {
     public abstract class BaseMessageHandler : IMessageHandler
     {
-        protected IServiceProvider ServiceProvider { get; private set; }
+        protected CommandContext Context { get; private set; }
+        protected IServiceProvider ServiceProvider => Context.ServiceProvider;
 
-        public BaseMessageHandler(IServiceProvider serviceProvider)
+        public BaseMessageHandler(CommandContext context)
         {
-            ServiceProvider = serviceProvider;
+            Context = context;
         }
 
         public virtual Task<bool> ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction) { return Task.FromResult(false); }

@@ -16,7 +16,7 @@ namespace WinstonBot
         // Retrieve client and CommandService instance via ctor
         public CommandHandler(IServiceProvider services, DiscordSocketClient client)
         {
-            _commands = services.GetService<CommandService>();
+            _commands = services.GetRequiredService<CommandService>();
             _client = client;
             _services = services;
         }
@@ -56,7 +56,7 @@ namespace WinstonBot
                 return;
             }
 
-            var messageDb = _services.GetService<MessageDatabase>();
+            var messageDb = _services.GetRequiredService<MessageDatabase>();
 
             // TODO: if someone tries to signup that doesn't have the necessary role PM them and refer to the rules channel.
 
@@ -80,7 +80,7 @@ namespace WinstonBot
             // Create a number to track where the prefix ends and the command begins
             int argPos = 0;
 
-            var messageDb = _services.GetService<MessageDatabase>();
+            var messageDb = _services.GetRequiredService<MessageDatabase>();
 
             if (message.Reference != null &&
                 message.Reference.MessageId.IsSpecified &&
