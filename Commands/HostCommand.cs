@@ -38,13 +38,13 @@ namespace WinstonBot.Commands
 
 				var completeEmote = EmoteDatabase.Get(Context.Client, EmoteDatabase.CompleteEmoji);
 
-				var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up");
+				var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up for AoD");
 
+				// TODO: allow passing in an object that handles getting the reactions. This way we can spoof reactions for testing.
 				var handler = new AoDMessageHandlers.QueueCompleted(Context);
 				MessageDB.AddMessage(message.Id, handler);
 
-				await message.AddReactionAsync(signUpEmote);
-				await message.AddReactionAsync(completeEmote);
+				await message.AddReactionsAsync(new IEmote[] { signUpEmote, completeEmote });
 			}
 		}
 

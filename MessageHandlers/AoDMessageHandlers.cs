@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WinstonBot.Services;
 using Microsoft.Extensions.DependencyInjection;
+using WinstonBot.Commands;
 
 namespace WinstonBot.MessageHandlers
 {
@@ -14,7 +15,8 @@ namespace WinstonBot.MessageHandlers
     {
         public static readonly EmoteDatabase.IEmoteDefinition AoDEmote = new EmoteDatabase.CustomEmoteDefinition() { Name = "winstonface" };
         public static readonly EmoteDatabase.IEmoteDefinition CompleteEmoji = new EmoteDatabase.EmojiDefinition() { Name = "\u2705" };
-
+        public static readonly EmoteDatabase.IEmoteDefinition CancelEmoji = new EmoteDatabase.EmojiDefinition() { Name = "❌" };
+        
         // TODO: if we want to be able to leave off from where we were if the bot restarts we probably need to serialize the state we were in.
         private enum State
         {
@@ -78,12 +80,15 @@ namespace WinstonBot.MessageHandlers
                     return false;
                 }
 
-                var newMessage = await teamConfirmationChannel.SendMessageAsync("Pending Team is: " + String.Join(' ', names));
+                Console.WriteLine("[QueuedCompleted] sending pending team message to confirmation channel");
+                var newMessage = await teamConfirmationChannel.SendMessageAsync(
+                    $"Pending Team is:\n {String.Join('\n', names)}\n\nPress {CompleteEmoji.Name} To confirm team and post to main channel.\n\n" +
+                    $"To revise team reply to this message with the full list of mentions for who should go.");
 
                 ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context, channel));
 
                 var completeEmote = emoteDB.Get(client, CompleteEmoji);
-                await newMessage.AddReactionAsync(completeEmote);
+                await newMessage.AddReactionAsync(emoteDB.Get(client, CompleteEmoji));
                 return true;
             }
         }
@@ -99,20 +104,33 @@ namespace WinstonBot.MessageHandlers
 
             public override async Task<bool> ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction)
             {
-                if (reaction.Emote.Name != CompleteEmoji.Name)
+                if (reaction.Emote.Name == CompleteEmoji.Name)
                 {
-                    return false;
+                    var client = ServiceProvider.GetRequiredService<DiscordSocketClient>();
+                    List<string> names = message.MentionedUserIds.Select(userId => client.GetUser(userId).Mention).ToList();
+
+                    Console.WriteLine("[TeamConfirmation] Team confirmed");
+
+                    // Send team to main channel
+                    var newMessage = await _channelToSendFinalTeamTo.SendMessageAsync(
+                        $"Team confirmed:\n {String.Join('\n', names)}\n\nPress {CancelEmoji.Name} to edit the team.");
+
+                    ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new CancelTeam(Context));
+
+                    // Create cancelation/deletion handler (remove team from DB and send a team confirmation again so they can edit).
+                    var emoteDB = ServiceProvider.GetRequiredService<EmoteDatabase>();
+                    await newMessage.AddReactionAsync(emoteDB.Get(client, CancelEmoji));
+
+                    // Log team in DB
+                    return true;
                 }
-
-                var client = ServiceProvider.GetRequiredService<DiscordSocketClient>();
-                List<string> names = message.MentionedUserIds.Select(userId => client.GetUser(userId).Mention).ToList();
-
-                // Send team to main channel
-                await _channelToSendFinalTeamTo.SendMessageAsync("Team confirmed: " + String.Join(' ', names));
-
-                // Log team in DB
-                // Create cancelation/deletion handler (remove team from DB and send a team confirmation again so they can edit).
-                return true;
+                else if (reaction.Emote.Name == CancelEmoji.Name)
+                {
+                    Console.WriteLine("[TeamConfirmation] Team canceled, deleting message");
+                    await channel.DeleteMessageAsync(message);
+                    return true;
+                }
+                return false;
             }
 
             public override async Task<bool> MessageRepliedTo(SocketUserMessage messageParam)
@@ -131,10 +149,53 @@ namespace WinstonBot.MessageHandlers
                     return false;
                 }
 
-                var newMessage = await teamConfirmationChannel.SendMessageAsync("Revised Team is: " + String.Join(' ', newNames));
+                Console.WriteLine("[TeamConfirmation] Team was revised. Sending to confirmation channel.");
+
+                var newMessage = await teamConfirmationChannel.SendMessageAsync(
+                    $"Revised Team is:\n {String.Join('\n', newNames)}\n\nPress {CompleteEmoji.Name} To confirm team and post to main channel.\n\n" +
+                    $"To revise team reply to this message with the full list of mentions for who should go.");
 
                 ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context, _channelToSendFinalTeamTo));
 
+                await newMessage.AddReactionAsync(emoteDB.Get(client, CompleteEmoji));
+                return true;
+            }
+        }
+
+        public class CancelTeam : BaseMessageHandler
+        {
+            public CancelTeam(CommandContext context) : base(context)
+            {
+            }
+
+            public override async Task<bool> ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction)
+            {
+                if (reaction.Emote.Name != CancelEmoji.Name)
+                {
+                    return false;
+                }
+
+                var client = ServiceProvider.GetRequiredService<DiscordSocketClient>();
+                List<string> names = message.MentionedUserIds.Select(userId => client.GetUser(userId).Mention).ToList();
+
+                var configService = ServiceProvider.GetRequiredService<ConfigService>();
+                SocketTextChannel teamConfirmationChannel = Context.Guild.GetTextChannel(configService.Configuration.TeamConfirmationChannelId);
+                if (teamConfirmationChannel == null)
+                {
+                    await channel.SendMessageAsync("Failed to find team confirmation channel. Please use config set teamconfirmationchannel <channel> to set it.");
+                    return false;
+                }
+
+                Console.WriteLine("[CancelTeam] Team was canceled, sending edit request to confirmation channel.");
+
+                // Delete the original message
+                await channel.DeleteMessageAsync(message);
+
+                var newMessage = await teamConfirmationChannel.SendMessageAsync($"Canceled team:\n {String.Join('\n', names)}.\n\nPlease make any edits then confirm again.");
+
+                ServiceProvider.GetRequiredService<MessageDatabase>().AddMessage(newMessage.Id, new TeamConfirmation(Context, channel));
+
+                var emoteDB = ServiceProvider.GetRequiredService<EmoteDatabase>();
                 await newMessage.AddReactionAsync(emoteDB.Get(client, CompleteEmoji));
                 return true;
             }
