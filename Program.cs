@@ -10,7 +10,6 @@ public class Program
 	private DiscordSocketClient _client;
 	private CommandHandler _commandHandler;
 	private MessageDatabase _messageDB;
-	private GroupCompletionService _groupCompletionService;
 	private EmoteDatabase _emoteDatabase;
 
 	public static void Main(string[] args)
@@ -20,7 +19,6 @@ public class Program
 		.AddSingleton(_client)
 		.AddSingleton<CommandService>()
 		.AddSingleton(_messageDB)
-		.AddSingleton(_groupCompletionService)
 		.AddSingleton(_emoteDatabase)
 		.BuildServiceProvider();
 
@@ -36,8 +34,6 @@ public class Program
 		Console.WriteLine("after start");
 		_emoteDatabase = new EmoteDatabase();
 		_messageDB = new MessageDatabase();
-		// TODO: can we use dependency injection to pass this in?
-		_groupCompletionService = new GroupCompletionService(_emoteDatabase);
 
 		_commandHandler = new CommandHandler(BuildServiceProvider(), _client);
 		await _commandHandler.InstallCommandsAsync();

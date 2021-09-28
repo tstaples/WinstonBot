@@ -60,15 +60,10 @@ namespace WinstonBot
 
             // TODO: if someone tries to signup that doesn't have the necessary role PM them and refer to the rules channel.
 
-            if (reaction.Emote.Name == EmoteDatabase.CompleteEmoji.Name &&
-                messageDb.HasMessage(message.Id))
+            if (messageDb.HasMessage(message.Id))
             {
-                Console.WriteLine("Group was completed.");
-
-                var messageData = messageDb.GetMessageData(message.Id);
-
-                var groupCompletionService = _services.GetService<GroupCompletionService>();
-                groupCompletionService.CompleteGroup(_client, userMessage, channel, messageData.Type, messageData.GroupType);
+                var handler = messageDb.GetMessageHandler(message.Id);
+                await handler.ReactionAdded(userMessage, channel, reaction);
             }
         }
 
@@ -76,26 +71,37 @@ namespace WinstonBot
         {
             // Don't process the command if it was a system message
             var message = messageParam as SocketUserMessage;
-            if (message == null) return;
+            if (message == null || message.Author.IsBot) return;
 
             // Create a number to track where the prefix ends and the command begins
             int argPos = 0;
 
+            var messageDb = _services.GetService<MessageDatabase>();
+
+            if (message.Reference != null &&
+                message.Reference.MessageId.IsSpecified &&
+                messageDb.HasMessage(message.Reference.MessageId.Value))
+            {
+                var handler = messageDb.GetMessageHandler(message.Reference.MessageId.Value);
+                await handler.MessageRepliedTo(message);
+            }
             // Determine if the message is a command based on the prefix and make sure no bots trigger commands
-            if (!(message.HasCharPrefix('!', ref argPos) ||
-                message.HasMentionPrefix(_client.CurrentUser, ref argPos)) ||
-                message.Author.IsBot)
-                return;
+            else if (message.HasCharPrefix('!', ref argPos) ||
+                message.HasMentionPrefix(_client.CurrentUser, ref argPos))
+            {
+                // Create a WebSocket-based command context based on the message
+                var context = new Commands.CommandContext(_client, message)
+                {
+                    ServiceProvider = _services,
+                };
 
-            // Create a WebSocket-based command context based on the message
-            var context = new Commands.CommandContext(_client, message);
-
-            // Execute the command with the command context we just
-            // created, along with the service provider for precondition checks.
-            await _commands.ExecuteAsync(
-                context: context,
-                argPos: argPos,
-                services: _services);
+                // Execute the command with the command context we just
+                // created, along with the service provider for precondition checks.
+                await _commands.ExecuteAsync(
+                    context: context,
+                    argPos: argPos,
+                    services: _services);
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using WinstonBot.Services;
+using WinstonBot.MessageHandlers;
 
 namespace WinstonBot.Commands
 {
@@ -39,7 +40,8 @@ namespace WinstonBot.Commands
 
 				var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up");
 
-				MessageDB.AddMessage(message.Id, MessageDatabase.MessageType.AoD, MessageDatabase.GroupType.Queued);
+				var handler = new AoDMessageHandlers.QueueCompleted(Context.ServiceProvider);
+				MessageDB.AddMessage(message.Id, handler);
 
 				await message.AddReactionAsync(signUpEmote);
 				await message.AddReactionAsync(completeEmote);

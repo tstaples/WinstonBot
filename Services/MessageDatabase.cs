@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using WinstonBot.MessageHandlers;
 
 namespace WinstonBot.Services
 {
@@ -6,28 +7,11 @@ namespace WinstonBot.Services
     // We will need to remove the messages once the message gets deleted.
     public class MessageDatabase
     {
-        public enum MessageType
-        {
-            AoD
-        }
+        private ConcurrentDictionary<ulong, IMessageHandler> _hostMessages = new ConcurrentDictionary<ulong, IMessageHandler>();
 
-        public enum GroupType
+        public void AddMessage(ulong messageId, IMessageHandler handler)
         {
-            Default,
-            Queued
-        }
-
-        public class MessageData
-        {
-            public MessageType Type { get; set; }
-            public GroupType GroupType { get; set; }
-        }
-
-        private ConcurrentDictionary<ulong, MessageData> _hostMessages = new ConcurrentDictionary<ulong, MessageData>();
-
-        public void AddMessage(ulong messageId, MessageType messageType, GroupType groupType)
-        {
-            _hostMessages.TryAdd(messageId, new MessageData { Type = messageType, GroupType = groupType });
+            _hostMessages.TryAdd(messageId, handler);
         }
 
         public bool HasMessage(ulong messageId)
@@ -35,7 +19,7 @@ namespace WinstonBot.Services
             return _hostMessages.ContainsKey(messageId);
         }
 
-        public MessageData GetMessageData(ulong messageId)
+        public IMessageHandler GetMessageHandler(ulong messageId)
         {
             return _hostMessages[messageId];
         }
