@@ -16,14 +16,6 @@ namespace WinstonBot.MessageHandlers
         public static readonly EmoteDatabase.IEmoteDefinition AoDEmote = new EmoteDatabase.CustomEmoteDefinition() { Name = "winstonface" };
         public static readonly EmoteDatabase.IEmoteDefinition CompleteEmoji = new EmoteDatabase.EmojiDefinition() { Name = "\u2705" };
         public static readonly EmoteDatabase.IEmoteDefinition CancelEmoji = new EmoteDatabase.EmojiDefinition() { Name = "❌" };
-        
-        // TODO: if we want to be able to leave off from where we were if the bot restarts we probably need to serialize the state we were in.
-        private enum State
-        {
-            WaitForQueueCompletion,
-            ConfirmTeamSelection,
-            WaitForCancelation
-        }
 
         public class QueueCompleted : BaseMessageHandler
         {
@@ -56,7 +48,6 @@ namespace WinstonBot.MessageHandlers
                 }
 
                 var configService = ServiceProvider.GetRequiredService<ConfigService>();
-                // NOTE: we can get the guild from the guild ID which we can store.
                 SocketTextChannel teamConfirmationChannel = Guild.GetTextChannel(configService.Configuration.TeamConfirmationChannelId);
                 if (teamConfirmationChannel == null)
                 {

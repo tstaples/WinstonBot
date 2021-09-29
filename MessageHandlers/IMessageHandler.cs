@@ -9,12 +9,6 @@ using WinstonBot.Services;
 
 namespace WinstonBot.MessageHandlers
 {
-    public interface IMessageHandlerContext
-    {
-        public IServiceProvider ServiceProvider { get; set; }
-        public IUserReader UserReader { get; set; }
-    }
-
     public interface IMessageHandler
     {
         public Task<bool> ReactionAdded(IUserMessage message, ISocketMessageChannel channel, SocketReaction reaction);

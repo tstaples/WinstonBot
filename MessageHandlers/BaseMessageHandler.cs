@@ -13,7 +13,7 @@ using System.Diagnostics;
 
 namespace WinstonBot.MessageHandlers
 {
-    public class MessageHandlerContext : IMessageHandlerContext
+    public class MessageHandlerContext
     {
         public ulong GuildId {  get; set; }
         public IServiceProvider ServiceProvider { get; set; }
@@ -43,6 +43,7 @@ namespace WinstonBot.MessageHandlers
         protected DiscordSocketClient Client => ServiceProvider.GetRequiredService<DiscordSocketClient>();
         protected SocketGuild Guild => Client.GetGuild(GuildId);
 
+        // Default constructor for deserialize only.
         public BaseMessageHandler() { }
 
         public BaseMessageHandler(MessageHandlerContext context)
