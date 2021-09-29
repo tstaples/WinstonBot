@@ -6,8 +6,8 @@ using Newtonsoft.Json.Linq;
 
 namespace WinstonBot.Services
 {
-    // TODO: this should store message ids of host messages in the DB so if the bot restarts the old messages still work.
-    // We will need to remove the messages once the message gets deleted.
+    // This class tracks messages corresponding to commands that the bot responds to.
+    // This can be serialized to allow the bot to respond to old commands even if it's restarted.
     public class MessageDatabase
     {
         public enum Version
@@ -121,7 +121,11 @@ namespace WinstonBot.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Failed to read config file: " + ex.Message);
+                    Console.WriteLine($"Failed to database file: {ex.Message}. Creating new database.");
+                    _database = new Database()
+                    {
+                        VersionNumber = CurrentVersion
+                    };
                 }
             }
             else
@@ -142,6 +146,8 @@ namespace WinstonBot.Services
                     handler.ConstructContext(services);
                 }
             }
+
+            Console.WriteLine("Message Database initialized");
         }
 
         private void Save()
