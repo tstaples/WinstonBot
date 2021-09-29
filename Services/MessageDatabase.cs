@@ -2,6 +2,7 @@
 using WinstonBot.MessageHandlers;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using Newtonsoft.Json.Linq;
 
 namespace WinstonBot.Services
 {
@@ -9,13 +10,28 @@ namespace WinstonBot.Services
     // We will need to remove the messages once the message gets deleted.
     public class MessageDatabase
     {
+        public enum Version
+        {
+            None,
+            Initial,
+            Count,
+            Current = Count - 1
+        }
+
+        public static Version CurrentVersion => Version.Current;
+
         private class GuildEntry
         {
             // message id -> handler
             public Dictionary<ulong, IMessageHandler> MessageHandlers { get; set; } = new Dictionary<ulong, IMessageHandler>();
         }
 
-        private class Database
+        private class DBVersion
+        {
+            public Version VersionNumber {  get; set; }
+        }
+
+        private class Database : DBVersion
         {
             // guild id -> entry
             public Dictionary<ulong, GuildEntry> GuildEntries { get; set; } = new Dictionary<ulong, GuildEntry>();
@@ -78,17 +94,30 @@ namespace WinstonBot.Services
             return _database.GuildEntries[guildId];
         }
 
-        public void Load()
+        public void Load(IServiceProvider services)
         {
             if (File.Exists(_databasePath))
             {
                 try
                 {
-                    var configText = File.ReadAllText(_databasePath);
-                    _database = JsonConvert.DeserializeObject<Database>(configText, new JsonSerializerSettings()
+                    var data = File.ReadAllText(_databasePath);
+
+                    DBVersion version = JsonConvert.DeserializeObject<DBVersion>(data);
+                    if (version != null && version.VersionNumber == CurrentVersion)
                     {
-                        TypeNameHandling = TypeNameHandling.Auto
-                    });
+                        _database = JsonConvert.DeserializeObject<Database>(data, new JsonSerializerSettings()
+                        {
+                            TypeNameHandling = TypeNameHandling.Auto
+                        });
+                    }
+                    else
+                    {
+                        Console.WriteLine("Database is out of date. Creating a fresh one");
+                        _database = new Database()
+                        {
+                            VersionNumber = CurrentVersion
+                        };
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -97,7 +126,21 @@ namespace WinstonBot.Services
             }
             else
             {
-                _database = new Database();
+                _database = new Database()
+                {
+                    VersionNumber = CurrentVersion
+                };
+            }
+
+            // initialize handler data
+            foreach (var guildEntryPair in _database.GuildEntries)
+            {
+                ulong guildId = guildEntryPair.Key;
+                foreach (var messageIdHandlerPair in guildEntryPair.Value.MessageHandlers)
+                {
+                    var handler = messageIdHandlerPair.Value;
+                    handler.ConstructContext(services);
+                }
             }
         }
 
@@ -108,7 +151,15 @@ namespace WinstonBot.Services
                 TypeNameHandling = TypeNameHandling.Auto
             });
 
-            File.WriteAllText(_databasePath, jsonData);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_databasePath));
+                File.WriteAllText(_databasePath, jsonData);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error writing database: " + ex.Message);
+            }
         }
     }
 }

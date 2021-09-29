@@ -42,8 +42,9 @@ namespace WinstonBot.Commands
 				var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up for AoD");
 
 				//var handler = new AoDMessageHandlers.QueueCompleted(Context, new UserReader(Context.Client));
-				var testNames = Context.ServiceProvider.GetService<ConfigService>().Configuration.DebugTestNames;
-				var handler = new AoDMessageHandlers.QueueCompleted(Context, new MockUserReader(testNames));
+				var testNames = Context.ServiceProvider.GetRequiredService<ConfigService>().Configuration.DebugTestNames;
+				var handlerContext = new MessageHandlerContext(Context.GuildId, Context.ServiceProvider, new MockUserReader(testNames));
+				var handler = new AoDMessageHandlers.QueueCompleted(handlerContext);
 				MessageDB.AddMessage(Context.Guild.Id, message.Id, handler);
 
 				await message.AddReactionsAsync(new IEmote[] { signUpEmote, completeEmote });

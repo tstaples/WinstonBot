@@ -13,6 +13,7 @@ public class Program
 	private MessageDatabase _messageDB;
 	private EmoteDatabase _emoteDatabase;
 	private ConfigService _configService;
+	private IServiceProvider _services;
 
 	public static void Main(string[] args)
 		=> new Program().MainAsync().GetAwaiter().GetResult();
@@ -21,7 +22,7 @@ public class Program
 		.AddSingleton(_client)
 		.AddSingleton(new CommandService(new CommandServiceConfig()
         {
-			DefaultRunMode = RunMode.Async,
+			DefaultRunMode = RunMode.Sync,
 			CaseSensitiveCommands = false,
 			LogLevel = LogSeverity.Verbose
         }))
@@ -51,7 +52,8 @@ public class Program
 
         _client.Ready += ClientReady;
 
-		_commandHandler = new CommandHandler(BuildServiceProvider(), _client);
+		_services = BuildServiceProvider();
+		_commandHandler = new CommandHandler(_services, _client);
 		await _commandHandler.InstallCommandsAsync();
 
 		await Task.Delay(-1);
@@ -63,7 +65,7 @@ public class Program
 
 		// read in the db
 		// populate the message dict
-		_messageDB.Load();
+		_messageDB.Load(_services);
 
 		return Task.CompletedTask;
     }

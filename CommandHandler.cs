@@ -115,6 +115,7 @@ namespace WinstonBot
                 var context = new Commands.CommandContext(_client, message)
                 {
                     ServiceProvider = _services,
+                    GuildId = guild.Id
                 };
 
                 // Execute the command with the command context we just
