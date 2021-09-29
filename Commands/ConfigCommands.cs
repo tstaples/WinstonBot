@@ -23,6 +23,17 @@ namespace WinstonBot.Commands
                 configService.UpdateConfig(config);
                 await Context.Channel.SendMessageAsync("Team confirmation channel updated!");
             }
+            
+            [Command("testnames")]
+            public async Task SetTestNames(string names)
+            {
+                Console.WriteLine("Setting test names: " + names);
+                string[] nameList = names.Split(',');
+                var configService = Context.ServiceProvider.GetRequiredService<ConfigService>();
+                var config = configService.Configuration;
+                config.DebugTestNames = nameList;
+                configService.UpdateConfig(config);
+            }
         }
 
         [Group("get")]

@@ -2,6 +2,7 @@
 using Discord.Commands;
 using WinstonBot.Services;
 using WinstonBot.MessageHandlers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WinstonBot.Commands
 {
@@ -40,8 +41,9 @@ namespace WinstonBot.Commands
 
 				var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up for AoD");
 
-				// TODO: allow passing in an object that handles getting the reactions. This way we can spoof reactions for testing.
-				var handler = new AoDMessageHandlers.QueueCompleted(Context);
+				//var handler = new AoDMessageHandlers.QueueCompleted(Context, new UserReader(Context.Client));
+				var testNames = Context.ServiceProvider.GetService<ConfigService>().Configuration.DebugTestNames;
+				var handler = new AoDMessageHandlers.QueueCompleted(Context, new MockUserReader(testNames));
 				MessageDB.AddMessage(message.Id, handler);
 
 				await message.AddReactionsAsync(new IEmote[] { signUpEmote, completeEmote });

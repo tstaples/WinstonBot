@@ -9,7 +9,8 @@ namespace WinstonBot.Services
 {
     public class Config
     {
-        public ulong TeamConfirmationChannelId { get; set; }
+        public ulong TeamConfirmationChannelId { get; set; } = 0;
+        public string[] DebugTestNames { get; set; } = new string[] { };
     }
 
     public class ConfigService
