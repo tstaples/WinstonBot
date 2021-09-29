@@ -50,6 +50,13 @@ namespace WinstonBot
 
             var userMessage = await message.GetOrDownloadAsync();
 
+            var guild = (channel as SocketGuildChannel)?.Guild;
+            if (guild == null)
+            {
+                Console.WriteLine("Ignoring reaction containing invalid guild: " + userMessage.Content);
+                return;
+            }
+
             if (reaction.UserId == this._client.CurrentUser.Id ||
                 userMessage.Author.Id != this._client.CurrentUser.Id)
             {
@@ -60,13 +67,13 @@ namespace WinstonBot
 
             // TODO: if someone tries to signup that doesn't have the necessary role PM them and refer to the rules channel.
 
-            if (messageDb.HasMessage(message.Id))
+            if (messageDb.HasMessage(guild.Id, message.Id))
             {
-                var handler = messageDb.GetMessageHandler(message.Id);
+                var handler = messageDb.GetMessageHandler(guild.Id, message.Id);
                 var handled = await handler.ReactionAdded(userMessage, channel, reaction);
                 if (handled)
                 {
-                    messageDb.RemoveMessage(message.Id);
+                    messageDb.RemoveMessage(guild.Id, message.Id);
                 }
             }
         }
@@ -82,15 +89,22 @@ namespace WinstonBot
 
             var messageDb = _services.GetRequiredService<MessageDatabase>();
 
+            var guild = (message.Channel as SocketGuildChannel)?.Guild;
+            if (guild == null)
+            {
+                Console.WriteLine("Ignoring message containing invalid guild: " + message.Content);
+                return;
+            }
+
             if (message.Reference != null &&
                 message.Reference.MessageId.IsSpecified &&
-                messageDb.HasMessage(message.Reference.MessageId.Value))
+                messageDb.HasMessage(guild.Id, message.Reference.MessageId.Value))
             {
-                var handler = messageDb.GetMessageHandler(message.Reference.MessageId.Value);
+                var handler = messageDb.GetMessageHandler(guild.Id, message.Reference.MessageId.Value);
                 var handled = await handler.MessageRepliedTo(message);
                 if (handled)
                 {
-                    messageDb.RemoveMessage(message.Id);
+                    messageDb.RemoveMessage(guild.Id, message.Id);
                 }
             }
             // Determine if the message is a command based on the prefix and make sure no bots trigger commands

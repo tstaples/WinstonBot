@@ -4,3 +4,5 @@
 - notifying people trying to sign up without having read rules
 - regular sign ups for aod/raids/rago?
 - combined raids signup
+- deploy script so we can have a release instance running while we can run a separate test instance.
+	- this should also deploy the release token

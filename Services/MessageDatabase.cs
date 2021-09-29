@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using WinstonBot.MessageHandlers;
+using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace WinstonBot.Services
 {
@@ -7,27 +9,106 @@ namespace WinstonBot.Services
     // We will need to remove the messages once the message gets deleted.
     public class MessageDatabase
     {
-        private ConcurrentDictionary<ulong, IMessageHandler> _hostMessages = new ConcurrentDictionary<ulong, IMessageHandler>();
-
-        public void AddMessage(ulong messageId, IMessageHandler handler)
+        private class GuildEntry
         {
-            _hostMessages.TryAdd(messageId, handler);
+            // message id -> handler
+            public Dictionary<ulong, IMessageHandler> MessageHandlers { get; set; } = new Dictionary<ulong, IMessageHandler>();
         }
 
-        public bool HasMessage(ulong messageId)
+        private class Database
         {
-            return _hostMessages.ContainsKey(messageId);
+            // guild id -> entry
+            public Dictionary<ulong, GuildEntry> GuildEntries { get; set; } = new Dictionary<ulong, GuildEntry>();
         }
 
-        public IMessageHandler GetMessageHandler(ulong messageId)
+        private string _databasePath;
+        private Database _database;
+
+        public MessageDatabase(string path)
         {
-            return _hostMessages[messageId];
+            _databasePath = path;
         }
 
-        public void RemoveMessage(ulong messageId)
+        public void AddMessage(ulong guildId, ulong messageId, IMessageHandler handler)
         {
-            IMessageHandler handler;
-            _hostMessages.TryRemove(messageId, out handler);
+            // if we hit these asserts then queue the messages until the db is loaded then add them.
+            Debug.Assert(_database != null);
+            lock (_database)
+            {
+                GetOrAddGuild(guildId).MessageHandlers.Add(messageId, handler);
+                Save();
+            }
+        }
+
+        public bool HasMessage(ulong guildId, ulong messageId)
+        {
+            Debug.Assert(_database != null);
+            lock (_database)
+            {
+                return _database.GuildEntries.ContainsKey(guildId) &&
+                    _database.GuildEntries[guildId].MessageHandlers.ContainsKey(messageId);
+            }
+        }
+
+        public IMessageHandler GetMessageHandler(ulong guildId, ulong messageId)
+        {
+            Debug.Assert(_database != null);
+            lock (_database)
+            {
+                return _database.GuildEntries[guildId].MessageHandlers[messageId];
+            }
+        }
+
+        public void RemoveMessage(ulong guildId, ulong messageId)
+        {
+            Debug.Assert(_database != null);
+            lock (_database)
+            {
+                GetOrAddGuild(guildId).MessageHandlers.Remove(messageId);
+                Save();
+            }
+        }
+
+        private GuildEntry GetOrAddGuild(ulong guildId)
+        {
+            if (!_database.GuildEntries.ContainsKey(guildId))
+            {
+                _database.GuildEntries.Add(guildId, new GuildEntry());
+            }
+            return _database.GuildEntries[guildId];
+        }
+
+        public void Load()
+        {
+            if (File.Exists(_databasePath))
+            {
+                try
+                {
+                    var configText = File.ReadAllText(_databasePath);
+                    _database = JsonConvert.DeserializeObject<Database>(configText, new JsonSerializerSettings()
+                    {
+                        TypeNameHandling = TypeNameHandling.Auto
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed to read config file: " + ex.Message);
+                }
+            }
+            else
+            {
+                _database = new Database();
+            }
+        }
+
+        private void Save()
+        {
+            string jsonData = JsonConvert.SerializeObject(_database, new JsonSerializerSettings()
+            {
+                TypeNameHandling = TypeNameHandling.Auto
+            });
+
+            File.WriteAllText(_databasePath, jsonData);
         }
     }
 }

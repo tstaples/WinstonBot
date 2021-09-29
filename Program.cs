@@ -44,8 +44,12 @@ public class Program
 
 		Console.WriteLine("after start");
 		_emoteDatabase = new EmoteDatabase();
-		_messageDB = new MessageDatabase();
+
+        string dbPath = Path.Combine("Database", "MessageData.json");
+		_messageDB = new MessageDatabase(dbPath);
 		_configService = new ConfigService(Path.Combine("Config", "config.json"));
+
+        _client.Ready += ClientReady;
 
 		_commandHandler = new CommandHandler(BuildServiceProvider(), _client);
 		await _commandHandler.InstallCommandsAsync();
@@ -53,7 +57,18 @@ public class Program
 		await Task.Delay(-1);
 	}
 
-	private Task Log(LogMessage msg)
+    private Task ClientReady()
+    {
+		Console.WriteLine("Client ready");
+
+		// read in the db
+		// populate the message dict
+		_messageDB.Load();
+
+		return Task.CompletedTask;
+    }
+
+    private Task Log(LogMessage msg)
 	{
 		Console.WriteLine(msg.ToString());
 		return Task.CompletedTask;

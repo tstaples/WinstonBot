@@ -12,6 +12,7 @@ namespace WinstonBot.MessageHandlers
 {
     public abstract class BaseMessageHandler : IMessageHandler
     {
+        protected ulong GuildId {  get; private set; }
         protected CommandContext Context { get; private set; }
         protected IServiceProvider ServiceProvider => Context.ServiceProvider;
 

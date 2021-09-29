@@ -44,7 +44,7 @@ namespace WinstonBot.Commands
 				//var handler = new AoDMessageHandlers.QueueCompleted(Context, new UserReader(Context.Client));
 				var testNames = Context.ServiceProvider.GetService<ConfigService>().Configuration.DebugTestNames;
 				var handler = new AoDMessageHandlers.QueueCompleted(Context, new MockUserReader(testNames));
-				MessageDB.AddMessage(message.Id, handler);
+				MessageDB.AddMessage(Context.Guild.Id, message.Id, handler);
 
 				await message.AddReactionsAsync(new IEmote[] { signUpEmote, completeEmote });
 			}
