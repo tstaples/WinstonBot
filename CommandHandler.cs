@@ -53,6 +53,56 @@ namespace WinstonBot
             { "1bog", "bog" },
         };
 
+        public enum Boss
+        {
+            AoD,
+            Raids,
+            Count
+        }
+
+        public static readonly string[] CommandBossNames = new string[]
+        {
+            "aod",
+            "raids"
+        };
+
+        public static readonly string[] PrettyBossNames = new string[]
+        {
+            "AoD",
+            "Raids"
+        };
+
+        public class BossData
+        {
+            public Boss Id { get; set; }
+            public string CommandName { get; set; }
+            public string PrettyName { get; set; }
+            public uint MaxPlayersOnTeam { get; set; }
+        }
+
+        public static readonly BossData[] BossDataEntries = new BossData[]
+        {
+            new BossData()
+            {
+                Id = Boss.AoD,
+                CommandName = "aod",
+                PrettyName = "AoD",
+                MaxPlayersOnTeam = 7 // TODO: allow optionally passing this in through the command for different team sizes.
+            },
+            new BossData()
+            {
+                Id = Boss.Raids,
+                CommandName = "raids",
+                PrettyName = "Liberation of Mazcab",
+                MaxPlayersOnTeam = 10
+            },
+        };
+
+        public static string GetBossNameCommandForIndex(long index)
+        {
+            return CommandBossNames[index];
+        }
+
         private List<string> DictToList(Dictionary<string, string> names)
         {
             List<string> nameList = new();
@@ -69,35 +119,45 @@ namespace WinstonBot
             {
                 if (command.Data.Name == "host-pvm-signup")
                 {
+                    var bossIndex = (long)command.Data.Options.First().Value;
+                    if (bossIndex < 0 || bossIndex > (long)Boss.Count)
+                    {
+                        await arg.RespondAsync($"Invalid boss index {bossIndex}. Max Index is {(long)Boss.Count - 1}", ephemeral: true);
+                        return;
+                    }
+
+                    var bossPrettyName = PrettyBossNames[bossIndex];
+                    string message = $"Sign up for {bossPrettyName}"; // default message
+                    if (command.Data.Options.Count > 1)
+                    {
+                        message = (string)command.Data.Options.ElementAt(1).Value;
+                    }
+
                     var builder = new ComponentBuilder()
-                        .WithButton("Sign Up", "pvm-team-signup")
+                        .WithButton("Sign Up", $"pvm-team-signup_{bossIndex}")
                         .WithButton(new ButtonBuilder()
                             .WithLabel("Quit")
-                            .WithCustomId("pvm-quit-signup")
+                            .WithCustomId($"pvm-quit-signup_{bossIndex}")
                             .WithStyle(ButtonStyle.Danger))
                         .WithButton(new ButtonBuilder()
                             .WithLabel("Complete Team")
-                            .WithCustomId("pvm-complete-team")
+                            .WithCustomId($"pvm-complete-team_{bossIndex}")
                             .WithStyle(ButtonStyle.Success));
 
-                    var bossIndex = command.Data.Options.First().Value;
-                    string bossName = "AoD"; // TODO: get from index
-
                     var embed = new EmbedBuilder()
-                        .WithTitle($"{bossName} Sign Ups")
+                        .WithTitle($"{bossPrettyName} Sign Ups")
                         //TEMP
                         .WithDescription(String.Join(Environment.NewLine, DictToList(testNames)));
 
-                    await arg.RespondAsync($"Click to signup for {bossName}.", embed:embed.Build(), component: builder.Build());
+                    await arg.RespondAsync(message, embed:embed.Build(), component: builder.Build());
                 }
             }
         }
 
-        private async Task HandlePvmSignup(SocketMessageComponent component)
+        private async Task HandlePvmSignup(SocketMessageComponent component, long bossIndex)
         {
             var currentEmbed = component.Message.Embeds.First();
 
-            //List<string> names = new();
             Dictionary<string, string> names = new();
             if (currentEmbed.Description != null)
             {
@@ -116,7 +176,6 @@ namespace WinstonBot
             Console.WriteLine($"{component.User.Mention} has signed up!");
             names.Add(component.User.Mention, component.User.Username);
 
-
             var embed = new EmbedBuilder()
                         .WithTitle("Sign Ups")
                         .WithDescription(String.Join(Environment.NewLine, DictToList(names)));
@@ -127,12 +186,11 @@ namespace WinstonBot
             });
         }
 
-        private async Task HandleQuitSignup(SocketMessageComponent component)
+        private async Task HandleQuitSignup(SocketMessageComponent component, long bossIndex)
         {
             //await RemoveUserFromTeam(component, component.User.Mention);
             var currentEmbed = component.Message.Embeds.First();
 
-            //List<string> names = new();
             Dictionary<string, string> names = new();
             if (currentEmbed.Description != null)
             {
@@ -160,7 +218,7 @@ namespace WinstonBot
             });
         }
 
-        private async Task HandleTeamCompleted(SocketMessageComponent component)
+        private async Task HandleTeamCompleted(SocketMessageComponent component, long bossIndex)
         {
             // TODO: check perms
             var currentEmbed = component.Message.Embeds.First();
@@ -180,14 +238,15 @@ namespace WinstonBot
                 return;
             }
 
+            BossData bossData = BossDataEntries[bossIndex];
+
             // TODO: calculate who should go.
-            //List<string> selectedNames = names;
             Dictionary<string, string> selectedNames = new();
             Dictionary<string, string> unselectedNames = new();
             int i = 0;
             foreach (var pair in names)
             {
-                if (i++ < 7) selectedNames.Add(pair.Key, pair.Value);
+                if (i++ < bossData.MaxPlayersOnTeam) selectedNames.Add(pair.Key, pair.Value);
                 else unselectedNames.Add(pair.Key, pair.Value);
             }
 
@@ -203,7 +262,7 @@ namespace WinstonBot
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}")
+                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Success));
             }
 
@@ -211,13 +270,13 @@ namespace WinstonBot
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}")
+                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Secondary));
             }
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
-                    .WithCustomId("pvm-confirm-team")
+                    .WithCustomId($"pvm-confirm-team_{bossIndex}")
                     .WithStyle(ButtonStyle.Primary));
 
             await component.RespondAsync("Confirm or edit the team." +
@@ -228,7 +287,7 @@ namespace WinstonBot
                 embed: pendingTeamEmbed.Build(), component: builder.Build(), ephemeral:true);
         }
 
-        private async Task HandleTeamConfirmed(SocketMessageComponent component)
+        private async Task HandleTeamConfirmed(SocketMessageComponent component, long bossIndex)
         {
             var currentEmbed = component.Message.Embeds.First();
 
@@ -246,7 +305,7 @@ namespace WinstonBot
             var builder = new ComponentBuilder();
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Edit Team")
-                    .WithCustomId("pvm-edit-team")
+                    .WithCustomId($"pvm-edit-team_{bossIndex}")
                     .WithStyle(ButtonStyle.Danger));
 
 
@@ -262,7 +321,7 @@ namespace WinstonBot
             await component.DeferAsync();
         }
 
-        private async Task AddUserToTeam(SocketMessageComponent component, string mention, string username)
+        private async Task AddUserToTeam(SocketMessageComponent component, string mention, string username, long bossIndex)
         {
             var currentEmbed = component.Message.Embeds.First();
 
@@ -282,6 +341,13 @@ namespace WinstonBot
                 return;
             }
 
+            BossData bossData = BossDataEntries[bossIndex];
+            if (selectedNames.Count == bossData.MaxPlayersOnTeam)
+            {
+                await component.RespondAsync("Cannot add user to team as the team is full. Please remove someone first.", ephemeral: true);
+                return;
+            }
+
             Console.WriteLine($"Adding {username} to the team");
             selectedNames.Add(mention, username);
             unselectedNames.Remove(mention);
@@ -296,7 +362,7 @@ namespace WinstonBot
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}")
+                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Success));
             }
 
@@ -304,13 +370,13 @@ namespace WinstonBot
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}")
+                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Secondary));
             }
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
-                    .WithCustomId("pvm-confirm-team")
+                    .WithCustomId($"pvm-confirm-team_{bossIndex}")
                     .WithStyle(ButtonStyle.Primary));
 
             await component.UpdateAsync(msgProps =>
@@ -320,7 +386,7 @@ namespace WinstonBot
             });
         }
 
-        private async Task RemoveUserFromTeam(SocketMessageComponent component, string mention, string username)
+        private async Task RemoveUserFromTeam(SocketMessageComponent component, string mention, string username, long bossIndex)
         {
             var currentEmbed = component.Message.Embeds.First();
 
@@ -354,7 +420,7 @@ namespace WinstonBot
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}")
+                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Success));
             }
 
@@ -362,13 +428,13 @@ namespace WinstonBot
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}")
+                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Secondary));
             }
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
-                    .WithCustomId("pvm-confirm-team")
+                    .WithCustomId($"pvm-confirm-team_{bossIndex}")
                     .WithStyle(ButtonStyle.Primary));
 
             await component.UpdateAsync(msgProps =>
@@ -380,36 +446,39 @@ namespace WinstonBot
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
-            switch (component.Data.CustomId)
+            if (component.Data.CustomId.StartsWith("pvm-team-signup_"))
             {
-                case "pvm-team-signup":
-                    await HandlePvmSignup(component);
-                    break;
-
-                case "pvm-quit-signup":
-                    await HandleQuitSignup(component);
-                    break;
-
-                case "pvm-complete-team":
-                    await HandleTeamCompleted(component);
-                    break;
-
-                case "pvm-confirm-team":
-                    await HandleTeamConfirmed(component);
-                    break;
+                long boss = long.Parse(component.Data.CustomId.Split('_')[1]);
+                await HandlePvmSignup(component, boss);
             }
-
-            if (component.Data.CustomId.StartsWith("remove-user-from-team_"))
+            else if (component.Data.CustomId.StartsWith("pvm-quit-signup_"))
+            {
+                long boss = long.Parse(component.Data.CustomId.Split('_')[1]);
+                await HandleQuitSignup(component, boss);
+            }
+            else if (component.Data.CustomId.StartsWith("pvm-complete-team_"))
+            {
+                long boss = long.Parse(component.Data.CustomId.Split('_')[1]);
+                await HandleTeamCompleted(component, boss);
+            }
+            else if (component.Data.CustomId.StartsWith("pvm-confirm-team_"))
+            {
+                long boss = long.Parse(component.Data.CustomId.Split('_')[1]);
+                await HandleTeamConfirmed(component, boss);
+            }
+            else if (component.Data.CustomId.StartsWith("remove-user-from-team_"))
             {
                 string mention = component.Data.CustomId.Split('_')[1];
                 string username = component.Data.CustomId.Split('_')[2];
-                await RemoveUserFromTeam(component, mention, username);
+                long boss = long.Parse(component.Data.CustomId.Split('_')[3]);
+                await RemoveUserFromTeam(component, mention, username, boss);
             }
             else if (component.Data.CustomId.StartsWith("add-user-to-team_"))
             {
                 string mention = component.Data.CustomId.Split('_')[1];
                 string username = component.Data.CustomId.Split('_')[2];
-                await AddUserToTeam(component, mention, username);
+                long boss = long.Parse(component.Data.CustomId.Split('_')[3]);
+                await AddUserToTeam(component, mention, username, boss);
             }
         }
 
