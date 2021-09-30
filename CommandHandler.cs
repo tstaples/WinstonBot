@@ -168,39 +168,22 @@ namespace WinstonBot
             });
         }
 
-        private async Task HandleTeamCompleted(SocketMessageComponent component, long bossIndex)
+        private Embed BuildTeamSelectionEmbed(
+            Dictionary<string, string> selectedNames,
+            Dictionary<string, string> unselectedNames)
         {
-            // TODO: check perms
-            var currentEmbed = component.Message.Embeds.First();
-            string bossName = currentEmbed.Title.Split(' ')[0];
-            Console.WriteLine("Pressed complete for " + bossName);
+            return new EmbedBuilder()
+                .WithTitle("Pending Team")
+                .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
+                .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true)
+                .Build();
+        }
 
-            Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
-            if (names.Count == 0)
-            {
-                await component.RespondAsync("Not enough people signed up.", ephemeral: true);
-                return;
-            }
-
-            BossData.Entry bossData = BossData.Entries[bossIndex];
-
-            // TODO: calculate who should go.
-            Dictionary<string, string> selectedNames = new();
-            Dictionary<string, string> unselectedNames = new();
-            int i = 0;
-            foreach (var pair in names)
-            {
-                if (i++ < bossData.MaxPlayersOnTeam) selectedNames.Add(pair.Key, pair.Value);
-                else unselectedNames.Add(pair.Key, pair.Value);
-            }
-
-            // send ephermeral message to confirm signup
-            // once ephermeral is confirmed send final group to channel.
-            var pendingTeamEmbed = new EmbedBuilder()
-                        .WithTitle("Pending Team")
-                        .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
-                        .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true);
-
+        private MessageComponent BuildTeamSelectionComponent(
+            long bossIndex,
+            Dictionary<string, string> selectedNames,
+            Dictionary<string, string> unselectedNames)
+        {
             var builder = new ComponentBuilder();
             foreach (var namePair in selectedNames)
             {
@@ -223,12 +206,41 @@ namespace WinstonBot
                     .WithCustomId($"pvm-confirm-team_{bossIndex}")
                     .WithStyle(ButtonStyle.Primary));
 
+            return builder.Build();
+        }
+
+        private async Task HandleTeamCompleted(SocketMessageComponent component, long bossIndex)
+        {
+            // TODO: check perms
+            var currentEmbed = component.Message.Embeds.First();
+
+            Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
+            if (names.Count == 0)
+            {
+                await component.RespondAsync("Not enough people signed up.", ephemeral: true);
+                return;
+            }
+
+            BossData.Entry bossData = BossData.Entries[bossIndex];
+
+            // TODO: calculate who should go.
+            Dictionary<string, string> selectedNames = new();
+            Dictionary<string, string> unselectedNames = new();
+            int i = 0;
+            foreach (var pair in names)
+            {
+                if (i++ < bossData.MaxPlayersOnTeam) selectedNames.Add(pair.Key, pair.Value);
+                else unselectedNames.Add(pair.Key, pair.Value);
+            }
+
             await component.RespondAsync("Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
                 "\nYou may continue making changes after you confirm the team by hitting confirm again." +
                 "\nOnce you're finished making changes you can dismiss this message.",
-                embed: pendingTeamEmbed.Build(), component: builder.Build(), ephemeral:true);
+                embed: BuildTeamSelectionEmbed(selectedNames, unselectedNames),
+                component: BuildTeamSelectionComponent(bossIndex, selectedNames, unselectedNames),
+                ephemeral:true);
         }
 
         private async Task HandleTeamConfirmed(SocketMessageComponent component, long bossIndex)
@@ -284,37 +296,10 @@ namespace WinstonBot
             selectedNames.Add(mention, username);
             unselectedNames.Remove(mention);
 
-            var pendingTeamEmbed = new EmbedBuilder()
-                        .WithTitle("Pending Team")
-                        .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
-                        .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true);
-
-            var builder = new ComponentBuilder();
-            foreach (var namePair in selectedNames)
-            {
-                builder.WithButton(new ButtonBuilder()
-                    .WithLabel(namePair.Value)
-                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Success));
-            }
-
-            foreach (var namePair in unselectedNames)
-            {
-                builder.WithButton(new ButtonBuilder()
-                    .WithLabel(namePair.Value)
-                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Secondary));
-            }
-
-            builder.WithButton(new ButtonBuilder()
-                    .WithLabel("Confirm Team")
-                    .WithCustomId($"pvm-confirm-team_{bossIndex}")
-                    .WithStyle(ButtonStyle.Primary));
-
             await component.UpdateAsync(msgProps =>
             {
-                msgProps.Embed = pendingTeamEmbed.Build();
-                msgProps.Components = builder.Build();
+                msgProps.Embed = BuildTeamSelectionEmbed(selectedNames, unselectedNames);
+                msgProps.Components = BuildTeamSelectionComponent(bossIndex, selectedNames, unselectedNames);
             });
         }
 
@@ -335,37 +320,10 @@ namespace WinstonBot
             selectedNames.Remove(mention);
             unselectedNames.Add(mention, username);
 
-            var pendingTeamEmbed = new EmbedBuilder()
-                        .WithTitle("Pending Team")
-                        .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
-                        .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true);
-
-            var builder = new ComponentBuilder();
-            foreach (var namePair in selectedNames)
-            {
-                builder.WithButton(new ButtonBuilder()
-                    .WithLabel(namePair.Value)
-                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Success));
-            }
-
-            foreach (var namePair in unselectedNames)
-            {
-                builder.WithButton(new ButtonBuilder()
-                    .WithLabel(namePair.Value)
-                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Secondary));
-            }
-
-            builder.WithButton(new ButtonBuilder()
-                    .WithLabel("Confirm Team")
-                    .WithCustomId($"pvm-confirm-team_{bossIndex}")
-                    .WithStyle(ButtonStyle.Primary));
-
             await component.UpdateAsync(msgProps =>
             {
-                msgProps.Embed = pendingTeamEmbed.Build();
-                msgProps.Components = builder.Build();
+                msgProps.Embed = BuildTeamSelectionEmbed(selectedNames, unselectedNames);
+                msgProps.Components = BuildTeamSelectionComponent(bossIndex, selectedNames, unselectedNames);
             });
         }
 
