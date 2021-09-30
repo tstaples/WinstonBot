@@ -73,8 +73,8 @@ public class Program
 				.WithName("boss")
 				.WithDescription("The boss to host")
 				.WithRequired(true)
-				.AddChoice("aod", 1)
-				.AddChoice("raids", 2)
+				.AddChoice("aod", 0)
+				.AddChoice("raids", 1)
 				.WithType(ApplicationCommandOptionType.Integer))
 			.AddOption("message", ApplicationCommandOptionType.String, "Additional info about the event to be added to the message body.", required:false)
 			.Build();
