@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using WinstonBot.Services;
 using WinstonBot.Data;
+using System.Diagnostics;
 
 namespace WinstonBot
 {
@@ -64,6 +65,17 @@ namespace WinstonBot
             return nameList;
         }
 
+        private Dictionary<string, string> ParseNamesToDict(string text)
+        {
+            Dictionary<string, string> names = new();
+            if (text != null)
+            {
+                var lines = text.Split(Environment.NewLine).ToList();
+                lines.ForEach(line => names.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
+            }
+            return names;
+        }
+
         private async Task HandleInteractionCreated(SocketInteraction arg)
         {
             if (arg is SocketSlashCommand command)
@@ -71,7 +83,7 @@ namespace WinstonBot
                 if (command.Data.Name == "host-pvm-signup")
                 {
                     var bossIndex = (long)command.Data.Options.First().Value;
-                    if (BossData.ValidBossIndex(bossIndex))
+                    if (!BossData.ValidBossIndex(bossIndex))
                     {
                         await arg.RespondAsync($"Invalid boss index {bossIndex}. Max Index is {(long)BossData.Boss.Count - 1}", ephemeral: true);
                         return;
@@ -109,13 +121,7 @@ namespace WinstonBot
         {
             var currentEmbed = component.Message.Embeds.First();
 
-            Dictionary<string, string> names = new();
-            if (currentEmbed.Description != null)
-            {
-                var lines = component.Message.Embeds.First().Description.Split(Environment.NewLine).ToList();
-                lines.ForEach(line => names.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-            }
-
+            Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
             if (names.ContainsKey(component.User.Mention))
             {
                 Console.WriteLine($"{component.User.Mention} is already signed up: ignoring.");
@@ -139,16 +145,9 @@ namespace WinstonBot
 
         private async Task HandleQuitSignup(SocketMessageComponent component, long bossIndex)
         {
-            //await RemoveUserFromTeam(component, component.User.Mention);
             var currentEmbed = component.Message.Embeds.First();
 
-            Dictionary<string, string> names = new();
-            if (currentEmbed.Description != null)
-            {
-                var lines = component.Message.Embeds.First().Description.Split(Environment.NewLine).ToList();
-                lines.ForEach(line => names.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-            }
-
+            Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
             if (!names.ContainsKey(component.User.Mention))
             {
                 Console.WriteLine($"{component.User.Mention} isn't signed up: ignoring.");
@@ -176,13 +175,7 @@ namespace WinstonBot
             string bossName = currentEmbed.Title.Split(' ')[0];
             Console.WriteLine("Pressed complete for " + bossName);
 
-            Dictionary<string, string> names = new();
-            if (currentEmbed.Description != null)
-            {
-                var lines = component.Message.Embeds.First().Description.Split(Environment.NewLine).ToList();
-                lines.ForEach(line => names.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-            }
-
+            Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
             if (names.Count == 0)
             {
                 await component.RespondAsync("Not enough people signed up.", ephemeral: true);
@@ -241,13 +234,8 @@ namespace WinstonBot
         private async Task HandleTeamConfirmed(SocketMessageComponent component, long bossIndex)
         {
             var currentEmbed = component.Message.Embeds.First();
-
-            Dictionary<string, string> selectedNames = new();
-            if (currentEmbed.Fields.Length == 2)
-            {
-                var selectedlines = currentEmbed.Fields[0].Value.Split(Environment.NewLine).ToList();
-                selectedlines.ForEach(line => selectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-            }
+            Debug.Assert(currentEmbed.Fields.Length == 2);
+            Dictionary<string, string> selectedNames = ParseNamesToDict(currentEmbed.Fields[0].Value);
 
             var embed = new EmbedBuilder()
                         .WithTitle("Selected Team")
@@ -276,16 +264,9 @@ namespace WinstonBot
         {
             var currentEmbed = component.Message.Embeds.First();
 
-            Dictionary<string, string> selectedNames = new();
-            Dictionary<string, string> unselectedNames = new();
-            if (currentEmbed.Fields.Length == 2)
-            {
-                var selectedlines = currentEmbed.Fields[0].Value.Split(Environment.NewLine).ToList();
-                selectedlines.ForEach(line => selectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-
-                var unselectedlines = currentEmbed.Fields[1].Value.Split(Environment.NewLine).ToList();
-                unselectedlines.ForEach(line => unselectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-            }
+            Debug.Assert(currentEmbed.Fields.Length == 2);
+            Dictionary<string, string> selectedNames = ParseNamesToDict(currentEmbed.Fields[0].Value);
+            Dictionary<string, string> unselectedNames = ParseNamesToDict(currentEmbed.Fields[1].Value);
 
             if (selectedNames.ContainsKey(mention))
             {
@@ -341,16 +322,9 @@ namespace WinstonBot
         {
             var currentEmbed = component.Message.Embeds.First();
 
-            Dictionary<string, string> selectedNames = new();
-            Dictionary<string, string> unselectedNames = new();
-            if (currentEmbed.Fields.Length == 2)
-            {
-                var selectedlines = currentEmbed.Fields[0].Value.Split(Environment.NewLine).ToList();
-                selectedlines.ForEach(line => selectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-
-                var unselectedlines = currentEmbed.Fields[1].Value.Split(Environment.NewLine).ToList();
-                unselectedlines.ForEach(line => unselectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
-            }
+            Debug.Assert(currentEmbed.Fields.Length == 2);
+            Dictionary<string, string> selectedNames = ParseNamesToDict(currentEmbed.Fields[0].Value);
+            Dictionary<string, string> unselectedNames = ParseNamesToDict(currentEmbed.Fields[1].Value);
 
             if (!selectedNames.ContainsKey(mention))
             {
