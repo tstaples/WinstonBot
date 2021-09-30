@@ -39,6 +39,30 @@ namespace WinstonBot
                                             services: _services);
         }
 
+        private Dictionary<string, string> testNames = new Dictionary<string, string>()
+        {
+            { "1vinnie", "vinnie" },
+            { "1bob", "bob" },
+            { "1joe", "joe" },
+            { "1aaron", "aaron" },
+            { "1kadeem", "kadeem" },
+            { "1mike", "mike" },
+            { "1fuccboi", "fuccboi" },
+            { "1feerip", "feerip" },
+            { "1gob", "gob" },
+            { "1bog", "bog" },
+        };
+
+        private List<string> DictToList(Dictionary<string, string> names)
+        {
+            List<string> nameList = new();
+            foreach (var pair in names)
+            {
+                nameList.Add($"{pair.Key} - {pair.Value}");
+            }
+            return nameList;
+        }
+
         private async Task HandleInteractionCreated(SocketInteraction arg)
         {
             if (arg is SocketSlashCommand command)
@@ -60,7 +84,9 @@ namespace WinstonBot
                     string bossName = "AoD"; // TODO: get from index
 
                     var embed = new EmbedBuilder()
-                        .WithTitle($"{bossName} Sign Ups");
+                        .WithTitle($"{bossName} Sign Ups")
+                        //TEMP
+                        .WithDescription(String.Join(Environment.NewLine, DictToList(testNames)));
 
                     await arg.RespondAsync($"Click to signup for {bossName}.", embed:embed.Build(), component: builder.Build());
                 }
@@ -90,15 +116,10 @@ namespace WinstonBot
             Console.WriteLine($"{component.User.Mention} has signed up!");
             names.Add(component.User.Mention, component.User.Username);
 
-            List<string> nameList = new();
-            foreach (var pair in  names)
-            {
-                nameList.Add($"{pair.Key} - {pair.Value}");
-            }
 
             var embed = new EmbedBuilder()
                         .WithTitle("Sign Ups")
-                        .WithDescription(String.Join(Environment.NewLine, nameList));
+                        .WithDescription(String.Join(Environment.NewLine, DictToList(names)));
 
             await component.UpdateAsync(msgProps =>
             {
@@ -108,6 +129,7 @@ namespace WinstonBot
 
         private async Task HandleQuitSignup(SocketMessageComponent component)
         {
+            //await RemoveUserFromTeam(component, component.User.Mention);
             var currentEmbed = component.Message.Embeds.First();
 
             //List<string> names = new();
@@ -121,22 +143,16 @@ namespace WinstonBot
             if (!names.ContainsKey(component.User.Mention))
             {
                 Console.WriteLine($"{component.User.Mention} isn't signed up: ignoring.");
-                await component.RespondAsync("You're not signed up.", ephemeral:true);
+                await component.RespondAsync("You're not signed up.", ephemeral: true);
                 return;
             }
 
             Console.WriteLine($"{component.User.Mention} has quit!");
             names.Remove(component.User.Mention);
 
-            List<string> nameList = new();
-            foreach (var pair in names)
-            {
-                nameList.Add($"{pair.Key} - {pair.Value}");
-            }
-
             var embed = new EmbedBuilder()
                         .WithTitle("Sign Ups")
-                        .WithDescription(String.Join(Environment.NewLine, nameList));
+                        .WithDescription(String.Join(Environment.NewLine, DictToList(names)));
 
             await component.UpdateAsync(msgProps =>
             {
@@ -166,51 +182,166 @@ namespace WinstonBot
 
             // TODO: calculate who should go.
             //List<string> selectedNames = names;
-            Dictionary<string, string> selectedNames = names;
-            //Dictionary<string, string> displayNameMap = new();
-
-            List<string> nameList = new();
-            foreach (var pair in selectedNames)
+            Dictionary<string, string> selectedNames = new();
+            Dictionary<string, string> unselectedNames = new();
+            int i = 0;
+            foreach (var pair in names)
             {
-                nameList.Add($"{pair.Key} - {pair.Value}");
+                if (i++ < 7) selectedNames.Add(pair.Key, pair.Value);
+                else unselectedNames.Add(pair.Key, pair.Value);
             }
 
             // send ephermeral message to confirm signup
             // once ephermeral is confirmed send final group to channel.
-            var selectedUsersEmbed = new EmbedBuilder()
-                        .WithTitle("Selected Users")
-                        .WithDescription(String.Join(Environment.NewLine, nameList));
-
-            var unSelectedUsersEmbed = new EmbedBuilder()
-                        .WithTitle("Unselected Users")
-                        .WithDescription(String.Join(Environment.NewLine, nameList));
+            var pendingTeamEmbed = new EmbedBuilder()
+                        .WithTitle("Pending Team")
+                        .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
+                        .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true);
 
             var builder = new ComponentBuilder();
             foreach (var namePair in selectedNames)
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId("remove-user-from-team")
+                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}")
                     .WithStyle(ButtonStyle.Success));
             }
 
-            foreach (var namePair in names)
+            foreach (var namePair in unselectedNames)
             {
-                if (!selectedNames.ContainsKey(namePair.Key))
-                {
-                    builder.WithButton(new ButtonBuilder()
-                        .WithLabel(namePair.Value)
-                        .WithCustomId("add-user-to-team")
-                        .WithStyle(ButtonStyle.Secondary));
-                }
+                builder.WithButton(new ButtonBuilder()
+                    .WithLabel(namePair.Value)
+                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}")
+                    .WithStyle(ButtonStyle.Secondary));
             }
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
                     .WithCustomId("pvm-confirm-team")
-                    .WithStyle(ButtonStyle.Success));
+                    .WithStyle(ButtonStyle.Primary));
 
-            await component.RespondAsync("Confirm or edit the team", embeds:new Embed[] {selectedUsersEmbed.Build(), unSelectedUsersEmbed.Build()}, component: builder.Build(), ephemeral:true);
+            await component.RespondAsync("Confirm or edit the team", embed: pendingTeamEmbed.Build(), component: builder.Build(), ephemeral:true);
+        }
+
+        private async Task HandleTeamConfirmed(SocketMessageComponent component)
+        {
+            
+        }
+        
+        private async Task AddUserToTeam(SocketMessageComponent component, string mention, string username)
+        {
+            var currentEmbed = component.Message.Embeds.First();
+
+            Dictionary<string, string> selectedNames = new();
+            Dictionary<string, string> unselectedNames = new();
+            if (currentEmbed.Fields.Length == 2)
+            {
+                var selectedlines = currentEmbed.Fields[0].Value.Split(Environment.NewLine).ToList();
+                selectedlines.ForEach(line => selectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
+
+                var unselectedlines = currentEmbed.Fields[1].Value.Split(Environment.NewLine).ToList();
+                unselectedlines.ForEach(line => unselectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
+            }
+
+            if (selectedNames.ContainsKey(mention))
+            {
+                return;
+            }
+
+            Console.WriteLine($"Adding {username} to the team");
+            selectedNames.Add(mention, username);
+            unselectedNames.Remove(mention);
+
+            var pendingTeamEmbed = new EmbedBuilder()
+                        .WithTitle("Pending Team")
+                        .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
+                        .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true);
+
+            var builder = new ComponentBuilder();
+            foreach (var namePair in selectedNames)
+            {
+                builder.WithButton(new ButtonBuilder()
+                    .WithLabel(namePair.Value)
+                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}")
+                    .WithStyle(ButtonStyle.Success));
+            }
+
+            foreach (var namePair in unselectedNames)
+            {
+                builder.WithButton(new ButtonBuilder()
+                    .WithLabel(namePair.Value)
+                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}")
+                    .WithStyle(ButtonStyle.Secondary));
+            }
+
+            builder.WithButton(new ButtonBuilder()
+                    .WithLabel("Confirm Team")
+                    .WithCustomId("pvm-confirm-team")
+                    .WithStyle(ButtonStyle.Primary));
+
+            await component.UpdateAsync(msgProps =>
+            {
+                msgProps.Embed = pendingTeamEmbed.Build();
+                msgProps.Components = builder.Build();
+            });
+        }
+
+        private async Task RemoveUserFromTeam(SocketMessageComponent component, string mention, string username)
+        {
+            var currentEmbed = component.Message.Embeds.First();
+
+            Dictionary<string, string> selectedNames = new();
+            Dictionary<string, string> unselectedNames = new();
+            if (currentEmbed.Fields.Length == 2)
+            {
+                var selectedlines = currentEmbed.Fields[0].Value.Split(Environment.NewLine).ToList();
+                selectedlines.ForEach(line => selectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
+
+                var unselectedlines = currentEmbed.Fields[1].Value.Split(Environment.NewLine).ToList();
+                unselectedlines.ForEach(line => unselectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
+            }
+
+            if (!selectedNames.ContainsKey(mention))
+            {
+                return;
+            }
+
+            Console.WriteLine($"Removing {username} from the team");
+            selectedNames.Remove(mention);
+            unselectedNames.Add(mention, username);
+
+            var pendingTeamEmbed = new EmbedBuilder()
+                        .WithTitle("Pending Team")
+                        .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
+                        .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true);
+
+            var builder = new ComponentBuilder();
+            foreach (var namePair in selectedNames)
+            {
+                builder.WithButton(new ButtonBuilder()
+                    .WithLabel(namePair.Value)
+                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}")
+                    .WithStyle(ButtonStyle.Success));
+            }
+
+            foreach (var namePair in unselectedNames)
+            {
+                builder.WithButton(new ButtonBuilder()
+                    .WithLabel(namePair.Value)
+                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}")
+                    .WithStyle(ButtonStyle.Secondary));
+            }
+
+            builder.WithButton(new ButtonBuilder()
+                    .WithLabel("Confirm Team")
+                    .WithCustomId("pvm-confirm-team")
+                    .WithStyle(ButtonStyle.Primary));
+
+            await component.UpdateAsync(msgProps =>
+            {
+                msgProps.Embed = pendingTeamEmbed.Build();
+                msgProps.Components = builder.Build();
+            });
         }
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
@@ -228,6 +359,23 @@ namespace WinstonBot
                 case "pvm-complete-team":
                     await HandleTeamCompleted(component);
                     break;
+
+                case "pvm-confirm-team":
+                    await HandleTeamConfirmed(component);
+                    break;
+            }
+
+            if (component.Data.CustomId.StartsWith("remove-user-from-team_"))
+            {
+                string mention = component.Data.CustomId.Split('_')[1];
+                string username = component.Data.CustomId.Split('_')[2];
+                await RemoveUserFromTeam(component, mention, username);
+            }
+            else if (component.Data.CustomId.StartsWith("add-user-to-team_"))
+            {
+                string mention = component.Data.CustomId.Split('_')[1];
+                string username = component.Data.CustomId.Split('_')[2];
+                await AddUserToTeam(component, mention, username);
             }
         }
 
