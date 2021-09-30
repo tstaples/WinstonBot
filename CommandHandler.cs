@@ -225,9 +225,35 @@ namespace WinstonBot
 
         private async Task HandleTeamConfirmed(SocketMessageComponent component)
         {
-            
+            var currentEmbed = component.Message.Embeds.First();
+
+            Dictionary<string, string> selectedNames = new();
+            if (currentEmbed.Fields.Length == 2)
+            {
+                var selectedlines = currentEmbed.Fields[0].Value.Split(Environment.NewLine).ToList();
+                selectedlines.ForEach(line => selectedNames.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
+            }
+
+            var embed = new EmbedBuilder()
+                        .WithTitle("Selected Team")
+                        .WithDescription(String.Join(Environment.NewLine, DictToList(selectedNames)));
+
+            var builder = new ComponentBuilder();
+            builder.WithButton(new ButtonBuilder()
+                    .WithLabel("Edit Team")
+                    .WithCustomId("pvm-edit-team")
+                    .WithStyle(ButtonStyle.Danger));
+
+
+            // TODO: figure out how we can delete this with it being ephemeral.
+            await component.Channel.DeleteMessageAsync(component.Message.Id);
+            await component.Channel.ModifyMessageAsync(component.Message.Reference.MessageId.Value, msgProps =>
+            {
+                msgProps.Embed = embed.Build();
+                msgProps.Components = builder.Build();
+            });
         }
-        
+
         private async Task AddUserToTeam(SocketMessageComponent component, string mention, string username)
         {
             var currentEmbed = component.Message.Embeds.First();
