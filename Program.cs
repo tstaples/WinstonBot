@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WinstonBot;
 using WinstonBot.Services;
 using Newtonsoft.Json;
+using Discord.Net;
 
 public class Program
 {
@@ -22,7 +23,7 @@ public class Program
 		.AddSingleton(_client)
 		.AddSingleton(new CommandService(new CommandServiceConfig()
         {
-			DefaultRunMode = RunMode.Sync,
+			DefaultRunMode = RunMode.Async,
 			CaseSensitiveCommands = false,
 			LogLevel = LogSeverity.Verbose
         }))
@@ -59,15 +60,53 @@ public class Program
 		await Task.Delay(-1);
 	}
 
-    private Task ClientReady()
+    private async Task ClientReady()
     {
 		Console.WriteLine("Client ready");
+
+		var guild = _client.Guilds.First();
+
+		var hostCommand = new SlashCommandBuilder()
+			.WithName("host-pvm")
+			.WithDescription("Hosts a pvm event.")
+			.AddOption(new SlashCommandOptionBuilder()
+				.WithName("boss")
+				.WithDescription("The boss to host")
+				.WithRequired(true)
+				.AddChoice("aod", 1)
+				.AddChoice("raids", 2)
+				.WithType(ApplicationCommandOptionType.Integer)
+			).Build();
+
+		var hostQueuedCommand = new SlashCommandBuilder()
+			.WithName("host-pvm-signup")
+			.WithDescription("Create a signup for a pvm event")
+			.AddOption(new SlashCommandOptionBuilder()
+				.WithName("boss")
+				.WithDescription("The boss to host")
+				.WithRequired(true)
+				.AddChoice("aod", 1)
+				.WithType(ApplicationCommandOptionType.Integer)
+			).Build();
+
+		try
+        {
+			await guild.DeleteApplicationCommandsAsync();
+			await guild.CreateApplicationCommandAsync(hostCommand);
+			await guild.CreateApplicationCommandAsync(hostQueuedCommand);
+		}
+		catch (ApplicationCommandException ex)
+        {
+			// If our command was invalid, we should catch an ApplicationCommandException. This exception contains the path of the error as well as the error message. You can serialize the Error field in the exception to get a visual of where your error is.
+			var json = JsonConvert.SerializeObject(ex.Error, Formatting.Indented);
+
+			// You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+			Console.WriteLine(json);
+		}
 
 		// read in the db
 		// populate the message dict
 		_messageDB.Load(_services);
-
-		return Task.CompletedTask;
     }
 
     private Task Log(LogMessage msg)

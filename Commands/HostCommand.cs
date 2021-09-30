@@ -56,26 +56,10 @@ namespace WinstonBot.Commands
 		{
 			Console.WriteLine("host default aod");
 
-			//var signUpEmote = Utility.TryGetEmote(Context.Client, SignupEmoteName);
-			//if (signUpEmote == null)
-			//{
-			//	await Context.Channel.SendMessageAsync("Failed to find signup reaction emote");
-			//	return;
-			//}
+			var builder = new ComponentBuilder()
+				.WithButton("Sign Up", "aod-signup");
 
-			//var completeEmote = Utility.TryGetEmote(Context.Client, CompleteEmoteName);
-			//if (completeEmote == null)
-			//{
-			//	await Context.Channel.SendMessageAsync("Failed to find complete reaction emote");
-			//	return;
-			//}
-
-			//var message = await Context.Channel.SendMessageAsync($"React with {signUpEmote.ToString()} to sign up");
-
-			//Context.MessageDatabase.AddMessage(message.Id);
-
-			//await message.AddReactionAsync(signUpEmote);
-			//await message.AddReactionAsync(completeEmote);
+			await ReplyAsync("Click to signup for AoD.", component: builder.Build());
 		}
 	}
 }

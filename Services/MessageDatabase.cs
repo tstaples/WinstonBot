@@ -96,39 +96,39 @@ namespace WinstonBot.Services
 
         public void Load(IServiceProvider services)
         {
-            if (File.Exists(_databasePath))
-            {
-                try
-                {
-                    var data = File.ReadAllText(_databasePath);
+            //if (File.Exists(_databasePath))
+            //{
+            //    try
+            //    {
+            //        var data = File.ReadAllText(_databasePath);
 
-                    DBVersion version = JsonConvert.DeserializeObject<DBVersion>(data);
-                    if (version != null && version.VersionNumber == CurrentVersion)
-                    {
-                        _database = JsonConvert.DeserializeObject<Database>(data, new JsonSerializerSettings()
-                        {
-                            TypeNameHandling = TypeNameHandling.Auto
-                        });
-                    }
-                    else
-                    {
-                        Console.WriteLine("Database is out of date. Creating a fresh one");
-                        _database = new Database()
-                        {
-                            VersionNumber = CurrentVersion
-                        };
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to database file: {ex.Message}. Creating new database.");
-                    _database = new Database()
-                    {
-                        VersionNumber = CurrentVersion
-                    };
-                }
-            }
-            else
+            //        DBVersion version = JsonConvert.DeserializeObject<DBVersion>(data);
+            //        if (version != null && version.VersionNumber == CurrentVersion)
+            //        {
+            //            _database = JsonConvert.DeserializeObject<Database>(data, new JsonSerializerSettings()
+            //            {
+            //                TypeNameHandling = TypeNameHandling.Auto
+            //            });
+            //        }
+            //        else
+            //        {
+            //            Console.WriteLine("Database is out of date. Creating a fresh one");
+            //            _database = new Database()
+            //            {
+            //                VersionNumber = CurrentVersion
+            //            };
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Console.WriteLine($"Failed to database file: {ex.Message}. Creating new database.");
+            //        _database = new Database()
+            //        {
+            //            VersionNumber = CurrentVersion
+            //        };
+            //    }
+            //}
+            //else
             {
                 _database = new Database()
                 {
@@ -137,15 +137,15 @@ namespace WinstonBot.Services
             }
 
             // initialize handler data
-            foreach (var guildEntryPair in _database.GuildEntries)
-            {
-                ulong guildId = guildEntryPair.Key;
-                foreach (var messageIdHandlerPair in guildEntryPair.Value.MessageHandlers)
-                {
-                    var handler = messageIdHandlerPair.Value;
-                    handler.ConstructContext(services);
-                }
-            }
+            //foreach (var guildEntryPair in _database.GuildEntries)
+            //{
+            //    ulong guildId = guildEntryPair.Key;
+            //    foreach (var messageIdHandlerPair in guildEntryPair.Value.MessageHandlers)
+            //    {
+            //        var handler = messageIdHandlerPair.Value;
+            //        handler.ConstructContext(services);
+            //    }
+            //}
 
             Console.WriteLine("Message Database initialized");
         }
