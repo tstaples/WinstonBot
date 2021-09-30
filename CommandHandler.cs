@@ -253,19 +253,15 @@ namespace WinstonBot
                         .WithTitle("Selected Team")
                         .WithDescription(String.Join(Environment.NewLine, DictToList(selectedNames)));
 
-            var builder = new ComponentBuilder();
-            builder.WithButton(new ButtonBuilder()
-                    .WithLabel("Edit Team")
-                    .WithCustomId($"pvm-edit-team_{bossIndex}")
-                    .WithStyle(ButtonStyle.Danger));
+            // We no longer have the full list of people signed up so we can't edit.
+            // We'd need to include the people who weren't selected as well, but we wouldn't want to ping them. Only add it if really needed.
 
-
+            var bossData = BossData.Entries[bossIndex];
             await component.Channel.ModifyMessageAsync(component.Message.Reference.MessageId.Value, msgProps =>
             {
-                // TODO: change this from "signup for x".
-                //msgProps.Content = "";
+                msgProps.Content = $"Final team for {bossData.PrettyName}";
                 msgProps.Embed = embed.Build();
-                msgProps.Components = builder.Build();
+                msgProps.Components = new ComponentBuilder().Build();
             });
 
             // Ack the interaction so they don't see "interaction failed" after hitting complete team.
