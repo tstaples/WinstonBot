@@ -220,7 +220,12 @@ namespace WinstonBot
                     .WithCustomId("pvm-confirm-team")
                     .WithStyle(ButtonStyle.Primary));
 
-            await component.RespondAsync("Confirm or edit the team", embed: pendingTeamEmbed.Build(), component: builder.Build(), ephemeral:true);
+            await component.RespondAsync("Confirm or edit the team." +
+                "\nClick the buttons to change who is selected to go." +
+                "\nOnce you're done click Confirm Team." +
+                "\nYou may continue making changes after you confirm the team by hitting confirm again." +
+                "\nOnce you're finished making changes you can dismiss this message.",
+                embed: pendingTeamEmbed.Build(), component: builder.Build(), ephemeral:true);
         }
 
         private async Task HandleTeamConfirmed(SocketMessageComponent component)
@@ -245,13 +250,16 @@ namespace WinstonBot
                     .WithStyle(ButtonStyle.Danger));
 
 
-            // TODO: figure out how we can delete this with it being ephemeral.
-            await component.Channel.DeleteMessageAsync(component.Message.Id);
             await component.Channel.ModifyMessageAsync(component.Message.Reference.MessageId.Value, msgProps =>
             {
+                // TODO: change this from "signup for x".
+                //msgProps.Content = "";
                 msgProps.Embed = embed.Build();
                 msgProps.Components = builder.Build();
             });
+
+            // Ack the interaction so they don't see "interaction failed" after hitting complete team.
+            await component.DeferAsync();
         }
 
         private async Task AddUserToTeam(SocketMessageComponent component, string mention, string username)
