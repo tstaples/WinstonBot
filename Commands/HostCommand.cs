@@ -12,9 +12,7 @@ namespace WinstonBot.Commands
     public class HostPvmSignup : ICommand
     {
         public string Name => "host-pvm-signup";
-
         public int Id => 1;
-
         public IEnumerable<IAction> Actions => _actions;
 
         private List<IAction> _actions = new List<IAction>()
@@ -26,6 +24,8 @@ namespace WinstonBot.Commands
             new AddUserToTeamAction(),
             new RemoveUserFromTeamAction()
         };
+
+        private static int CurrentActionId = 0;
 
         private Dictionary<string, string> testNames = new Dictionary<string, string>()
         {
@@ -166,9 +166,7 @@ namespace WinstonBot.Commands
         private class SignupAction : IAction
         {
             public string Name => "pvm-team-signup";
-
-            public int Id => 1;
-
+            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(SocketMessageComponent component)
@@ -202,9 +200,7 @@ namespace WinstonBot.Commands
         private class QuitAction : IAction
         {
             public string Name => "pvm-quit-signup";
-
-            public int Id => 2;
-
+            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(SocketMessageComponent component)
@@ -237,9 +233,7 @@ namespace WinstonBot.Commands
         private class CompleteTeamAction : IAction
         {
             public string Name => "pvm-complete-team";
-
-            public int Id => 3;
-
+            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(SocketMessageComponent component)
@@ -280,9 +274,7 @@ namespace WinstonBot.Commands
         private class ConfirmTeamAction : IAction
         {
             public string Name => "pvm-confirm-team";
-
-            public int Id => 4;
-
+            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(SocketMessageComponent component)
@@ -316,9 +308,7 @@ namespace WinstonBot.Commands
         private class RemoveUserFromTeamAction : IAction
         {
             public string Name => "remove-user-from-team";
-
-            public int Id => 5;
-
+            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(SocketMessageComponent component)
@@ -353,9 +343,7 @@ namespace WinstonBot.Commands
         private class AddUserToTeamAction : IAction
         {
             public string Name => "add-user-to-team";
-
-            public int Id => 6;
-
+            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(SocketMessageComponent component)

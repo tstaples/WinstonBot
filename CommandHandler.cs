@@ -39,39 +39,24 @@ namespace WinstonBot
             _client.InteractionCreated += HandleInteractionCreated;
 
             // Register the commands in all the guilds
+            // NOTE: registering the same command will just update it, so we won't hit the 200 command create rate limit.
             foreach (SocketGuild guild in _client.Guilds)
             {
-                var registeredGuildCommands = await guild.GetApplicationCommandsAsync();
-                bool anyNeedToBeRegisterd = _commands.Count != registeredGuildCommands.Count ||
-                    _commands
-                    .Where(cmd => registeredGuildCommands
-                        .Where(regCmg => regCmg.Name != cmd.Name)
-                        .Any())
-                    .Any();
-
-                if (anyNeedToBeRegisterd)
+                try
                 {
-                    Console.WriteLine($"Some commands are not registered for guild {guild.Name}, registering now.");
-                    try
+                    foreach (ICommand command in _commands)
                     {
-                        foreach (ICommand command in _commands)
-                        {
-                            // Check if this command is already registered.
-                            if (!registeredGuildCommands.Where(cmd => cmd.Name == command.Name).Any())
-                            {
-                                Console.WriteLine($"Registering command {command.Name}.");
-                                await guild.CreateApplicationCommandAsync(command.BuildCommand());
-                            }
-                        }
+                        Console.WriteLine($"Registering command {command.Name}.");
+                        await guild.CreateApplicationCommandAsync(command.BuildCommand());
                     }
-                    catch (ApplicationCommandException ex)
-                    {
-                        // If our command was invalid, we should catch an ApplicationCommandException. This exception contains the path of the error as well as the error message. You can serialize the Error field in the exception to get a visual of where your error is.
-                        var json = JsonConvert.SerializeObject(ex.Error, Formatting.Indented);
+                }
+                catch (ApplicationCommandException ex)
+                {
+                    // If our command was invalid, we should catch an ApplicationCommandException. This exception contains the path of the error as well as the error message. You can serialize the Error field in the exception to get a visual of where your error is.
+                    var json = JsonConvert.SerializeObject(ex.Error, Formatting.Indented);
 
-                        // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                        Console.WriteLine(json);
-                    }
+                    // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+                    Console.WriteLine(json);
                 }
             }
         }
