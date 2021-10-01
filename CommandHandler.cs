@@ -7,23 +7,32 @@ using WinstonBot.Services;
 using WinstonBot.Data;
 using System.Diagnostics;
 using WinstonBot.Commands;
+using Discord.Net;
+using Newtonsoft.Json;
 
 namespace WinstonBot
 {
     public class CommandHandler
     {
         private readonly DiscordSocketClient _client;
-        private readonly CommandService _commands;
         private IServiceProvider _services;
-        IEnumerable<ICommand> _guildCommands; // TODO: maybe make this a service?
+        List<ICommand> _commands;
 
         // Retrieve client and CommandService instance via ctor
-        public CommandHandler(IServiceProvider services, DiscordSocketClient client, IEnumerable<ICommand> commands)
+        public CommandHandler(IServiceProvider services, DiscordSocketClient client)
         {
-            _commands = services.GetRequiredService<CommandService>();
             _client = client;
             _services = services;
-            _guildCommands = commands;
+
+            _commands = new List<ICommand>()
+            {
+                new HostPvmSignup()
+            };
+
+            // this is gross.
+            // Could pass this into BuildCommand
+            var configureCommand = new ConfigCommand(_commands);
+            _commands.Add(configureCommand);
         }
 
         public async Task InstallCommandsAsync()
@@ -32,16 +41,42 @@ namespace WinstonBot
             _client.ButtonExecuted += HandleButtonExecuted;
             _client.InteractionCreated += HandleInteractionCreated;
 
-            // Here we discover all of the command modules in the entry 
-            // assembly and load them. Starting from Discord.NET 2.0, a
-            // service provider is required to be passed into the
-            // module registration method to inject the 
-            // required dependencies.
-            //
-            // If you do not use Dependency Injection, pass null.
-            // See Dependency Injection guide for more information.
-            await _commands.AddModulesAsync(assembly: Assembly.GetEntryAssembly(),
-                                            services: _services);
+            // Register the commands in all the guilds
+            foreach (SocketGuild guild in _client.Guilds)
+            {
+                var registeredGuildCommands = await guild.GetApplicationCommandsAsync();
+                bool anyNeedToBeRegisterd = _commands.Count != registeredGuildCommands.Count ||
+                    _commands
+                    .Where(cmd => registeredGuildCommands
+                        .Where(regCmg => regCmg.Name != cmd.Name)
+                        .Any())
+                    .Any();
+
+                if (anyNeedToBeRegisterd)
+                {
+                    try
+                    {
+                        await guild.DeleteApplicationCommandsAsync();
+
+                        foreach (ICommand command in _commands)
+                        {
+                            // Check if this command is already registered.
+                            if (!registeredGuildCommands.Where(cmd => cmd.Name == command.Name).Any())
+                            {
+                                await guild.CreateApplicationCommandAsync(command.BuildCommand());
+                            }
+                        }
+                    }
+                    catch (ApplicationCommandException ex)
+                    {
+                        // If our command was invalid, we should catch an ApplicationCommandException. This exception contains the path of the error as well as the error message. You can serialize the Error field in the exception to get a visual of where your error is.
+                        var json = JsonConvert.SerializeObject(ex.Error, Formatting.Indented);
+
+                        // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
+                        Console.WriteLine(json);
+                    }
+                }
+            }
         }
 
         private bool UserHasRoleForCommand(SocketUser user, SocketRole requiredRole)
@@ -57,7 +92,7 @@ namespace WinstonBot
         {
             if (arg is SocketSlashCommand slashCommand)
             {
-                foreach (ICommand guildCommand in _guildCommands)
+                foreach (ICommand guildCommand in _commands)
                 {
                     if (guildCommand.Name == slashCommand.Data.Name)
                     {
@@ -70,7 +105,7 @@ namespace WinstonBot
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
-            foreach (ICommand guildCommand in _guildCommands)
+            foreach (ICommand guildCommand in _commands)
             {
                 foreach (IAction action in guildCommand.Actions)
                 {
