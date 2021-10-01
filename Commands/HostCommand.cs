@@ -55,7 +55,7 @@ namespace WinstonBot.Commands
             }
 
             var hostQueuedCommand = new SlashCommandBuilder()
-                .WithName("host-pvm-signup")
+                .WithName(Name)
                 .WithDescription("Create a signup for a pvm event")
                 .AddOption(choices)
                 .AddOption("message", ApplicationCommandOptionType.String, "Additional info about the event to be added to the message body.", required: false);
@@ -80,14 +80,14 @@ namespace WinstonBot.Commands
             }
 
             var builder = new ComponentBuilder()
-                .WithButton("Sign Up", $"pvm-team-signup_{bossIndex}")
+                .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}")
                 .WithButton(new ButtonBuilder()
                     .WithLabel("Quit")
-                    .WithCustomId($"pvm-quit-signup_{bossIndex}")
+                    .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Danger))
                 .WithButton(new ButtonBuilder()
                     .WithLabel("Complete Team")
-                    .WithCustomId($"pvm-complete-team_{bossIndex}")
+                    .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Success));
 
             var embed = new EmbedBuilder()
@@ -141,7 +141,7 @@ namespace WinstonBot.Commands
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"remove-user-from-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
+                    .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Success));
             }
 
@@ -149,13 +149,13 @@ namespace WinstonBot.Commands
             {
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel(namePair.Value)
-                    .WithCustomId($"add-user-to-team_{namePair.Key}_{namePair.Value}_{bossIndex}")
+                    .WithCustomId($"{AddUserToTeamAction.ActionName}_{namePair.Key}_{namePair.Value}_{bossIndex}")
                     .WithStyle(ButtonStyle.Secondary));
             }
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
-                    .WithCustomId($"pvm-confirm-team_{bossIndex}")
+                    .WithCustomId($"{ConfirmTeamAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Primary));
 
             return builder.Build();
@@ -165,7 +165,8 @@ namespace WinstonBot.Commands
         #region actions
         private class SignupAction : IAction
         {
-            public string Name => "pvm-team-signup";
+            public static string ActionName = "pvm-team-signup";
+            public string Name => ActionName;
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
@@ -199,7 +200,8 @@ namespace WinstonBot.Commands
 
         private class QuitAction : IAction
         {
-            public string Name => "pvm-quit-signup";
+            public static string ActionName = "pvm-quit-signup";
+            public string Name => ActionName;
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
@@ -232,7 +234,8 @@ namespace WinstonBot.Commands
 
         private class CompleteTeamAction : IAction
         {
-            public string Name => "pvm-complete-team";
+            public static string ActionName = "pvm-complete-team";
+            public string Name => ActionName;
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
@@ -273,7 +276,8 @@ namespace WinstonBot.Commands
 
         private class ConfirmTeamAction : IAction
         {
-            public string Name => "pvm-confirm-team";
+            public static string ActionName = "pvm-confirm-team";
+            public string Name => ActionName;
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
@@ -307,7 +311,8 @@ namespace WinstonBot.Commands
 
         private class RemoveUserFromTeamAction : IAction
         {
-            public string Name => "remove-user-from-team";
+            public static string ActionName = "remove-user-from-team";
+            public string Name => ActionName;
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
@@ -342,7 +347,8 @@ namespace WinstonBot.Commands
 
         private class AddUserToTeamAction : IAction
         {
-            public string Name => "add-user-to-team";
+            public static string ActionName = "add-user-to-team";
+            public string Name => ActionName;
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 

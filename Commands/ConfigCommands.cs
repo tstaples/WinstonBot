@@ -38,7 +38,7 @@ namespace WinstonBot.Commands
             // /configure command:host-pvm action:complete role:@pvm-teacher
             // TODO: we might want to use sub commands so we can also do configure view or something. or just make it a separate command.
             var configureCommands = new SlashCommandBuilder()
-                .WithName("configure-command")
+                .WithName(Name)
                 .WithDescription("Set role permissions for the various action");
 
             var commandOptionBuilder = new SlashCommandOptionBuilder()
