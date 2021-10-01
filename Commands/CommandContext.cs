@@ -3,14 +3,16 @@ using Discord.WebSocket;
 
 namespace WinstonBot.Commands
 {
-    public class CommandContext : SocketCommandContext
+    public class CommandContext
     {
+        public DiscordSocketClient Client {  get; set; }
+        public SocketSlashCommand SlashCommand {  get; set; }
         public IServiceProvider ServiceProvider {  get; set; }
-
-        public ulong GuildId { get; set; }
-
-        public CommandContext(DiscordSocketClient client, SocketUserMessage msg) : base(client, msg)
+        public CommandContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {
+            Client = client;
+            SlashCommand = arg;
+            ServiceProvider = services;
         }
     }
 }

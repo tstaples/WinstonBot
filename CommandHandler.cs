@@ -78,7 +78,8 @@ namespace WinstonBot
                 {
                     if (guildCommand.Name == slashCommand.Data.Name)
                     {
-                        await guildCommand.HandleCommand(slashCommand);
+                        var context = new Commands.CommandContext(_client, slashCommand, _services);
+                        await guildCommand.HandleCommand(context);
                         return;
                     }
                 }

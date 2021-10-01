@@ -24,6 +24,6 @@ namespace WinstonBot.Commands
         public IEnumerable<IAction> Actions { get; }
 
         public SlashCommandProperties BuildCommand();
-        public Task HandleCommand(SocketSlashCommand slashCommand);
+        public Task HandleCommand(Commands.CommandContext context);
     }
 }

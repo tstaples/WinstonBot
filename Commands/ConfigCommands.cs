@@ -75,8 +75,9 @@ namespace WinstonBot.Commands
             return configureCommands.Build();
         }
 
-        public Task HandleCommand(SocketSlashCommand slashCommand)
+        public Task HandleCommand(Commands.CommandContext context)
         {
+            
             return Task.CompletedTask;
         }
     }

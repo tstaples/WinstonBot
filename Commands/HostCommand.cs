@@ -63,8 +63,10 @@ namespace WinstonBot.Commands
             return hostQueuedCommand.Build();
         }
 
-        public async Task HandleCommand(SocketSlashCommand slashCommand)
+        public async Task HandleCommand(Commands.CommandContext context)
         {
+            var slashCommand = context.SlashCommand;
+
             var bossIndex = (long)slashCommand.Data.Options.First().Value;
             if (!BossData.ValidBossIndex(bossIndex))
             {
