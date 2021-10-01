@@ -1,4 +1,6 @@
-﻿- implement actual aod team selection
+﻿- add cancel button to complete team
+
+- implement actual aod team selection
 - role requirements for commands
 - notifying people trying to sign up without having read rules
 - regular sign ups for aod/raids/rago?
