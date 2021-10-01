@@ -58,31 +58,31 @@ namespace WinstonBot
             if (arg is SocketSlashCommand slashCommand)
             {
                 foreach (ICommand guildCommand in _guildCommands)
-				{
+                {
                     if (guildCommand.Name == slashCommand.Data.Name)
-					{
+                    {
                         await guildCommand.HandleCommand(slashCommand);
                         return;
-					}
-				}
+                    }
+                }
             }
         }
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
             foreach (ICommand guildCommand in _guildCommands)
-			{
+            {
                 foreach (IAction action in guildCommand.Actions)
-				{
+                {
                     if (component.Data.CustomId.StartsWith(action.Name))
-					{
+                    {
                         // TODO: action could define params and we could parse them in the future.
                         // wouldn't work with the interface though.
                         await action.HandleAction(component);
                         return;
-					}
-				}
-			}
+                    }
+                }
+            }
         }
     }
 }
