@@ -14,11 +14,12 @@ namespace WinstonBot
 {
     public class CommandHandler
     {
+        public IEnumerable<ICommand> Commands => _commands;
+
         private readonly DiscordSocketClient _client;
         private IServiceProvider _services;
-        List<ICommand> _commands;
+        private List<ICommand> _commands;
 
-        // Retrieve client and CommandService instance via ctor
         public CommandHandler(IServiceProvider services, DiscordSocketClient client)
         {
             _client = client;
@@ -26,13 +27,9 @@ namespace WinstonBot
 
             _commands = new List<ICommand>()
             {
-                new HostPvmSignup()
+                new HostPvmSignup(),
+                new ConfigCommand(this) // not great but will do for now.
             };
-
-            // this is gross.
-            // Could pass this into BuildCommand
-            var configureCommand = new ConfigCommand(_commands);
-            _commands.Add(configureCommand);
         }
 
         public async Task InstallCommandsAsync()
@@ -54,15 +51,15 @@ namespace WinstonBot
 
                 if (anyNeedToBeRegisterd)
                 {
+                    Console.WriteLine($"Some commands are not registered for guild {guild.Name}, registering now.");
                     try
                     {
-                        await guild.DeleteApplicationCommandsAsync();
-
                         foreach (ICommand command in _commands)
                         {
                             // Check if this command is already registered.
                             if (!registeredGuildCommands.Where(cmd => cmd.Name == command.Name).Any())
                             {
+                                Console.WriteLine($"Registering command {command.Name}.");
                                 await guild.CreateApplicationCommandAsync(command.BuildCommand());
                             }
                         }

@@ -34,10 +34,9 @@ public class Program
         await _client.LoginAsync(TokenType.Bot, token);
         await _client.StartAsync();
 
-        Console.WriteLine("after start");
         _emoteDatabase = new EmoteDatabase();
-
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
+        _commandHandler = new CommandHandler(_services, _client);
 
         _client.Ready += ClientReady;
 
@@ -50,7 +49,6 @@ public class Program
     {
         Console.WriteLine("Client ready");
 
-        _commandHandler = new CommandHandler(_services, _client);
         await _commandHandler.InstallCommandsAsync();
     }
 

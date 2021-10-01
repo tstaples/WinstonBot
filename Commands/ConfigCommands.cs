@@ -4,6 +4,7 @@ using WinstonBot.MessageHandlers;
 using Discord;
 using Microsoft.Extensions.DependencyInjection;
 using Discord.WebSocket;
+using System.Diagnostics;
 
 namespace WinstonBot.Commands
 {
@@ -19,15 +20,18 @@ namespace WinstonBot.Commands
         {
         };
 
-        private IEnumerable<ICommand> _otherCommands;
+        private CommandHandler _commandHandler;
 
-        public ConfigCommand(IEnumerable<ICommand> otherCommands)
+        public ConfigCommand(CommandHandler commandHandler)
         {
-            _otherCommands = otherCommands;
+            _commandHandler = commandHandler;
         }
 
         public SlashCommandProperties BuildCommand()
         {
+            IEnumerable<ICommand> commandList = _commandHandler.Commands
+                .Where(cmd => cmd.Name != this.Name);
+
             //_client.Rest.BatchEditGuildCommandPermissions
             // could we just configure different commands with options?
             // /configure command:host-pvm action:host role:@pvm-teacher
@@ -48,13 +52,9 @@ namespace WinstonBot.Commands
                 .WithDescription("The action to configure")
                 .WithRequired(true)
                 .WithType(ApplicationCommandOptionType.Integer);
-            foreach (ICommand command in _otherCommands)
+            foreach (ICommand command in commandList)
             {
-                // Skip ourself.
-                if (command.Name == this.Name)
-                {
-                    continue;
-                }
+                Debug.Assert(command.Name != this.Name);
 
                 commandOptionBuilder.AddChoice(command.Name, command.Id);
                 foreach (IAction action in command.Actions)
