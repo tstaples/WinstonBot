@@ -28,7 +28,8 @@ namespace WinstonBot
             _commands = new List<ICommand>()
             {
                 new HostPvmSignup(),
-                new ConfigCommand(this) // not great but will do for now.
+                new ConfigCommand(this), // not great but will do for now.
+                new ForceRefreshCommands(this)
             };
         }
 
@@ -38,53 +39,9 @@ namespace WinstonBot
             _client.ButtonExecuted += HandleButtonExecuted;
             _client.InteractionCreated += HandleInteractionCreated;
 
-            // Register the commands in all the guilds
-            // NOTE: registering the same command will just update it, so we won't hit the 200 command create rate limit.
             foreach (SocketGuild guild in _client.Guilds)
             {
-                var adminRoles = guild.Roles.Where(role => role.Permissions.Administrator);
-
-                try
-                {
-                    foreach (ICommand command in _commands)
-                    {
-                        Console.WriteLine($"Registering command {command.Name}.");
-                        SocketApplicationCommand appCommand = await guild.CreateApplicationCommandAsync(command.BuildCommand());
-                        if (appCommand == null)
-                        {
-                            Console.WriteLine($"Failed to register command: {command.Name}");
-                            continue;
-                        }
-
-                        command.AppCommandId = appCommand.Id;
-                    }
-                }
-                catch (ApplicationCommandException ex)
-                {
-                    // If our command was invalid, we should catch an ApplicationCommandException. This exception contains the path of the error as well as the error message. You can serialize the Error field in the exception to get a visual of where your error is.
-                    var json = JsonConvert.SerializeObject(ex.Error, Formatting.Indented);
-
-                    // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
-                    Console.WriteLine(json);
-                }
-
-                // Setup default command permissions
-                var permDict = new Dictionary<ulong, ApplicationCommandPermission[]>();
-                foreach (ICommand command in _commands)
-                {
-                    List<ApplicationCommandPermission> perms = new();
-                    if (command.DefaultPermission == ICommand.Permission.AdminOnly)
-                    {
-                        foreach (var role in adminRoles)
-                        {
-                            perms.Add(new ApplicationCommandPermission(role, true));
-                        }
-                    }
-
-                    permDict.Add(command.AppCommandId, perms.ToArray());
-                }
-
-                await _client.Rest.BatchEditGuildCommandPermissions(guild.Id, permDict);
+                await ForceRefreshCommands.RegisterCommands(_client, guild, _commands);
             }
         }
 
