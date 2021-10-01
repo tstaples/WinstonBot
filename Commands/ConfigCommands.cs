@@ -13,7 +13,8 @@ namespace WinstonBot.Commands
         public string Name => "configure-command";
 
         public int Id => 3;// TODO
-
+        public ICommand.Permission DefaultPermission => ICommand.Permission.AdminOnly;
+        public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => _actions;
 
         private List<IAction> _actions = new List<IAction>()
@@ -39,6 +40,7 @@ namespace WinstonBot.Commands
             // TODO: we might want to use sub commands so we can also do configure view or something. or just make it a separate command.
             var configureCommands = new SlashCommandBuilder()
                 .WithName(Name)
+                .WithDefaultPermission(false)
                 .WithDescription("Set role permissions for the various action");
 
             var commandOptionBuilder = new SlashCommandOptionBuilder()
@@ -75,10 +77,17 @@ namespace WinstonBot.Commands
             return configureCommands.Build();
         }
 
-        public Task HandleCommand(Commands.CommandContext context)
+        public async Task HandleCommand(Commands.CommandContext context)
         {
-            
-            return Task.CompletedTask;
+            //if (context.SlashCommand.Channel is SocketGuildChannel channel)
+            //{
+            //    var guild = channel.Guild;
+            //    Console.WriteLine($"Command invoked in guild {channel.Guild.Name}");
+
+            //    var permissions = new Dictionary<ulong, ApplicationCommandPermission[]>();
+            //    await context.Client.Rest.BatchEditGuildCommandPermissions(guild.Id, permissions);
+            //}
+            //return Task.CompletedTask;
         }
     }
 }

@@ -19,8 +19,16 @@ namespace WinstonBot.Commands
 
     public interface ICommand
     {
+        public enum Permission
+        { 
+            Everyone,
+            AdminOnly
+        }
+
         public string Name { get; }
         public int Id { get; }
+        public Permission DefaultPermission { get; }
+        public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions { get; }
 
         public SlashCommandProperties BuildCommand();

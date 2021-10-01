@@ -42,12 +42,21 @@ namespace WinstonBot
             // NOTE: registering the same command will just update it, so we won't hit the 200 command create rate limit.
             foreach (SocketGuild guild in _client.Guilds)
             {
+                var adminRoles = guild.Roles.Where(role => role.Permissions.Administrator);
+
                 try
                 {
                     foreach (ICommand command in _commands)
                     {
                         Console.WriteLine($"Registering command {command.Name}.");
-                        await guild.CreateApplicationCommandAsync(command.BuildCommand());
+                        SocketApplicationCommand appCommand = await guild.CreateApplicationCommandAsync(command.BuildCommand());
+                        if (appCommand == null)
+                        {
+                            Console.WriteLine($"Failed to register command: {command.Name}");
+                            continue;
+                        }
+
+                        command.AppCommandId = appCommand.Id;
                     }
                 }
                 catch (ApplicationCommandException ex)
@@ -58,28 +67,37 @@ namespace WinstonBot
                     // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
                     Console.WriteLine(json);
                 }
-            }
-        }
 
-        private bool UserHasRoleForCommand(SocketUser user, SocketRole requiredRole)
-        {
-            if (user is SocketGuildUser guildUser)
-            {
-                return guildUser.Roles.Contains(requiredRole);
+                // Setup default command permissions
+                var permDict = new Dictionary<ulong, ApplicationCommandPermission[]>();
+                foreach (ICommand command in _commands)
+                {
+                    List<ApplicationCommandPermission> perms = new();
+                    if (command.DefaultPermission == ICommand.Permission.AdminOnly)
+                    {
+                        foreach (var role in adminRoles)
+                        {
+                            perms.Add(new ApplicationCommandPermission(role, true));
+                        }
+                    }
+
+                    permDict.Add(command.AppCommandId, perms.ToArray());
+                }
+
+                await _client.Rest.BatchEditGuildCommandPermissions(guild.Id, permDict);
             }
-            return false;
         }
 
         private async Task HandleInteractionCreated(SocketInteraction arg)
         {
             if (arg is SocketSlashCommand slashCommand)
             {
-                foreach (ICommand guildCommand in _commands)
+                foreach (ICommand command in _commands)
                 {
-                    if (guildCommand.Name == slashCommand.Data.Name)
+                    if (command.Name == slashCommand.Data.Name)
                     {
                         var context = new Commands.CommandContext(_client, slashCommand, _services);
-                        await guildCommand.HandleCommand(context);
+                        await command.HandleCommand(context);
                         return;
                     }
                 }
@@ -88,9 +106,9 @@ namespace WinstonBot
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
-            foreach (ICommand guildCommand in _commands)
+            foreach (ICommand command in _commands)
             {
-                foreach (IAction action in guildCommand.Actions)
+                foreach (IAction action in command.Actions)
                 {
                     if (component.Data.CustomId.StartsWith(action.Name))
                     {

@@ -13,6 +13,8 @@ namespace WinstonBot.Commands
     {
         public string Name => "host-pvm-signup";
         public int Id => 1;
+        public ICommand.Permission DefaultPermission => ICommand.Permission.Everyone;
+        public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => _actions;
 
         private List<IAction> _actions = new List<IAction>()
