@@ -26,7 +26,10 @@ public class Program
     {
         _client = new DiscordSocketClient(new DiscordSocketConfig()
         {
-            MessageCacheSize = 1000
+            MessageCacheSize = 1000,
+            LargeThreshold = 250,
+            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers,
+            LogLevel = LogSeverity.Verbose
         });
         _client.Log += this.Log;
 
@@ -48,6 +51,12 @@ public class Program
     private async Task ClientReady()
     {
         Console.WriteLine("Client ready");
+
+        Task.Run(async () =>
+        {
+            _client.DownloadUsersAsync(_client.Guilds);
+            Console.WriteLine("Finished downloading users");
+        });
 
         await _commandHandler.InstallCommandsAsync();
     }

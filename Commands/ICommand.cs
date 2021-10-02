@@ -14,7 +14,7 @@ namespace WinstonBot.Commands
         public int Id { get; }
         public long RoleId {  get; }
 
-        public Task HandleAction(SocketMessageComponent component);
+        public Task HandleAction(ActionContext context);
     }
 
     public interface ICommand

@@ -47,6 +47,13 @@ namespace WinstonBot
 
         private async Task HandleInteractionCreated(SocketInteraction arg)
         {
+            // TEmp
+            //if (arg.Channel.Id != 893639117924081696)
+            //{
+            //    Console.WriteLine("Ignoring request from non bot channel");
+            //    return;
+            //}
+
             if (arg is SocketSlashCommand slashCommand)
             {
                 foreach (ICommand command in _commands)
@@ -71,7 +78,8 @@ namespace WinstonBot
                     {
                         // TODO: action could define params and we could parse them in the future.
                         // wouldn't work with the interface though.
-                        await action.HandleAction(component);
+                        var context = new Commands.ActionContext(_client, component, _services);
+                        await action.HandleAction(context);
                         return;
                     }
                 }

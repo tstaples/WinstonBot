@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WinstonBot.Data;
 using Discord.WebSocket;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace WinstonBot.Commands
 {
@@ -23,25 +24,40 @@ namespace WinstonBot.Commands
             new QuitAction(),
             new CompleteTeamAction(),
             new ConfirmTeamAction(),
+            new CancelTeamConfirmationAction(),
             new AddUserToTeamAction(),
             new RemoveUserFromTeamAction()
         };
 
         private static int CurrentActionId = 0;
 
-        private Dictionary<string, string> testNames = new Dictionary<string, string>()
+        // we only have the mention string in the desc.
+        private List<string> testNames = new List<string>()
         {
-            { "1vinnie", "vinnie" },
-            { "1bob", "bob" },
-            { "1joe", "joe" },
-            { "1aaron", "aaron" },
-            { "1kadeem", "kadeem" },
-            { "1mike", "mike" },
-            { "1fuccboi", "fuccboi" },
-            { "1feerip", "feerip" },
-            { "1gob", "gob" },
-            { "1bog", "bog" },
+            { "<@141439679890325504>" },
+            { "<@204793753691619330>" },
+            { "<@889961722314637342>" },
+            { "<@879404492922167346>" },
+            { "<@856679611899576360>" }
         };
+
+        // TODO: store wip edits in here instead of getting users from original message.
+        private Dictionary<ulong, List<ulong>> _messagedBeingEdited = new();
+
+        private static ulong GetUserIdFromMention(string mention)
+        {
+            var resultString = Regex.Match(mention, @"\d+").Value;
+            ulong value = 0;
+            if (ulong.TryParse(resultString, out value))
+            {
+                return value;
+            }
+            else
+            {
+                Console.WriteLine($"Failed to parse user id from string {mention}");
+                return 0;
+            }
+        }
 
         public SlashCommandProperties BuildCommand()
         {
@@ -86,7 +102,7 @@ namespace WinstonBot.Commands
             var builder = new ComponentBuilder()
                 .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}")
                 .WithButton(new ButtonBuilder()
-                    .WithLabel("Quit")
+                    .WithLabel("Unsign")
                     .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Danger))
                 .WithButton(new ButtonBuilder()
@@ -97,64 +113,66 @@ namespace WinstonBot.Commands
             var embed = new EmbedBuilder()
                 .WithTitle($"{bossPrettyName} Sign Ups")
                 //TEMP
-                .WithDescription(String.Join(Environment.NewLine, DictToList(testNames)));
+                .WithDescription(String.Join(Environment.NewLine, testNames));
 
-            await slashCommand.RespondAsync(message, embed: embed.Build(), component: builder.Build());
+            await slashCommand.RespondAsync(message, embed: embed.Build(), component: builder.Build(), allowedMentions: AllowedMentions.All);
         }
 
         #region Helpers
-        private static List<string> DictToList(Dictionary<string, string> names)
+        private static List<string> ParseNamesToList(string text)
         {
-            List<string> nameList = new();
-            foreach (var pair in names)
-            {
-                nameList.Add($"{pair.Key} - {pair.Value}");
-            }
-            return nameList;
-        }
-
-        private static Dictionary<string, string> ParseNamesToDict(string text)
-        {
-            Dictionary<string, string> names = new();
             if (text != null)
             {
-                var lines = text.Split(Environment.NewLine).ToList();
-                lines.ForEach(line => names.Add(line.Split(" - ")[0], line.Split(" - ")[1]));
+                return text.Split(Environment.NewLine).ToList();
             }
-            return names;
+            return new List<string>();
+        }
+
+        private static List<ulong> ParseNamesToIdList(string text)
+        {
+            return ParseNamesToList(text)
+                .Select(mention => GetUserIdFromMention(mention))
+                .ToList();
         }
 
         private static Embed BuildTeamSelectionEmbed(
-            Dictionary<string, string> selectedNames,
-            Dictionary<string, string> unselectedNames)
+            ulong guildId,
+            ulong channelId,
+            ulong messageId,
+            List<string> selectedNames)
         {
             return new EmbedBuilder()
                 .WithTitle("Pending Team")
-                .AddField("Selected Users", String.Join(Environment.NewLine, DictToList(selectedNames)), inline: true)
-                .AddField("Unselected Users", String.Join(Environment.NewLine, DictToList(unselectedNames)), inline: true)
+                .WithDescription(String.Join(Environment.NewLine, selectedNames))
+                .WithFooter($"{guildId},{channelId},{messageId}")
                 .Build();
         }
 
         private static MessageComponent BuildTeamSelectionComponent(
+            SocketGuild guild,
             long bossIndex,
-            Dictionary<string, string> selectedNames,
-            Dictionary<string, string> unselectedNames)
+            List<string> selectedNames,
+            List<string> unselectedNames)
         {
             var builder = new ComponentBuilder();
-            foreach (var namePair in selectedNames)
+            foreach (var mention in selectedNames)
             {
+                ulong userid = GetUserIdFromMention(mention);
+                var username = guild.GetUser(userid).Username;
                 builder.WithButton(new ButtonBuilder()
-                    .WithLabel(namePair.Value)
-                    .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{namePair.Key}_{namePair.Value}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Success));
+                    .WithLabel($"❌ {username}")
+                    .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{mention}_{bossIndex}")
+                    .WithStyle(ButtonStyle.Danger));
             }
 
-            foreach (var namePair in unselectedNames)
+            foreach (var mention in unselectedNames)
             {
+                var username = guild.GetUser(GetUserIdFromMention(mention)).Username;
                 builder.WithButton(new ButtonBuilder()
-                    .WithLabel(namePair.Value)
-                    .WithCustomId($"{AddUserToTeamAction.ActionName}_{namePair.Key}_{namePair.Value}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Secondary));
+                    .WithLabel($"{username}")
+                    .WithEmote(new Emoji("➕"))
+                    .WithCustomId($"{AddUserToTeamAction.ActionName}_{mention}_{bossIndex}")
+                    .WithStyle(ButtonStyle.Success));
             }
 
             builder.WithButton(new ButtonBuilder()
@@ -162,7 +180,34 @@ namespace WinstonBot.Commands
                     .WithCustomId($"{ConfirmTeamAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Primary));
 
+            builder.WithButton(new ButtonBuilder()
+                    .WithLabel("Cancel")
+                    .WithCustomId($"{CancelTeamConfirmationAction.ActionName}_{bossIndex}")
+                    .WithStyle(ButtonStyle.Danger));
+
             return builder.Build();
+        }
+
+        private class MessageMetadata
+        {
+            public ulong GuildId { get; set; }
+            public ulong ChannelId { get; set; }
+            public ulong MessageId { get; set; }
+        }
+
+        private static MessageMetadata ParseMetadata(DiscordSocketClient client, string text)
+        {
+            var footerParts = text.Split(',');
+            var guildId = ulong.Parse(footerParts[0]);
+            var channelId = ulong.Parse(footerParts[1]);
+            var originalMessageId = ulong.Parse(footerParts[2]);
+
+            return new MessageMetadata()
+            {
+                GuildId = guildId,
+                ChannelId = channelId,
+                MessageId = originalMessageId
+            };
         }
         #endregion // helpers
 
@@ -174,13 +219,16 @@ namespace WinstonBot.Commands
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
-            public async Task HandleAction(SocketMessageComponent component)
+            public async Task HandleAction(ActionContext context)
             {
+                var component = context.Component;
+
                 long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
                 var currentEmbed = component.Message.Embeds.First();
 
-                Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
-                if (names.ContainsKey(component.User.Mention))
+                var names = ParseNamesToList(currentEmbed.Description);
+                var ids = ParseNamesToIdList(currentEmbed.Description);
+                if (ids.Contains(component.User.Id))
                 {
                     Console.WriteLine($"{component.User.Mention} is already signed up: ignoring.");
                     await component.RespondAsync("You're already signed up.", ephemeral: true);
@@ -189,11 +237,11 @@ namespace WinstonBot.Commands
 
                 // TODO: handle checking they have the correct role.
                 Console.WriteLine($"{component.User.Mention} has signed up!");
-                names.Add(component.User.Mention, component.User.Username);
+                names.Add(component.User.Mention);
 
                 var embed = new EmbedBuilder()
                             .WithTitle("Sign Ups")
-                            .WithDescription(String.Join(Environment.NewLine, DictToList(names)));
+                            .WithDescription(String.Join(Environment.NewLine, names));
 
                 await component.UpdateAsync(msgProps =>
                 {
@@ -209,13 +257,15 @@ namespace WinstonBot.Commands
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
-            public async Task HandleAction(SocketMessageComponent component)
+            public async Task HandleAction(ActionContext context)
             {
+                var component = context.Component;
                 long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
                 var currentEmbed = component.Message.Embeds.First();
 
-                Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
-                if (!names.ContainsKey(component.User.Mention))
+                var names = ParseNamesToList(currentEmbed.Description);
+                var ids = ParseNamesToIdList(currentEmbed.Description);
+                if (!ids.Contains(component.User.Id))
                 {
                     Console.WriteLine($"{component.User.Mention} isn't signed up: ignoring.");
                     await component.RespondAsync("You're not signed up.", ephemeral: true);
@@ -223,11 +273,12 @@ namespace WinstonBot.Commands
                 }
 
                 Console.WriteLine($"{component.User.Mention} has quit!");
-                names.Remove(component.User.Mention);
+                var index = ids.IndexOf(component.User.Id);
+                names.RemoveAt(index);
 
                 var embed = new EmbedBuilder()
                             .WithTitle("Sign Ups")
-                            .WithDescription(String.Join(Environment.NewLine, DictToList(names)));
+                            .WithDescription(String.Join(Environment.NewLine, names));
 
                 await component.UpdateAsync(msgProps =>
                 {
@@ -243,12 +294,14 @@ namespace WinstonBot.Commands
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
-            public async Task HandleAction(SocketMessageComponent component)
+            public async Task HandleAction(ActionContext context)
             {
+                // TODO: check if someone is already editing this thing.
+                var component = context.Component;
                 long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
                 var currentEmbed = component.Message.Embeds.First();
 
-                Dictionary<string, string> names = ParseNamesToDict(currentEmbed.Description);
+                var names = ParseNamesToList(currentEmbed.Description);
                 if (names.Count == 0)
                 {
                     await component.RespondAsync("Not enough people signed up.", ephemeral: true);
@@ -258,23 +311,48 @@ namespace WinstonBot.Commands
                 BossData.Entry bossData = BossData.Entries[bossIndex];
 
                 // TODO: calculate who should go.
-                Dictionary<string, string> selectedNames = new();
-                Dictionary<string, string> unselectedNames = new();
+                List<string> selectedNames = new();
+                List<string> unselectedNames = new();
                 int i = 0;
-                foreach (var pair in names)
+                foreach (var mention in names)
                 {
-                    if (i++ < bossData.MaxPlayersOnTeam) selectedNames.Add(pair.Key, pair.Value);
-                    else unselectedNames.Add(pair.Key, pair.Value);
+                    if (i++ < bossData.MaxPlayersOnTeam) selectedNames.Add(mention);
+                    else unselectedNames.Add(mention);
                 }
 
-                await component.RespondAsync("Confirm or edit the team." +
+                await component.Message.ModifyAsync(msgProps =>
+                {
+                    var builder = new ComponentBuilder()
+                    .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}", disabled: true)
+                    .WithButton(new ButtonBuilder()
+                        .WithLabel("Unsign")
+                        .WithDisabled(true)
+                        .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
+                        .WithStyle(ButtonStyle.Danger))
+                    .WithButton(new ButtonBuilder()
+                        .WithDisabled(true)
+                        .WithLabel("Complete Team")
+                        .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
+                        .WithStyle(ButtonStyle.Success));
+                    msgProps.Components = builder.Build();
+
+                    var content = msgProps.Content;
+                    msgProps.Content = "Host is finalizing the team, fuck off.";
+                });
+
+                // do editing in pm
+                // store original message id in footer
+                // while editing disable buttons and set footer on original to say who is editing
+                var guild = ((SocketGuildChannel)component.Channel).Guild;
+                await component.User.SendMessageAsync("Confirm or edit the team." +
                     "\nClick the buttons to change who is selected to go." +
                     "\nOnce you're done click Confirm Team." +
                     "\nYou may continue making changes after you confirm the team by hitting confirm again." +
                     "\nOnce you're finished making changes you can dismiss this message.",
-                    embed: BuildTeamSelectionEmbed(selectedNames, unselectedNames),
-                    component: BuildTeamSelectionComponent(bossIndex, selectedNames, unselectedNames),
-                    ephemeral: true);
+                    embed: BuildTeamSelectionEmbed(guild.Id, component.Channel.Id, component.Message.Id, selectedNames),
+                    component: BuildTeamSelectionComponent(guild, bossIndex, selectedNames, unselectedNames));
+
+                await component.DeferAsync();
             }
         }
 
@@ -285,28 +363,80 @@ namespace WinstonBot.Commands
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
-            public async Task HandleAction(SocketMessageComponent component)
+            public async Task HandleAction(ActionContext context)
             {
+                var component = context.Component;
                 long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
 
                 var currentEmbed = component.Message.Embeds.First();
-                Debug.Assert(currentEmbed.Fields.Length == 2);
-                Dictionary<string, string> selectedNames = ParseNamesToDict(currentEmbed.Fields[0].Value);
+                var selectedNames = ParseNamesToList(currentEmbed.Description);
 
                 var embed = new EmbedBuilder()
                             .WithTitle("Selected Team")
-                            .WithDescription(String.Join(Environment.NewLine, DictToList(selectedNames)));
+                            .WithDescription(String.Join(Environment.NewLine, selectedNames));
 
-                // We no longer have the full list of people signed up so we can't edit.
-                // We'd need to include the people who weren't selected as well, but we wouldn't want to ping them. Only add it if really needed.
+                var metadata = ParseMetadata(context.Client, currentEmbed.Footer.Value.Text);
+                var guild = context.Client.GetGuild(metadata.GuildId);
+                var channel = guild.GetTextChannel(metadata.ChannelId);
 
                 var bossData = BossData.Entries[bossIndex];
-                await component.Channel.ModifyMessageAsync(component.Message.Reference.MessageId.Value, msgProps =>
+                await channel.ModifyMessageAsync(metadata.MessageId, msgProps =>
                 {
                     msgProps.Content = $"Final team for {bossData.PrettyName}";
                     msgProps.Embed = embed.Build();
                     msgProps.Components = new ComponentBuilder().Build();
                 });
+
+                // Ack the interaction so they don't see "interaction failed" after hitting complete team.
+                await component.DeferAsync();
+            }
+        }
+
+        private class CancelTeamConfirmationAction : IAction
+        {
+            public static string ActionName = "pvm-cancel-team-confirmation";
+            public string Name => ActionName;
+            public int Id { get; } = CurrentActionId++;
+            public long RoleId => throw new NotImplementedException();
+
+            public async Task HandleAction(ActionContext context)
+            {
+                var component = context.Component;
+                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
+
+                var currentEmbed = component.Message.Embeds.First();
+                var selectedNames = ParseNamesToList(currentEmbed.Description);
+
+                var embed = new EmbedBuilder()
+                            .WithTitle("Selected Team")
+                            .WithDescription(String.Join(Environment.NewLine, selectedNames));
+
+                var metadata = ParseMetadata(context.Client, currentEmbed.Footer.Value.Text);
+                var guild = context.Client.GetGuild(metadata.GuildId);
+                var channel = guild.GetTextChannel(metadata.ChannelId);
+
+                var bossData = BossData.Entries[bossIndex];
+                await channel.ModifyMessageAsync(metadata.MessageId, msgProps =>
+                {
+                    var builder = new ComponentBuilder()
+                    .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}", disabled: false)
+                    .WithButton(new ButtonBuilder()
+                        .WithLabel("Unsign")
+                        .WithDisabled(false)
+                        .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
+                        .WithStyle(ButtonStyle.Danger))
+                    .WithButton(new ButtonBuilder()
+                        .WithDisabled(false)
+                        .WithLabel("Complete Team")
+                        .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
+                        .WithStyle(ButtonStyle.Success));
+                    msgProps.Components = builder.Build();
+
+                    var content = msgProps.Content;
+                    msgProps.Content = $"Sign up for {bossData.PrettyName}";
+                });
+
+                await component.Message.DeleteAsync();
 
                 // Ack the interaction so they don't see "interaction failed" after hitting complete team.
                 await component.DeferAsync();
@@ -320,31 +450,39 @@ namespace WinstonBot.Commands
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
-            public async Task HandleAction(SocketMessageComponent component)
+            public async Task HandleAction(ActionContext context)
             {
+                var component = context.Component;
                 string mention = component.Data.CustomId.Split('_')[1];
-                string username = component.Data.CustomId.Split('_')[2];
-                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[3]);
+                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[2]);
 
                 var currentEmbed = component.Message.Embeds.First();
 
-                Debug.Assert(currentEmbed.Fields.Length == 2);
-                Dictionary<string, string> selectedNames = ParseNamesToDict(currentEmbed.Fields[0].Value);
-                Dictionary<string, string> unselectedNames = ParseNamesToDict(currentEmbed.Fields[1].Value);
-
-                if (!selectedNames.ContainsKey(mention))
+                ulong userId = GetUserIdFromMention(mention);
+                var selectedNames = ParseNamesToList(currentEmbed.Description);
+                var ids = ParseNamesToIdList(currentEmbed.Description);
+                if (!ids.Contains(userId))
                 {
                     return;
                 }
 
-                Console.WriteLine($"Removing {username} from the team");
-                selectedNames.Remove(mention);
-                unselectedNames.Add(mention, username);
+                Console.WriteLine($"Removing {mention} from the team");
+                var index = ids.IndexOf(userId);
+                selectedNames.RemoveAt(index);
+
+                var metadata = ParseMetadata(context.Client, currentEmbed.Footer.Value.Text);
+                var guild = context.Client.GetGuild(metadata.GuildId);
+                var channel = guild.GetTextChannel(metadata.ChannelId);
+                var originalMessage = await channel.GetMessageAsync(metadata.MessageId);
+
+                var unselectedNames = ParseNamesToList(originalMessage.Embeds.First().Description)
+                    .Where(name => !selectedNames.Contains(name))
+                    .ToList();
 
                 await component.UpdateAsync(msgProps =>
                 {
-                    msgProps.Embed = BuildTeamSelectionEmbed(selectedNames, unselectedNames);
-                    msgProps.Components = BuildTeamSelectionComponent(bossIndex, selectedNames, unselectedNames);
+                    msgProps.Embed = BuildTeamSelectionEmbed(metadata.GuildId, metadata.ChannelId, metadata.MessageId, selectedNames);
+                    msgProps.Components = BuildTeamSelectionComponent(guild, bossIndex, selectedNames, unselectedNames);
                 });
             }
         }
@@ -356,19 +494,18 @@ namespace WinstonBot.Commands
             public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
-            public async Task HandleAction(SocketMessageComponent component)
+            public async Task HandleAction(ActionContext context)
             {
+                var component = context.Component;
                 string mention = component.Data.CustomId.Split('_')[1];
-                string username = component.Data.CustomId.Split('_')[2];
-                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[3]);
+                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[2]);
 
                 var currentEmbed = component.Message.Embeds.First();
 
-                Debug.Assert(currentEmbed.Fields.Length == 2);
-                Dictionary<string, string> selectedNames = ParseNamesToDict(currentEmbed.Fields[0].Value);
-                Dictionary<string, string> unselectedNames = ParseNamesToDict(currentEmbed.Fields[1].Value);
-
-                if (selectedNames.ContainsKey(mention))
+                ulong userId = GetUserIdFromMention(mention);
+                var selectedNames = ParseNamesToList(currentEmbed.Description);
+                var ids = ParseNamesToIdList(currentEmbed.Description);
+                if (ids.Contains(userId))
                 {
                     return;
                 }
@@ -380,14 +517,22 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                Console.WriteLine($"Adding {username} to the team");
-                selectedNames.Add(mention, username);
-                unselectedNames.Remove(mention);
+                Console.WriteLine($"Adding {mention} to the team");
+                selectedNames.Add(mention);
+
+                var metadata = ParseMetadata(context.Client, currentEmbed.Footer.Value.Text);
+                var guild = context.Client.GetGuild(metadata.GuildId);
+                var channel = guild.GetTextChannel(metadata.ChannelId);
+                var originalMessage = await channel.GetMessageAsync(metadata.MessageId);
+
+                var unselectedNames = ParseNamesToList(originalMessage.Embeds.First().Description)
+                    .Where(name => !selectedNames.Contains(name))
+                    .ToList();
 
                 await component.UpdateAsync(msgProps =>
                 {
-                    msgProps.Embed = BuildTeamSelectionEmbed(selectedNames, unselectedNames);
-                    msgProps.Components = BuildTeamSelectionComponent(bossIndex, selectedNames, unselectedNames);
+                    msgProps.Embed = BuildTeamSelectionEmbed(metadata.GuildId, metadata.ChannelId, metadata.MessageId, selectedNames);
+                    msgProps.Components = BuildTeamSelectionComponent(guild, bossIndex, selectedNames, unselectedNames);
                 });
             }
         }

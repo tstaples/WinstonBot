@@ -15,4 +15,16 @@ namespace WinstonBot.Commands
             ServiceProvider = services;
         }
     }
+    public class ActionContext
+    {
+        public DiscordSocketClient Client { get; set; }
+        public SocketMessageComponent Component { get; set; }
+        public IServiceProvider ServiceProvider { get; set; }
+        public ActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
+        {
+            Client = client;
+            Component = arg;
+            ServiceProvider = services;
+        }
+    }
 }

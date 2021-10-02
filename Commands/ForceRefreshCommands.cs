@@ -54,7 +54,10 @@ namespace WinstonBot.Commands
             // Register the commands in all the guilds
             // NOTE: registering the same command will just update it, so we won't hit the 200 command create rate limit.
 
-            var adminRoles = guild.Roles.Where(role => role.Permissions.Administrator);
+            // TODO: batch update breaks because we pass in more than 10 roles in the dict since there's 17 admin roles.
+            //var adminRoles = guild.Roles.Where(role => role.Permissions.Administrator);
+            var adminRoles = guild.Roles.Where(role => role.Id == 773757083904114689);
+            
 
             try
             {
