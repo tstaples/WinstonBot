@@ -7,6 +7,8 @@ using WinstonBot.Data;
 using Discord.WebSocket;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 
 namespace WinstonBot.Commands
 {
@@ -41,23 +43,7 @@ namespace WinstonBot.Commands
             { "<@856679611899576360>" }
         };
 
-        // TODO: store wip edits in here instead of getting users from original message.
-        private Dictionary<ulong, List<ulong>> _messagedBeingEdited = new();
-
-        private static ulong GetUserIdFromMention(string mention)
-        {
-            var resultString = Regex.Match(mention, @"\d+").Value;
-            ulong value = 0;
-            if (ulong.TryParse(resultString, out value))
-            {
-                return value;
-            }
-            else
-            {
-                Console.WriteLine($"Failed to parse user id from string {mention}");
-                return 0;
-            }
-        }
+        private static ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> _messagesBeingEdited = new();
 
         public SlashCommandProperties BuildCommand()
         {
@@ -109,6 +95,32 @@ namespace WinstonBot.Commands
         }
 
         #region Helpers
+        private static void RemoveMessageFromEditedList(ulong messageId)
+        {
+            ReadOnlyCollection<ulong> outList;
+            _messagesBeingEdited.TryRemove(messageId, out outList);
+        }
+
+        private static bool TryAddMessageToEditedList(ulong messageId, List<ulong> names)
+        {
+            return _messagesBeingEdited.TryAdd(messageId, new ReadOnlyCollection<ulong>(names));
+        }
+
+        private static ulong GetUserIdFromMention(string mention)
+        {
+            var resultString = Regex.Match(mention, @"\d+").Value;
+            ulong value = 0;
+            if (ulong.TryParse(resultString, out value))
+            {
+                return value;
+            }
+            else
+            {
+                Console.WriteLine($"Failed to parse user id from string {mention}");
+                return 0;
+            }
+        }
+
         private static List<string> ParseNamesToList(string text)
         {
             if (text != null)
@@ -123,6 +135,18 @@ namespace WinstonBot.Commands
             return ParseNamesToList(text)
                 .Select(mention => GetUserIdFromMention(mention))
                 .ToList();
+        }
+
+        private static List<ulong> ParseNamesToIdList(IEnumerable<string> nameList)
+        {
+            return nameList
+                .Select(mention => GetUserIdFromMention(mention))
+                .ToList();
+        }
+
+        private static List<string> ConvertUserIdListToMentions(SocketGuild guild, IEnumerable<ulong> ids)
+        {
+            return ids.Select(id => guild.GetUser(id).Mention).ToList();
         }
 
         private static Embed BuildTeamSelectionEmbed(
@@ -199,6 +223,18 @@ namespace WinstonBot.Commands
             return builder.Build();
         }
 
+        private static Embed BuildSignupEmbed(long bossIndex, IEnumerable<string> names, string? editedByMention = null)
+        {
+            var builder = new EmbedBuilder()
+                .WithTitle($"{BossData.Entries[bossIndex].PrettyName} Sign Ups")
+                .WithDescription(String.Join(Environment.NewLine, names));
+            if (editedByMention != null)
+            {
+                builder.WithFooter($"Being edited by {editedByMention}");
+            }
+            return builder.Build();
+        }
+
         private class MessageMetadata
         {
             public ulong GuildId { get; set; }
@@ -238,7 +274,7 @@ namespace WinstonBot.Commands
                 var currentEmbed = component.Message.Embeds.First();
 
                 var names = ParseNamesToList(currentEmbed.Description);
-                var ids = ParseNamesToIdList(currentEmbed.Description);
+                var ids = ParseNamesToIdList(names);
                 if (ids.Contains(component.User.Id))
                 {
                     Console.WriteLine($"{component.User.Mention} is already signed up: ignoring.");
@@ -250,13 +286,9 @@ namespace WinstonBot.Commands
                 Console.WriteLine($"{component.User.Mention} has signed up!");
                 names.Add(component.User.Mention);
 
-                var embed = new EmbedBuilder()
-                            .WithTitle("Sign Ups")
-                            .WithDescription(String.Join(Environment.NewLine, names));
-
                 await component.UpdateAsync(msgProps =>
                 {
-                    msgProps.Embed = embed.Build();
+                    msgProps.Embed = BuildSignupEmbed(bossIndex, names);
                 });
             }
         }
@@ -275,7 +307,7 @@ namespace WinstonBot.Commands
                 var currentEmbed = component.Message.Embeds.First();
 
                 var names = ParseNamesToList(currentEmbed.Description);
-                var ids = ParseNamesToIdList(currentEmbed.Description);
+                var ids = ParseNamesToIdList(names);
                 if (!ids.Contains(component.User.Id))
                 {
                     Console.WriteLine($"{component.User.Mention} isn't signed up: ignoring.");
@@ -287,13 +319,9 @@ namespace WinstonBot.Commands
                 var index = ids.IndexOf(component.User.Id);
                 names.RemoveAt(index);
 
-                var embed = new EmbedBuilder()
-                            .WithTitle("Sign Ups")
-                            .WithDescription(String.Join(Environment.NewLine, names));
-
                 await component.UpdateAsync(msgProps =>
                 {
-                    msgProps.Embed = embed.Build();
+                    msgProps.Embed = BuildSignupEmbed(bossIndex, names);
                 });
             }
         }
@@ -307,7 +335,6 @@ namespace WinstonBot.Commands
 
             public async Task HandleAction(ActionContext context)
             {
-                // TODO: check if someone is already editing this thing.
                 var component = context.Component;
                 long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
                 var currentEmbed = component.Message.Embeds.First();
@@ -316,6 +343,12 @@ namespace WinstonBot.Commands
                 if (names.Count == 0)
                 {
                     await component.RespondAsync("Not enough people signed up.", ephemeral: true);
+                    return;
+                }
+
+                if (!TryAddMessageToEditedList(component.Message.Id, ParseNamesToIdList(names)))
+                {
+                    await component.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
                     return;
                 }
 
@@ -334,12 +367,11 @@ namespace WinstonBot.Commands
                 await component.Message.ModifyAsync(msgProps =>
                 {
                     msgProps.Components = BuildSignupButtons(bossIndex, true);
-                    msgProps.Content = "Host is finalizing the team, fuck off.";
+                    msgProps.Content = "Host is finalizing the team, fuck off."; // todo
+                    // footers can't show mentions, so use the username.
+                    msgProps.Embed = BuildSignupEmbed(bossIndex, names, component.User.Username);
                 });
 
-                // do editing in pm
-                // store original message id in footer
-                // while editing disable buttons and set footer on original to say who is editing
                 var guild = ((SocketGuildChannel)component.Channel).Guild;
                 await component.User.SendMessageAsync("Confirm or edit the team." +
                     "\nClick the buttons to change who is selected to go." +
@@ -363,9 +395,13 @@ namespace WinstonBot.Commands
             public async Task HandleAction(ActionContext context)
             {
                 var component = context.Component;
-                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
 
                 var currentEmbed = component.Message.Embeds.First();
+                if (!currentEmbed.Footer.HasValue)
+                {
+                    throw new NullReferenceException($"Footer for message {component.Message.Id} is null. Failed to get metadata");
+                }
+
                 var selectedNames = ParseNamesToList(currentEmbed.Description);
 
                 var embed = new EmbedBuilder()
@@ -376,7 +412,9 @@ namespace WinstonBot.Commands
                 var guild = context.Client.GetGuild(metadata.GuildId);
                 var channel = guild.GetTextChannel(metadata.ChannelId);
 
+                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
                 var bossData = BossData.Entries[bossIndex];
+
                 await channel.ModifyMessageAsync(metadata.MessageId, msgProps =>
                 {
                     msgProps.Content = $"Final team for {bossData.PrettyName}";
@@ -420,26 +458,43 @@ namespace WinstonBot.Commands
             public async Task HandleAction(ActionContext context)
             {
                 var component = context.Component;
-                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
 
                 var currentEmbed = component.Message.Embeds.First();
-                var selectedNames = ParseNamesToList(currentEmbed.Description);
-
-                var embed = new EmbedBuilder()
-                            .WithTitle("Selected Team")
-                            .WithDescription(String.Join(Environment.NewLine, selectedNames));
+                if (!currentEmbed.Footer.HasValue)
+                {
+                    throw new NullReferenceException($"Footer for message {component.Message.Id} is null. Failed to get metadata");
+                }
 
                 var metadata = ParseMetadata(context.Client, currentEmbed.Footer.Value.Text);
                 var guild = context.Client.GetGuild(metadata.GuildId);
                 var channel = guild.GetTextChannel(metadata.ChannelId);
 
+                long bossIndex = long.Parse(component.Data.CustomId.Split('_')[1]);
                 var bossData = BossData.Entries[bossIndex];
+
+                var names = new List<string>();
+                ReadOnlyCollection<ulong> ids;
+                if (_messagesBeingEdited.TryRemove(metadata.MessageId, out ids))
+                {
+                    names = ConvertUserIdListToMentions(guild, ids);
+                }
+                else
+                {
+                    Console.WriteLine($"[Cancel Team Confirmation] Failed to find message data for {metadata.MessageId}. Cannot remove 'edited by' footer.");
+                }
+
                 await channel.ModifyMessageAsync(metadata.MessageId, msgProps =>
                 {
                     msgProps.Components = BuildSignupButtons(bossIndex);
                     msgProps.Content = $"Sign up for {bossData.PrettyName}";
+                    // Only update the embed if we have the names otherwise we'll end up clearing them.
+                    if (names.Count > 0)
+                    {
+                        msgProps.Embed = BuildSignupEmbed(bossIndex, names);
+                    }
                 });
 
+                // Delete the edit team message from the DM
                 await component.Message.DeleteAsync();
 
                 // Ack the interaction so they don't see "interaction failed" after hitting complete team.
@@ -461,30 +516,44 @@ namespace WinstonBot.Commands
                 long bossIndex = long.Parse(component.Data.CustomId.Split('_')[2]);
 
                 var currentEmbed = component.Message.Embeds.First();
+                if (!currentEmbed.Footer.HasValue)
+                {
+                    throw new NullReferenceException($"Footer for message {component.Message.Id} is null. Failed to get metadata");
+                }
 
                 ulong userId = GetUserIdFromMention(mention);
-                var selectedNames = ParseNamesToList(currentEmbed.Description);
                 var ids = ParseNamesToIdList(currentEmbed.Description);
                 if (!ids.Contains(userId))
                 {
                     return;
                 }
 
-                Console.WriteLine($"Removing {mention} from the team");
-                var index = ids.IndexOf(userId);
-                selectedNames.RemoveAt(index);
-
                 var metadata = ParseMetadata(context.Client, currentEmbed.Footer.Value.Text);
                 var guild = context.Client.GetGuild(metadata.GuildId);
                 var channel = guild.GetTextChannel(metadata.ChannelId);
                 var originalMessage = await channel.GetMessageAsync(metadata.MessageId);
 
-                var unselectedNames = ParseNamesToList(originalMessage.Embeds.First().Description)
-                    .Where(name => !selectedNames.Contains(name))
-                    .ToList();
+                Console.WriteLine($"Removing {mention} from the team");
+                ids.Remove(userId);
+                var selectedNames = ConvertUserIdListToMentions(guild, ids);
+
+                if (!_messagesBeingEdited.ContainsKey(metadata.MessageId))
+                {
+                    await component.RespondAsync($"No user data could be found for message {metadata.MessageId}.\n" +
+                        $"This may be because the bot restarted while you were editing.\n" +
+                        $"Please click 'Confirm Team' on the original message to try again.",
+                        ephemeral: true);
+                    return;
+                }
+
+                var unselectedUserIds = _messagesBeingEdited[metadata.MessageId]
+                    .Where(id => !ids.Contains(id));
+                var unselectedNames = ConvertUserIdListToMentions(guild, unselectedUserIds);
 
                 await component.UpdateAsync(msgProps =>
                 {
+                    // TODO: hide cancel button if we've confirmed before
+                    // TODO: add revert all changes button since we can do that now.
                     msgProps.Embed = BuildTeamSelectionEmbed(metadata.GuildId, metadata.ChannelId, metadata.MessageId, selectedNames);
                     msgProps.Components = BuildTeamSelectionComponent(guild, bossIndex, selectedNames, unselectedNames);
                 });
@@ -505,10 +574,14 @@ namespace WinstonBot.Commands
                 long bossIndex = long.Parse(component.Data.CustomId.Split('_')[2]);
 
                 var currentEmbed = component.Message.Embeds.First();
+                if (!currentEmbed.Footer.HasValue)
+                {
+                    throw new NullReferenceException($"Footer for message {component.Message.Id} is null. Failed to get metadata");
+                }
 
                 ulong userId = GetUserIdFromMention(mention);
                 var selectedNames = ParseNamesToList(currentEmbed.Description);
-                var ids = ParseNamesToIdList(currentEmbed.Description);
+                var ids = ParseNamesToIdList(selectedNames);
                 if (ids.Contains(userId))
                 {
                     return;
@@ -523,18 +596,29 @@ namespace WinstonBot.Commands
 
                 Console.WriteLine($"Adding {mention} to the team");
                 selectedNames.Add(mention);
+                ids.Add(userId);
 
                 var metadata = ParseMetadata(context.Client, currentEmbed.Footer.Value.Text);
                 var guild = context.Client.GetGuild(metadata.GuildId);
                 var channel = guild.GetTextChannel(metadata.ChannelId);
                 var originalMessage = await channel.GetMessageAsync(metadata.MessageId);
 
-                var unselectedNames = ParseNamesToList(originalMessage.Embeds.First().Description)
-                    .Where(name => !selectedNames.Contains(name))
-                    .ToList();
+                if (!_messagesBeingEdited.ContainsKey(metadata.MessageId))
+                {
+                    await component.RespondAsync($"No user data could be found for message {metadata.MessageId}.\n" +
+                        $"This may be because the bot restarted while you were editing.\n" +
+                        $"Please click 'Confirm Team' on the original message to try again.",
+                        ephemeral:true);
+                    return;
+                }
+
+                var unselectedUserIds = _messagesBeingEdited[metadata.MessageId]
+                    .Where(id => !ids.Contains(id));
+                var unselectedNames = ConvertUserIdListToMentions(guild, unselectedUserIds);
 
                 await component.UpdateAsync(msgProps =>
                 {
+                    // TODO: hide cancel button if we've confirmed before
                     msgProps.Embed = BuildTeamSelectionEmbed(metadata.GuildId, metadata.ChannelId, metadata.MessageId, selectedNames);
                     msgProps.Components = BuildTeamSelectionComponent(guild, bossIndex, selectedNames, unselectedNames);
                 });
