@@ -142,7 +142,8 @@ namespace WinstonBot.Commands
             SocketGuild guild,
             long bossIndex,
             List<string> selectedNames,
-            List<string> unselectedNames)
+            List<string> unselectedNames,
+            bool includeCancelButton = true)
         {
             var builder = new ComponentBuilder();
             foreach (var mention in selectedNames)
@@ -170,10 +171,13 @@ namespace WinstonBot.Commands
                     .WithCustomId($"{ConfirmTeamAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Primary));
 
-            builder.WithButton(new ButtonBuilder()
-                    .WithLabel("Cancel")
-                    .WithCustomId($"{CancelTeamConfirmationAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Danger));
+            if (includeCancelButton)
+            {
+                builder.WithButton(new ButtonBuilder()
+                        .WithLabel("Cancel")
+                        .WithCustomId($"{CancelTeamConfirmationAction.ActionName}_{bossIndex}")
+                        .WithStyle(ButtonStyle.Danger));
+            }
 
             return builder.Build();
         }
@@ -380,8 +384,29 @@ namespace WinstonBot.Commands
                     msgProps.Components = new ComponentBuilder().Build();
                 });
 
+                var builder = ComponentBuilder.FromComponents(component.Message.Components);
+
+                // Remove the cancel button from the edit message.
+                await component.Message.ModifyAsync(msgProps =>
+                {
+                    foreach (var row in builder.ActionRows)
+                    {
+                        foreach (var component in row.Components)
+                        {
+                            if (component.CustomId.StartsWith(CancelTeamConfirmationAction.ActionName))
+                            {
+                                row.Components.Remove(component);
+                                break;
+                            }
+                        }
+                    }
+                    msgProps.Components = builder.Build();
+                });
+
+                // Even though this is a DM, make it ephemeral so they can dismiss it as they can't delete the messages in DM.
                 await component.RespondAsync("Team updated in original message.\n\n" +
-                    "Feel free to continue making edits and click 'Confirm Team' again to update.");
+                    "Feel free to continue making edits and click 'Confirm Team' again to update.",
+                    ephemeral:true);
             }
         }
 
