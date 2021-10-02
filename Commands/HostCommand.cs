@@ -99,23 +99,13 @@ namespace WinstonBot.Commands
                 message = (string)slashCommand.Data.Options.ElementAt(1).Value;
             }
 
-            var builder = new ComponentBuilder()
-                .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}")
-                .WithButton(new ButtonBuilder()
-                    .WithLabel("Unsign")
-                    .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Danger))
-                .WithButton(new ButtonBuilder()
-                    .WithLabel("Complete Team")
-                    .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Success));
-
+            var buttons = BuildSignupButtons(bossIndex);
             var embed = new EmbedBuilder()
                 .WithTitle($"{bossPrettyName} Sign Ups")
                 //TEMP
                 .WithDescription(String.Join(Environment.NewLine, testNames));
 
-            await slashCommand.RespondAsync(message, embed: embed.Build(), component: builder.Build(), allowedMentions: AllowedMentions.All);
+            await slashCommand.RespondAsync(message, embed: embed.Build(), component: buttons, allowedMentions: AllowedMentions.All);
         }
 
         #region Helpers
@@ -185,6 +175,23 @@ namespace WinstonBot.Commands
                     .WithCustomId($"{CancelTeamConfirmationAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Danger));
 
+            return builder.Build();
+        }
+
+        private static MessageComponent BuildSignupButtons(long bossIndex, bool disabled = false)
+        {
+            var builder = new ComponentBuilder()
+                .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}", disabled: disabled)
+                .WithButton(new ButtonBuilder()
+                    .WithLabel("Unsign")
+                    .WithDisabled(disabled)
+                    .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
+                    .WithStyle(ButtonStyle.Danger))
+                .WithButton(new ButtonBuilder()
+                    .WithDisabled(disabled)
+                    .WithLabel("Complete Team")
+                    .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
+                    .WithStyle(ButtonStyle.Success));
             return builder.Build();
         }
 
@@ -322,21 +329,7 @@ namespace WinstonBot.Commands
 
                 await component.Message.ModifyAsync(msgProps =>
                 {
-                    var builder = new ComponentBuilder()
-                    .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}", disabled: true)
-                    .WithButton(new ButtonBuilder()
-                        .WithLabel("Unsign")
-                        .WithDisabled(true)
-                        .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
-                        .WithStyle(ButtonStyle.Danger))
-                    .WithButton(new ButtonBuilder()
-                        .WithDisabled(true)
-                        .WithLabel("Complete Team")
-                        .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
-                        .WithStyle(ButtonStyle.Success));
-                    msgProps.Components = builder.Build();
-
-                    var content = msgProps.Content;
+                    msgProps.Components = BuildSignupButtons(bossIndex, true);
                     msgProps.Content = "Host is finalizing the team, fuck off.";
                 });
 
@@ -387,8 +380,8 @@ namespace WinstonBot.Commands
                     msgProps.Components = new ComponentBuilder().Build();
                 });
 
-                // Ack the interaction so they don't see "interaction failed" after hitting complete team.
-                await component.DeferAsync();
+                await component.RespondAsync("Team updated in original message.\n\n" +
+                    "Feel free to continue making edits and click 'Confirm Team' again to update.");
             }
         }
 
@@ -418,21 +411,7 @@ namespace WinstonBot.Commands
                 var bossData = BossData.Entries[bossIndex];
                 await channel.ModifyMessageAsync(metadata.MessageId, msgProps =>
                 {
-                    var builder = new ComponentBuilder()
-                    .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}", disabled: false)
-                    .WithButton(new ButtonBuilder()
-                        .WithLabel("Unsign")
-                        .WithDisabled(false)
-                        .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
-                        .WithStyle(ButtonStyle.Danger))
-                    .WithButton(new ButtonBuilder()
-                        .WithDisabled(false)
-                        .WithLabel("Complete Team")
-                        .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
-                        .WithStyle(ButtonStyle.Success));
-                    msgProps.Components = builder.Build();
-
-                    var content = msgProps.Content;
+                    msgProps.Components = BuildSignupButtons(bossIndex);
                     msgProps.Content = $"Sign up for {bossData.PrettyName}";
                 });
 
