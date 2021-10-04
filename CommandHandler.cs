@@ -75,7 +75,7 @@ namespace WinstonBot
                         // TODO: action could define params and we could parse them in the future.
                         // wouldn't work with the interface though.
                         Console.WriteLine($"Command {command.Name} handling button action: {action.Name}");
-                        var context = new ActionContext(_client, component, _services);
+                        var context = command.CreateActionContext(_client, component, _services);
                         await action.HandleAction(context);
                         return;
                     }

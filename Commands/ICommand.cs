@@ -33,5 +33,6 @@ namespace WinstonBot.Commands
 
         public SlashCommandProperties BuildCommand();
         public Task HandleCommand(Commands.CommandContext context);
+        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services);
     }
 }

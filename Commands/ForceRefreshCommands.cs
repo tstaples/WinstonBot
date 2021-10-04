@@ -101,5 +101,10 @@ namespace WinstonBot.Commands
 
             await client.Rest.BatchEditGuildCommandPermissions(guild.Id, permDict);
         }
+
+        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
+        {
+            return new ActionContext(client, arg, services);
+        }
     }
 }

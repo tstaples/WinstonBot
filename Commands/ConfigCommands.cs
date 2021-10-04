@@ -89,5 +89,10 @@ namespace WinstonBot.Commands
             //}
             //return Task.CompletedTask;
         }
+
+        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
+        {
+            return new ActionContext(client, arg, services);
+        }
     }
 }
