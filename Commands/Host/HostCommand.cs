@@ -44,47 +44,8 @@ namespace WinstonBot.Commands
             { "<@856679611899576360>" }
         };
 
-        private static ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> _originalSignupsForMessage = new();
-        private static ConcurrentDictionary<ulong, bool> _messagesBeingEdited = new();
-
-        private class HostActionContext : ActionContext
-        {
-            public long BossIndex {  get; set; }
-            public BossData.Entry BossEntry => BossData.Entries[BossIndex];
-            public MessageMetadata? OriginalMessageData => _originalMessageData;
-            public SocketGuild? Guild => OriginalMessageData != null ? Client.GetGuild(OriginalMessageData.GuildId) : null;
-            public SocketTextChannel? Channel => OriginalMessageData != null ? Guild?.GetTextChannel(OriginalMessageData.ChannelId) : null;
-            public bool IsMessageDataValid => OriginalMessageData != null && Guild != null && Channel != null;
-
-            private MessageMetadata? _originalMessageData;
-
-            public HostActionContext(
-                DiscordSocketClient client,
-                SocketMessageComponent arg,
-                IServiceProvider services)
-                : base(client, arg, services)
-            {
-                _originalMessageData = GetOriginalMessageData();
-            }
-
-            public MessageMetadata? GetOriginalMessageData()
-            {
-                if (Component.Message.Embeds.Any() && Component.Message.Embeds.First().Footer.HasValue)
-                {
-                    return ParseMetadata(Client, Component.Message.Embeds.First().Footer.Value.Text);
-                }
-                return null;
-            }
-
-            public async Task<IMessage?> GetOriginalMessage()
-            {
-                if (OriginalMessageData != null && OriginalMessageData.MessageId != 0 && Channel != null)
-                {
-                    return await Channel.GetMessageAsync(OriginalMessageData.MessageId);
-                }
-                return null;
-            }
-        }
+        private ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> _originalSignupsForMessage = new();
+        private ConcurrentDictionary<ulong, bool> _messagesBeingEdited = new();
 
         public SlashCommandProperties BuildCommand()
         {
@@ -134,29 +95,10 @@ namespace WinstonBot.Commands
 
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
         {
-            return new HostActionContext(client, arg, services);
+            return new HostActionContext(client, arg, services, _originalSignupsForMessage, _messagesBeingEdited);
         }
 
         #region Helpers
-        private static void EditFinishedForMessage(ulong messageId)
-        {
-            bool outVal;
-            _messagesBeingEdited.TryRemove(messageId, out outVal);
-        }
-
-        private static bool TryMarkMessageForEdit(ulong messageId, List<ulong>? names = null)
-        {
-            if (_messagesBeingEdited.TryAdd(messageId, true))
-            {
-                if (names != null)
-                {
-                    _originalSignupsForMessage.TryAdd(messageId, new ReadOnlyCollection<ulong>(names));
-                }
-                return true;
-            }
-            return false;
-        }
-
         private static ulong GetUserIdFromMention(string mention)
         {
             var resultString = Regex.Match(mention, @"\d+").Value;
@@ -321,36 +263,6 @@ namespace WinstonBot.Commands
             }
             return builder.Build();
         }
-
-        private class MessageMetadata
-        {
-            public ulong GuildId { get; set; }
-            public ulong ChannelId { get; set; }
-            public ulong MessageId { get; set; }
-            public bool TeamConfirmedBefore { get; set; }
-        }
-
-        private static MessageMetadata? ParseMetadata(DiscordSocketClient client, string text)
-        {
-            var footerParts = text.Split(',');
-            if (footerParts.Length != 4)
-            {
-                return null;
-            }
-
-            var guildId = ulong.Parse(footerParts[0]);
-            var channelId = ulong.Parse(footerParts[1]);
-            var originalMessageId = ulong.Parse(footerParts[2]);
-            var confirmedBefore = bool.Parse(footerParts[3]);
-
-            return new MessageMetadata()
-            {
-                GuildId = guildId,
-                ChannelId = channelId,
-                MessageId = originalMessageId,
-                TeamConfirmedBefore = confirmedBefore
-            };
-        }
         #endregion // helpers
 
         #region actions
@@ -459,7 +371,7 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                if (!TryMarkMessageForEdit(component.Message.Id, ParseNamesToIdList(names)))
+                if (!context.TryMarkMessageForEdit(component.Message.Id, ParseNamesToIdList(names)))
                 {
                     await component.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
                     return;
@@ -517,7 +429,7 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                if (!TryMarkMessageForEdit(component.Message.Id))
+                if (!context.TryMarkMessageForEdit(component.Message.Id))
                 {
                     await component.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
                     return;
@@ -533,9 +445,9 @@ namespace WinstonBot.Commands
 
                 var guild = ((SocketGuildChannel)component.Channel).Guild;
                 var allNames = new List<string>();
-                if (_originalSignupsForMessage.ContainsKey(component.Message.Id))
+                if (context.OriginalSignupsForMessage.ContainsKey(component.Message.Id))
                 {
-                    allNames = ConvertUserIdListToMentions(guild, _originalSignupsForMessage[component.Message.Id]);
+                    allNames = ConvertUserIdListToMentions(guild, context.OriginalSignupsForMessage[component.Message.Id]);
                 }
                 else
                 {
@@ -613,7 +525,7 @@ namespace WinstonBot.Commands
 
                 var builder = ComponentBuilder.FromComponents(context.Component.Message.Components);
 
-                EditFinishedForMessage(context.OriginalMessageData.MessageId);
+                context.EditFinishedForMessage(context.OriginalMessageData.MessageId);
 
                 // Delete the edit team message from the DM
                 await context.Component.Message.DeleteAsync();
@@ -664,7 +576,7 @@ namespace WinstonBot.Commands
                     }
                 });
 
-                EditFinishedForMessage(context.OriginalMessageData.MessageId);
+                context.EditFinishedForMessage(context.OriginalMessageData.MessageId);
 
                 // Delete the edit team message from the DM
                 await context.Component.Message.DeleteAsync();
@@ -699,7 +611,7 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                if (!_originalSignupsForMessage.ContainsKey(context.OriginalMessageData.MessageId))
+                if (!context.OriginalSignupsForMessage.ContainsKey(context.OriginalMessageData.MessageId))
                 {
                     await context.Component.RespondAsync($"No user data could be found for message {context.OriginalMessageData.MessageId}.\n" +
                         $"This may be because the bot restarted while you were editing.\n" +
@@ -711,7 +623,7 @@ namespace WinstonBot.Commands
                 ids = RunActionForUser(userId, mention, ids);
                 var selectedNames = ConvertUserIdListToMentions(context.Guild, ids);
 
-                var unselectedUserIds = _originalSignupsForMessage[context.OriginalMessageData.MessageId]
+                var unselectedUserIds = context.OriginalSignupsForMessage[context.OriginalMessageData.MessageId]
                     .Where(id => !ids.Contains(id));
                 var unselectedNames = ConvertUserIdListToMentions(context.Guild, unselectedUserIds);
 
