@@ -53,6 +53,7 @@ namespace WinstonBot
                 {
                     if (command.Name == slashCommand.Data.Name)
                     {
+                        // TODO: should we lock the command?
                         Console.WriteLine($"Command {command.Name} handling interaction");
                         var context = new Commands.CommandContext(_client, slashCommand, _services);
                         await command.HandleCommand(context);
@@ -70,6 +71,7 @@ namespace WinstonBot
                 {
                     if (component.Data.CustomId.StartsWith(action.Name))
                     {
+                        // TODO: should we lock the action?
                         // TODO: action could define params and we could parse them in the future.
                         // wouldn't work with the interface though.
                         Console.WriteLine($"Command {command.Name} handling button action: {action.Name}");
