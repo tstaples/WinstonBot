@@ -37,6 +37,7 @@ namespace WinstonBot.Commands
                     .WithTitle("Selected Team")
                     .WithFooter($"Finalized by {context.Component.User.Username}")
                     .WithDescription(String.Join(Environment.NewLine, selectedNames))
+                    .WithThumbnailUrl(context.BossEntry.IconUrl)
                     .Build();
                 msgProps.Components = new ComponentBuilder()
                     .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{context.BossIndex}", ButtonStyle.Danger)
