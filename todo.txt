@@ -1,7 +1,4 @@
-﻿- add revert button to edit window as we can do that now
-- hide cancel button (or rename to revert) after confirming team once.
-	- note: if we want the bot to ping the users when the team is confirmed, do we want to be able to revert?
-- implement role requirements
+﻿- implement role requirements
 
 - implement actual aod team selection
 - role requirements for commands

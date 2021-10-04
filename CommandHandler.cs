@@ -29,7 +29,8 @@ namespace WinstonBot
             {
                 new HostPvmSignup(),
                 new ConfigCommand(this), // not great but will do for now.
-                new ForceRefreshCommands(this)
+                new ForceRefreshCommands(this),
+                new GenerateAoDMessageCommand(),
             };
         }
 
