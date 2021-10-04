@@ -124,7 +124,7 @@ namespace WinstonBot.Commands
         {
             var bossEntry = BossData.Entries[bossIndex];
             var builder = new EmbedBuilder()
-                .WithTitle($"{bossEntry.PrettyName} Sign Ups")
+                .WithTitle($"{bossEntry.PrettyName}")
                 .WithDescription(String.Join(Environment.NewLine, names))
                 .WithThumbnailUrl(bossEntry.IconUrl)
                 .WithCurrentTimestamp(); // TODO: include event start timestamp

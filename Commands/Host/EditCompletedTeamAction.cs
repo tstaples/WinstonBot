@@ -54,7 +54,6 @@ namespace WinstonBot.Commands
 
             await component.Message.ModifyAsync(msgProps =>
             {
-                msgProps.Content = "Host is finalizing the team, fuck off."; // todo
                 msgProps.Embed = Utility.CreateBuilderForEmbed(currentEmbed)
                 .WithFooter($"Being edited by {component.User.Username}")
                 .Build();

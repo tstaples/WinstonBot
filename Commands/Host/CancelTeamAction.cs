@@ -28,14 +28,12 @@
             {
                 if (!context.OriginalMessageData.TeamConfirmedBefore)
                 {
-                    msgProps.Content = $"Sign up for {context.BossEntry.PrettyName}";
                     msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names);
                     msgProps.Components = HostHelpers.BuildSignupButtons(context.BossIndex);
                 }
                 else
                 {
                     // Don't need to change the embed since it hasn't been modified yet.
-                    msgProps.Content = $"Final team for {context.BossEntry.PrettyName}";
                     msgProps.Components = HostHelpers.BuildEditButton(context.BossIndex, false);
                 }
             });

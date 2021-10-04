@@ -47,7 +47,6 @@ namespace WinstonBot.Commands
             await component.Message.ModifyAsync(msgProps =>
             {
                 msgProps.Components = HostHelpers.BuildSignupButtons(context.BossIndex, true);
-                msgProps.Content = "Host is finalizing the team, fuck off."; // todo
                 // footers can't show mentions, so use the username.
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names, component.User.Username);
             });

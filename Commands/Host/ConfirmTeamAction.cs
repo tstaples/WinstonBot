@@ -31,10 +31,8 @@ namespace WinstonBot.Commands
             // Should that be a separate message or should we just not use an embed for this?
             await context.Channel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
-                // TODO: we'll probably want to just keep the original message the user supplies if provided.
-                msgProps.Content = $"Final team for {context.BossEntry.PrettyName}";
                 msgProps.Embed = new EmbedBuilder()
-                    .WithTitle("Selected Team")
+                    .WithTitle($"Selected Team for {context.BossEntry.PrettyName}")
                     .WithFooter($"Finalized by {context.Component.User.Username}")
                     .WithDescription(String.Join(Environment.NewLine, selectedNames))
                     .WithThumbnailUrl(context.BossEntry.IconUrl)
