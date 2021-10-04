@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using WinstonBot.MessageHandlers;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
@@ -23,7 +22,7 @@ namespace WinstonBot.Services
         private class GuildEntry
         {
             // message id -> handler
-            public Dictionary<ulong, IMessageHandler> MessageHandlers { get; set; } = new Dictionary<ulong, IMessageHandler>();
+            //public Dictionary<ulong, IMessageHandler> MessageHandlers { get; set; } = new Dictionary<ulong, IMessageHandler>();
         }
 
         private class DBVersion
@@ -45,45 +44,45 @@ namespace WinstonBot.Services
             _databasePath = path;
         }
 
-        public void AddMessage(ulong guildId, ulong messageId, IMessageHandler handler)
-        {
-            // if we hit these asserts then queue the messages until the db is loaded then add them.
-            Debug.Assert(_database != null);
-            lock (_database)
-            {
-                GetOrAddGuild(guildId).MessageHandlers.Add(messageId, handler);
-                Save();
-            }
-        }
+        //public void AddMessage(ulong guildId, ulong messageId, IMessageHandler handler)
+        //{
+        //    // if we hit these asserts then queue the messages until the db is loaded then add them.
+        //    Debug.Assert(_database != null);
+        //    lock (_database)
+        //    {
+        //        GetOrAddGuild(guildId).MessageHandlers.Add(messageId, handler);
+        //        Save();
+        //    }
+        //}
 
-        public bool HasMessage(ulong guildId, ulong messageId)
-        {
-            Debug.Assert(_database != null);
-            lock (_database)
-            {
-                return _database.GuildEntries.ContainsKey(guildId) &&
-                    _database.GuildEntries[guildId].MessageHandlers.ContainsKey(messageId);
-            }
-        }
+        //public bool HasMessage(ulong guildId, ulong messageId)
+        //{
+        //    Debug.Assert(_database != null);
+        //    lock (_database)
+        //    {
+        //        return _database.GuildEntries.ContainsKey(guildId) &&
+        //            _database.GuildEntries[guildId].MessageHandlers.ContainsKey(messageId);
+        //    }
+        //}
 
-        public IMessageHandler GetMessageHandler(ulong guildId, ulong messageId)
-        {
-            Debug.Assert(_database != null);
-            lock (_database)
-            {
-                return _database.GuildEntries[guildId].MessageHandlers[messageId];
-            }
-        }
+        //public IMessageHandler GetMessageHandler(ulong guildId, ulong messageId)
+        //{
+        //    Debug.Assert(_database != null);
+        //    lock (_database)
+        //    {
+        //        return _database.GuildEntries[guildId].MessageHandlers[messageId];
+        //    }
+        //}
 
-        public void RemoveMessage(ulong guildId, ulong messageId)
-        {
-            Debug.Assert(_database != null);
-            lock (_database)
-            {
-                GetOrAddGuild(guildId).MessageHandlers.Remove(messageId);
-                Save();
-            }
-        }
+        //public void RemoveMessage(ulong guildId, ulong messageId)
+        //{
+        //    Debug.Assert(_database != null);
+        //    lock (_database)
+        //    {
+        //        GetOrAddGuild(guildId).MessageHandlers.Remove(messageId);
+        //        Save();
+        //    }
+        //}
 
         private GuildEntry GetOrAddGuild(ulong guildId)
         {

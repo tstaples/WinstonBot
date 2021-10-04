@@ -1,6 +1,5 @@
 ﻿using Discord.Commands;
 using WinstonBot.Services;
-using WinstonBot.MessageHandlers;
 using Discord;
 using Microsoft.Extensions.DependencyInjection;
 using Discord.WebSocket;
