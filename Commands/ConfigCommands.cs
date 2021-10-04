@@ -45,23 +45,22 @@ namespace WinstonBot.Commands
                 .WithName("command")
                 .WithDescription("The command to configure")
                 .WithRequired(true)
-                .WithType(ApplicationCommandOptionType.Integer);
+                .WithType(ApplicationCommandOptionType.String);
 
             var actionOptionBuilder = new SlashCommandOptionBuilder()
                 .WithName("action")
                 .WithDescription("The action to configure")
                 .WithRequired(true)
-                .WithType(ApplicationCommandOptionType.Integer);
-            for (int i = 0; i < commandList.Count(); ++i)
+                .WithType(ApplicationCommandOptionType.String);
+
+            foreach (ICommand command in commandList)
             {
-                ICommand command = commandList.ElementAt(i);
                 Debug.Assert(command.Name != this.Name);
 
-                commandOptionBuilder.AddChoice(command.Name, i);
-                for (int j = 0; j < command.Actions.Count(); ++j)
+                commandOptionBuilder.AddChoice(command.Name, command.Name);
+                foreach (IAction action in command.Actions)
                 {
-                    // TODO: action id could just be its index.
-                    actionOptionBuilder.AddChoice(command.Actions.ElementAt(j).Name, j);
+                    actionOptionBuilder.AddChoice(action.Name, action.Name);
                 }
             }
 
@@ -78,15 +77,37 @@ namespace WinstonBot.Commands
 
         public async Task HandleCommand(Commands.CommandContext context)
         {
-            //if (context.SlashCommand.Channel is SocketGuildChannel channel)
-            //{
-            //    var guild = channel.Guild;
-            //    Console.WriteLine($"Command invoked in guild {channel.Guild.Name}");
+            if (context.SlashCommand.Channel is SocketGuildChannel channel)
+            {
+                var guild = channel.Guild;
+                var options = context.SlashCommand.Data.Options;
+                if (options.Count != 3)
+                {
+                    Console.WriteLine("[Configure Command] Invalid number of options");
+                    return;
+                }
 
-            //    var permissions = new Dictionary<ulong, ApplicationCommandPermission[]>();
-            //    await context.Client.Rest.BatchEditGuildCommandPermissions(guild.Id, permissions);
-            //}
-            //return Task.CompletedTask;
+                string commandName = (string)options.ElementAt(0).Value;
+                string actionName = (string)options.ElementAt(1).Value;
+                var t = options.ElementAt(2).Value.GetType();
+                SocketRole role = (SocketRole)options.ElementAt(2).Value;
+                Console.WriteLine($"[ConfigureCommand] set {commandName}: {actionName} role to {role.Name}");
+
+                var command = _commandHandler.Commands
+                    .Where(cmd => cmd.Name == commandName)
+                    .SingleOrDefault();
+                var action = command?.Actions
+                    .Where(action => action.Name == actionName)
+                    .Single();
+
+                if (action == null)
+                {
+                    Console.WriteLine("[ConfigureCommand] Failed to find action.");
+                    return;
+                }
+
+                action.RoleId = role.Id;
+            }
         }
 
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)

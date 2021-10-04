@@ -3,7 +3,7 @@
     internal abstract class AddOrRemoveUserFromTeamBase : IAction
     {
         public abstract string Name { get; }
-        public abstract long RoleId { get; }
+        public abstract ulong RoleId { get; set; }
 
         public async Task HandleAction(ActionContext actionContext)
         {
@@ -61,7 +61,7 @@
     {
         public static string ActionName = "remove-user-from-team";
         public override string Name => ActionName;
-        public override long RoleId => throw new NotImplementedException();
+        public override ulong RoleId { get; set; }
 
         protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
         {
@@ -80,7 +80,7 @@
     {
         public static string ActionName = "add-user-to-team";
         public override string Name => ActionName;
-        public override long RoleId => throw new NotImplementedException();
+        public override ulong RoleId { get; set; }
 
         protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
         {

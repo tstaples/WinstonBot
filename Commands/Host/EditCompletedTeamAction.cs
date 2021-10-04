@@ -7,7 +7,7 @@ namespace WinstonBot.Commands
     {
         public static string ActionName = "pvm-edit-team";
         public string Name => ActionName;
-        public long RoleId => throw new NotImplementedException();
+        public ulong RoleId { get; set; }
 
         public async Task HandleAction(ActionContext actionContext)
         {

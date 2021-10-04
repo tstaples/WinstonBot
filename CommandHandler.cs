@@ -1,14 +1,5 @@
-﻿using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
-using WinstonBot.Services;
-using WinstonBot.Data;
-using System.Diagnostics;
+﻿using Discord.WebSocket;
 using WinstonBot.Commands;
-using Discord.Net;
-using Newtonsoft.Json;
 
 namespace WinstonBot
 {
