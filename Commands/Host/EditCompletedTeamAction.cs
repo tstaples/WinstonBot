@@ -65,7 +65,7 @@ namespace WinstonBot.Commands
                 "\nOnce you're done click Confirm Team." +
                 "\nYou may continue making changes after you confirm the team by hitting confirm again." +
                 "\nOnce you're finished making changes you can dismiss this message.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, component.Channel.Id, component.Message.Id, true, selectedNames),
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, component.Channel.Id, component.Message.Id, true, context.BossEntry, selectedNames),
                 component: HostHelpers.BuildTeamSelectionComponent(guild, context.BossIndex, selectedNames, unselectedNames));
 
             await component.DeferAsync();

@@ -86,7 +86,10 @@ namespace WinstonBot.Commands
 
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
         {
-            return new HostActionContext(client, arg, services, _originalSignupsForMessage, _messagesBeingEdited);
+            return new HostActionContext(client, arg, services, _originalSignupsForMessage, _messagesBeingEdited)
+            {
+                BossIndex = long.Parse(arg.Data.CustomId.Split('_')[1])
+            };
         }
     }
 }

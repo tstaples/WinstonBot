@@ -48,7 +48,7 @@ namespace WinstonBot.Commands
             {
                 msgProps.Components = HostHelpers.BuildSignupButtons(context.BossIndex, true);
                 msgProps.Content = "Host is finalizing the team, fuck off."; // todo
-                                                                             // footers can't show mentions, so use the username.
+                // footers can't show mentions, so use the username.
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names, component.User.Username);
             });
 
@@ -61,7 +61,7 @@ namespace WinstonBot.Commands
                 "\nOnce you're done click Confirm Team." +
                 "\nYou may continue making changes after you confirm the team by hitting confirm again." +
                 "\nOnce you're finished making changes you can dismiss this message.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, component.Channel.Id, component.Message.Id, hasBeenConfirmedBefore, selectedNames),
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, component.Channel.Id, component.Message.Id, hasBeenConfirmedBefore, context.BossEntry, selectedNames),
                 component: HostHelpers.BuildTeamSelectionComponent(guild, context.BossIndex, selectedNames, unselectedNames));
 
             await component.DeferAsync();

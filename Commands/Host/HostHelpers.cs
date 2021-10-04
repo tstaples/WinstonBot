@@ -34,17 +34,25 @@ namespace WinstonBot.Commands
                 .ToList();
         }
 
+        public static string BuildMessageLink(ulong guildId, ulong channelId, ulong messageId)
+        {
+            return $"https://discord.com/channels/{guildId}/{channelId}/{messageId}";
+        }
+
         public static Embed BuildTeamSelectionEmbed(
             ulong guildId,
             ulong channelId,
             ulong messageId,
             bool confirmedBefore,
+            BossData.Entry bossEntry,
             List<string> selectedNames)
         {
             return new EmbedBuilder()
                 .WithTitle("Pending Team")
                 .WithDescription(String.Join(Environment.NewLine, selectedNames))
                 .WithFooter($"{guildId},{channelId},{messageId},{confirmedBefore}")
+                .WithThumbnailUrl(bossEntry.IconUrl)
+                .WithUrl(BuildMessageLink(guildId, channelId, messageId))
                 .Build();
         }
 
@@ -61,7 +69,7 @@ namespace WinstonBot.Commands
                 var username = guild.GetUser(userid).Username;
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"❌ {username}")
-                    .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{mention}_{bossIndex}")
+                    .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{bossIndex}_{mention}")
                     .WithStyle(ButtonStyle.Danger));
             }
 
@@ -71,7 +79,7 @@ namespace WinstonBot.Commands
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"{username}")
                     .WithEmote(new Emoji("➕"))
-                    .WithCustomId($"{AddUserToTeamAction.ActionName}_{mention}_{bossIndex}")
+                    .WithCustomId($"{AddUserToTeamAction.ActionName}_{bossIndex}_{mention}")
                     .WithStyle(ButtonStyle.Success));
             }
 
@@ -114,9 +122,11 @@ namespace WinstonBot.Commands
 
         public static Embed BuildSignupEmbed(long bossIndex, IEnumerable<string> names, string? editedByMention = null)
         {
+            var bossEntry = BossData.Entries[bossIndex];
             var builder = new EmbedBuilder()
-                .WithTitle($"{BossData.Entries[bossIndex].PrettyName} Sign Ups")
+                .WithTitle($"{bossEntry.PrettyName} Sign Ups")
                 .WithDescription(String.Join(Environment.NewLine, names))
+                .WithThumbnailUrl(bossEntry.IconUrl)
                 .WithCurrentTimestamp(); // TODO: include event start timestamp
             if (editedByMention != null)
             {

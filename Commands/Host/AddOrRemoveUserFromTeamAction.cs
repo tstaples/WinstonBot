@@ -15,7 +15,7 @@
             }
 
             var currentEmbed = context.Component.Message.Embeds.First();
-            string mention = context.Component.Data.CustomId.Split('_')[1];
+            string mention = context.Component.Data.CustomId.Split('_')[2];
 
             ulong userId = Utility.GetUserIdFromMention(mention);
             var ids = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
@@ -47,6 +47,7 @@
                     context.OriginalMessageData.ChannelId,
                     context.OriginalMessageData.MessageId,
                     context.OriginalMessageData.TeamConfirmedBefore,
+                    context.BossEntry,
                     selectedNames);
                 msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, context.BossIndex, selectedNames, unselectedNames);
             });
