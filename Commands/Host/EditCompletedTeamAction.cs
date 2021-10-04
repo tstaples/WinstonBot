@@ -27,27 +27,30 @@ namespace WinstonBot.Commands
             }
 
             var currentEmbed = component.Message.Embeds.First();
-            var selectedNames = HostHelpers.ParseNamesToList(currentEmbed.Description);
-            if (selectedNames.Count == 0)
+            var selectedNameIds = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
+            if (selectedNameIds.Count == 0)
             {
                 await component.RespondAsync("Not enough people signed up.", ephemeral: true);
                 return;
             }
 
             var guild = ((SocketGuildChannel)component.Channel).Guild;
-            var allNames = new List<string>();
+            var allIds = new List<ulong>();
             if (context.OriginalSignupsForMessage.ContainsKey(component.Message.Id))
             {
-                allNames = Utility.ConvertUserIdListToMentions(guild, context.OriginalSignupsForMessage[component.Message.Id]);
+                allIds = context.OriginalSignupsForMessage[component.Message.Id].ToList();
             }
             else
             {
                 Console.WriteLine($"[EditCompletedTeamAction] Failed to find message data for {component.Message.Id}. Cannot retrieve original names.");
             }
 
-            List<string> unselectedNames = allNames
-                .Where(name => !selectedNames.Contains(name))
+            List<ulong> unselectedIds = allIds
+                .Where(id => !selectedNameIds.Contains(id))
                 .ToList();
+
+            var selectedNames = Utility.ConvertUserIdListToMentions(guild, selectedNameIds);
+            var unselectedNames = Utility.ConvertUserIdListToMentions(guild, unselectedIds);
 
             await component.Message.ModifyAsync(msgProps =>
             {
