@@ -15,7 +15,6 @@ namespace WinstonBot.Commands
     public class HostPvmSignup : ICommand
     {
         public string Name => "host-pvm-signup";
-        public int Id => 1;
         public ICommand.Permission DefaultPermission => ICommand.Permission.Everyone;
         public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => _actions;
@@ -99,20 +98,7 @@ namespace WinstonBot.Commands
         }
 
         #region Helpers
-        private static ulong GetUserIdFromMention(string mention)
-        {
-            var resultString = Regex.Match(mention, @"\d+").Value;
-            ulong value = 0;
-            if (ulong.TryParse(resultString, out value))
-            {
-                return value;
-            }
-            else
-            {
-                Console.WriteLine($"Failed to parse user id from string {mention}");
-                return 0;
-            }
-        }
+
 
         private static List<string> ParseNamesToList(string text)
         {
@@ -126,14 +112,14 @@ namespace WinstonBot.Commands
         private static List<ulong> ParseNamesToIdList(string text)
         {
             return ParseNamesToList(text)
-                .Select(mention => GetUserIdFromMention(mention))
+                .Select(mention => Utility.GetUserIdFromMention(mention))
                 .ToList();
         }
 
         private static List<ulong> ParseNamesToIdList(IEnumerable<string> nameList)
         {
             return nameList
-                .Select(mention => GetUserIdFromMention(mention))
+                .Select(mention => Utility.GetUserIdFromMention(mention))
                 .ToList();
         }
 
@@ -165,7 +151,7 @@ namespace WinstonBot.Commands
             var builder = new ComponentBuilder();
             foreach (var mention in selectedNames)
             {
-                ulong userid = GetUserIdFromMention(mention);
+                ulong userid = Utility.GetUserIdFromMention(mention);
                 var username = guild.GetUser(userid).Username;
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"❌ {username}")
@@ -175,7 +161,7 @@ namespace WinstonBot.Commands
 
             foreach (var mention in unselectedNames)
             {
-                var username = guild.GetUser(GetUserIdFromMention(mention)).Username;
+                var username = guild.GetUser(Utility.GetUserIdFromMention(mention)).Username;
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"{username}")
                     .WithEmote(new Emoji("➕"))
@@ -270,7 +256,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "pvm-team-signup";
             public string Name => ActionName;
-            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(ActionContext actionContext)
@@ -310,7 +295,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "pvm-quit-signup";
             public string Name => ActionName;
-            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(ActionContext actionContext)
@@ -349,7 +333,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "pvm-complete-team";
             public string Name => ActionName;
-            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(ActionContext actionContext)
@@ -415,7 +398,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "pvm-edit-team";
             public string Name => ActionName;
-            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(ActionContext actionContext)
@@ -485,7 +467,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "pvm-confirm-team";
             public string Name => ActionName;
-            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(ActionContext actionContext)
@@ -539,7 +520,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "pvm-cancel-team-confirmation";
             public string Name => ActionName;
-            public int Id { get; } = CurrentActionId++;
             public long RoleId => throw new NotImplementedException();
 
             public async Task HandleAction(ActionContext actionContext)
@@ -589,7 +569,6 @@ namespace WinstonBot.Commands
         private abstract class AddOrRemoveUserFromTeamBase : IAction
         {
             public abstract string Name { get; }
-            public abstract int Id { get; }
             public abstract long RoleId { get; }
 
             public async Task HandleAction(ActionContext actionContext)
@@ -604,7 +583,7 @@ namespace WinstonBot.Commands
                 var currentEmbed = context.Component.Message.Embeds.First();
                 string mention = context.Component.Data.CustomId.Split('_')[1];
 
-                ulong userId = GetUserIdFromMention(mention);
+                ulong userId = Utility.GetUserIdFromMention(mention);
                 var ids = ParseNamesToIdList(currentEmbed.Description);
                 if (!CanRunActionForUser(userId, ids))
                 {
@@ -647,7 +626,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "remove-user-from-team";
             public override string Name => ActionName;
-            public override int Id { get; } = CurrentActionId++;
             public override long RoleId => throw new NotImplementedException();
 
             protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
@@ -667,7 +645,6 @@ namespace WinstonBot.Commands
         {
             public static string ActionName = "add-user-to-team";
             public override string Name => ActionName;
-            public override int Id { get; } = CurrentActionId++;
             public override long RoleId => throw new NotImplementedException();
 
             protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)

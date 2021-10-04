@@ -11,8 +11,6 @@ namespace WinstonBot.Commands
     public class ConfigCommand : ICommand
     {
         public string Name => "configure-command";
-
-        public int Id => 3;// TODO
         public ICommand.Permission DefaultPermission => ICommand.Permission.AdminOnly;
         public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => _actions;
@@ -54,15 +52,16 @@ namespace WinstonBot.Commands
                 .WithDescription("The action to configure")
                 .WithRequired(true)
                 .WithType(ApplicationCommandOptionType.Integer);
-            foreach (ICommand command in commandList)
+            for (int i = 0; i < commandList.Count(); ++i)
             {
+                ICommand command = commandList.ElementAt(i);
                 Debug.Assert(command.Name != this.Name);
 
-                commandOptionBuilder.AddChoice(command.Name, command.Id);
-                foreach (IAction action in command.Actions)
+                commandOptionBuilder.AddChoice(command.Name, i);
+                for (int j = 0; j < command.Actions.Count(); ++j)
                 {
                     // TODO: action id could just be its index.
-                    actionOptionBuilder.AddChoice(action.Name, action.Id);
+                    actionOptionBuilder.AddChoice(command.Actions.ElementAt(j).Name, j);
                 }
             }
 

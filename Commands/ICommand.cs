@@ -11,7 +11,6 @@ namespace WinstonBot.Commands
     public interface IAction
     {
         public string Name { get; }
-        public int Id { get; }
         public long RoleId {  get; }
 
         public Task HandleAction(ActionContext context);
@@ -26,7 +25,6 @@ namespace WinstonBot.Commands
         }
 
         public string Name { get; }
-        public int Id { get; }
         public Permission DefaultPermission { get; }
         public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions { get; }

@@ -13,7 +13,6 @@ namespace WinstonBot.Commands
     public class ForceRefreshCommands : ICommand
     {
         public string Name => "force-refresh-commands";
-        public int Id => 5; // TODO: just remove this and use names for options menu.
         public ICommand.Permission DefaultPermission => ICommand.Permission.AdminOnly;
         public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => new List<IAction>();
