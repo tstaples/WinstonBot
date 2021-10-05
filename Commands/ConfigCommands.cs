@@ -38,6 +38,8 @@ namespace WinstonBot.Commands
             IEnumerable<ICommand> commandList = _commandHandler.Commands
                 .Where(cmd => cmd.Name != this.Name);
 
+            // TODO: user sub commands for add/set/get.
+
             //_client.Rest.BatchEditGuildCommandPermissions
             // could we just configure different commands with options?
             // /configure command:host-pvm action:host role:@pvm-teacher

@@ -37,7 +37,7 @@ namespace WinstonBot.Commands
                 $"People will be selected by the bot based on roles they can do and how often they've come in the last 5 days (people who have come less will be chosen over those who have gone more)\n\n" +
                 $"The team will be announced at<t:{resetTimestamp}>, so you have until then to add a reaction.";
 
-            await context.SlashCommand.RespondAsync(message);
+            await context.SlashCommand.RespondAsync(message, allowedMentions:new AllowedMentions(AllowedMentionTypes.Roles));
         }
 
         private DateTime GetReset()
