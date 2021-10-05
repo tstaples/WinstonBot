@@ -9,6 +9,8 @@ namespace WinstonBot.Services
 {
     public class CommandEntry
     {
+        // Roles that can use this command
+        public List<ulong> Roles { get; set; } = new();
         public Dictionary<string, List<ulong>> ActionRoles { get; set; } = new();
     }
 

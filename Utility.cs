@@ -67,5 +67,15 @@ namespace WinstonBot
             }
             return builder;
         }
+
+        public static string JoinRoleNames(SocketGuild guild, IEnumerable<ulong> roles)
+        {
+            return String.Join(", ", roles.Select(roleId => guild.GetRole(roleId)));
+        }
+
+        public static string JoinRoleMentions(SocketGuild guild, IEnumerable<ulong> roles)
+        {
+            return String.Join('\n', roles.Select(roleId => guild.GetRole(roleId).Mention));
+        }
     }
 }

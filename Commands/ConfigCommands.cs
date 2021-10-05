@@ -9,7 +9,7 @@ namespace WinstonBot.Commands
 {
     public class ConfigCommand : ICommand
     {
-        public string Name => "configure-command";
+        public string Name => "configure";
         public ICommand.Permission DefaultPermission => ICommand.Permission.AdminOnly;
         public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => _actions;
@@ -21,7 +21,8 @@ namespace WinstonBot.Commands
         private enum RoleOperation
         {
             Add,
-            Remove
+            Remove,
+            View
         }
 
         private CommandHandler _commandHandler;
@@ -62,13 +63,11 @@ namespace WinstonBot.Commands
                 .WithRequired(true)
                 .WithType(ApplicationCommandOptionType.String);
 
-            var operationOptionBuilder = new SlashCommandOptionBuilder()
-                .WithName("operation")
-                .WithDescription("Add or remove a role")
-                .WithRequired(true)
-                .WithType(ApplicationCommandOptionType.Integer)
-                .AddChoice("add-role", (int)RoleOperation.Add)
-                .AddChoice("remove-role", (int)RoleOperation.Remove);
+            var roleOptionBuilder = new SlashCommandOptionBuilder()
+                .WithName("role")
+                .WithDescription("The role to set for this action")
+                .WithType(ApplicationCommandOptionType.Role)
+                .WithRequired(true);
 
             foreach (ICommand command in commandList)
             {
@@ -81,14 +80,61 @@ namespace WinstonBot.Commands
                 }
             }
 
-            configureCommands.AddOption(commandOptionBuilder);
-            configureCommands.AddOption(actionOptionBuilder);
-            configureCommands.AddOption(operationOptionBuilder);
-            configureCommands.AddOption(new SlashCommandOptionBuilder()
-                .WithName("role")
-                .WithDescription("The role to set for this action")
-                .WithType(ApplicationCommandOptionType.Role)
-                .WithRequired(true));
+
+            var actionCommandGroup = new SlashCommandOptionBuilder()
+                .WithName("action")
+                .WithDescription("Configure command action permissions")
+                .WithRequired(false)
+                .WithType(ApplicationCommandOptionType.SubCommandGroup)
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("add-role")
+                    .WithDescription("Add a role that is allowed to use this action.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(commandOptionBuilder)
+                    .AddOption(actionOptionBuilder)
+                    .AddOption(roleOptionBuilder))
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("remove-role")
+                    .WithDescription("Remove a role from this action.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(commandOptionBuilder)
+                    .AddOption(actionOptionBuilder)
+                    .AddOption(roleOptionBuilder))
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("view-roles")
+                    .WithDescription("View the roles that are allowed to use this action.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(commandOptionBuilder)
+                    .AddOption(actionOptionBuilder));
+
+            var commandCommandGroup = new SlashCommandOptionBuilder()
+                .WithName("command")
+                .WithDescription("Configure command action permissions")
+                .WithRequired(false)
+                .WithType(ApplicationCommandOptionType.SubCommandGroup)
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("add-role")
+                    .WithDescription("Add a role that is allowed to use this command.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(commandOptionBuilder)
+                    .AddOption(roleOptionBuilder))
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("remove-role")
+                    .WithDescription("Remove a role from this command.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(commandOptionBuilder)
+                    .AddOption(roleOptionBuilder))
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("view-roles")
+                    .WithDescription("View the roles that are allowed to use this command.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(commandOptionBuilder));
+
+            configureCommands.AddOption(actionCommandGroup);
+            configureCommands.AddOption(commandCommandGroup);
+            //configureCommands.AddOption(commandOptionBuilder);
+            //configureCommands.AddOption(actionOptionBuilder);
+            //configureCommands.AddOption(roleOptionBuilder);
 
             return configureCommands.Build();
         }
@@ -99,87 +145,174 @@ namespace WinstonBot.Commands
             {
                 var guild = channel.Guild;
                 var options = context.SlashCommand.Data.Options;
-                if (options.Count != 4)
+
+                string commandName = null;
+                string actionName = null;
+                SocketRole roleValue = null;
+                RoleOperation operation = RoleOperation.View;
+
+                var configureTarget = options.First().Name;
+                var configureOperation = options.First().Options.First().Name;
+                options = options.First().Options.First().Options;
+
+                switch (configureTarget)
                 {
-                    Console.WriteLine("[Configure Command] Invalid number of options");
-                    return;
+                    case "action":
+                        commandName = (string)options.ElementAt(0).Value;
+                        actionName = (string)options.ElementAt(1).Value;
+                        break;
+
+                    case "command":
+                        commandName = (string)options.ElementAt(0).Value;
+                        break;
                 }
 
-                string commandName = (string)options.ElementAt(0).Value;
-                string actionName = (string)options.ElementAt(1).Value;
-                RoleOperation operation = (RoleOperation)(long)options.ElementAt(2).Value;
-                var t = options.ElementAt(2).Value.GetType();
-                SocketRole role = (SocketRole)options.ElementAt(3).Value;
-                Console.WriteLine($"[ConfigureCommand] set {commandName}: {actionName} role to {role.Name}");
+                switch (configureOperation)
+                {
+                    case "add-role":
+                        operation = RoleOperation.Add;
+                        roleValue = (SocketRole)options.ElementAt(2).Value;
+                        break;
+
+                    case "remove-role":
+                        operation = RoleOperation.Remove;
+                        roleValue = (SocketRole)options.ElementAt(2).Value;
+                        break;
+
+                    case "view-roles":
+                        operation = RoleOperation.View;
+                        break;
+                }
+
+                Console.WriteLine($"[ConfigureCommand] running {configureTarget} {configureOperation} for command: {commandName}, action: {actionName}, with role: {roleValue?.Name}");
 
                 var command = _commandHandler.Commands
                     .Where(cmd => cmd.Name == commandName)
                     .SingleOrDefault();
-                var action = command?.Actions
-                    .Where(action => action.Name == actionName)
-                    .Single();
+                if (command == null)
+                {
+                    Console.WriteLine($"[ConfigureCommand] Failed to find command '{commandName}'.");
+                    return;
+                }
 
-                if (action == null)
+                var action = actionName != null
+                    ? command.Actions.Where(action => action.Name == actionName).Single()
+                    : null;
+
+                if (actionName != null && action == null)
                 {
                     Console.WriteLine($"[ConfigureCommand] Failed to find action '{actionName}' for command {commandName}.");
                     return;
                 }
 
-                // Update the config file.
                 var configService = _serviceProvider.GetRequiredService<ConfigService>();
-                var entries = configService.Configuration.GuildEntries;
-                if (!entries.ContainsKey(guild.Id))
-                {
-                    entries.TryAdd(guild.Id, new GuildEntry());
-                }
+                CommandEntry entry = GetCommandEntry(configService, guild.Id, commandName);
 
-                var commandRoles = entries[guild.Id].Commands;
-                if (!commandRoles.ContainsKey(commandName))
-                {
-                    commandRoles.Add(commandName, new CommandEntry());
-                }
-
-                List<ulong> roles = new();
-                var commandEntry = commandRoles[commandName];
-                if (!commandEntry.ActionRoles.ContainsKey(actionName))
-                {
-                    commandEntry.ActionRoles.Add(actionName, roles);
-                }
-                else
-                {
-                    roles = commandEntry.ActionRoles[actionName];
-                }
-
+                // TODO: create embed for view
+                // TODO: remove the switch and do something nicer.
+                // TODO: add view all command
+                // TODO: add remove all command for particular action/command.
                 switch (operation)
                 {
                     case RoleOperation.Add:
-                        roles.Add(role.Id);
-                        await context.SlashCommand.RespondAsync($"Added role {role.Name} to action {actionName} for command {commandName}", ephemeral: true);
-                        break;
-
-                    case RoleOperation.Remove:
-                        if (roles.Contains(role.Id))
+                        if (action != null)
                         {
-                            roles.Remove(role.Id);
-                            await context.SlashCommand.RespondAsync($"Removed role {role.Name} to action {actionName} for command {commandName}", ephemeral: true);
+                            if (!entry.ActionRoles.ContainsKey(actionName))
+                            {
+                                entry.ActionRoles.Add(actionName, new List<ulong>());
+                            }
+                            
+                            if (AddUnique(entry.ActionRoles[actionName], roleValue.Id))
+                            {
+                                await context.SlashCommand.RespondAsync($"Added role {roleValue.Mention} to {commandName}:{actionName}", ephemeral: true);
+                            }
+                            else
+                            {
+                                await context.SlashCommand.RespondAsync($"{commandName}:{actionName} already contains role {roleValue.Mention}", ephemeral: true);
+                            }
                         }
                         else
                         {
-                            await context.SlashCommand.RespondAsync($"Role {role.Name} isn't set for action {actionName} for command {commandName}", ephemeral: true);
+                            if (AddUnique(entry.Roles, roleValue.Id))
+                            {
+                                await context.SlashCommand.RespondAsync($"Added role {roleValue.Mention} to command {commandName}", ephemeral: true);
+                            }
+                        }
+                        break;
+
+                    case RoleOperation.Remove:
+                        if (action != null)
+                        {
+                            if (entry.ActionRoles.ContainsKey(actionName))
+                            {
+                                if (entry.ActionRoles[actionName].Remove(roleValue.Id))
+                                {
+                                    await context.SlashCommand.RespondAsync($"Removed role {roleValue.Mention} from {commandName}:{actionName}", ephemeral: true);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (entry.Roles.Remove(roleValue.Id))
+                            {
+                                await context.SlashCommand.RespondAsync($"Removed role {roleValue.Mention} from command {commandName}", ephemeral: true);
+                            }
+                        }
+                        break;
+
+                    case RoleOperation.View:
+                        if (action != null)
+                        {
+                            List<ulong> roles;
+                            if (entry.ActionRoles.TryGetValue(actionName, out roles))
+                            {
+                                await context.SlashCommand.RespondAsync($"Roles for {commandName}:{actionName}: {Utility.JoinRoleMentions(guild, roles)}", ephemeral: true);
+                            }
+                        }
+                        else
+                        {
+                            if (entry.Roles.Count > 0)
+                            {
+                                await context.SlashCommand.RespondAsync($"Roles for {commandName}: {Utility.JoinRoleMentions(guild, entry.Roles)}", ephemeral: true);
+                            }
                         }
                         break;
                 }
 
-                commandEntry.ActionRoles[actionName] = roles;
-
                 configService.UpdateConfig(configService.Configuration);
-
             }
         }
 
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
         {
             return new ActionContext(client, arg, services);
+        }
+
+        private bool AddUnique(List<ulong> list, ulong value)
+        {
+            if (!list.Contains(value))
+            {
+                list.Add(value);
+                return true;
+            }
+            return false;
+        }
+
+        private CommandEntry GetCommandEntry(ConfigService configService, ulong guildId, string commandName)
+        {
+            var entries = configService.Configuration.GuildEntries;
+            if (!entries.ContainsKey(guildId))
+            {
+                entries.TryAdd(guildId, new GuildEntry());
+            }
+
+            var commandEntries = entries[guildId].Commands;
+            if (!commandEntries.ContainsKey(commandName))
+            {
+                commandEntries.Add(commandName, new CommandEntry());
+            }
+
+            return commandEntries[commandName];
         }
     }
 }

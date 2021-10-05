@@ -110,11 +110,6 @@ namespace WinstonBot
                 .Any();
         }
 
-        private string GetRoleNames(SocketGuild guild, IEnumerable<ulong> roles)
-        {
-            return String.Join(',', roles.Select(roleId => guild.GetRole(roleId)));
-        }
-
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
             var configService = _services.GetRequiredService<ConfigService>();
@@ -134,7 +129,7 @@ namespace WinstonBot
                         var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
                         if (!DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
                         {
-                            await component.RespondAsync($"You must have one of the following roles to do this action: {GetRoleNames(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
+                            await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleNames(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
                             return;
                         }
                     }
