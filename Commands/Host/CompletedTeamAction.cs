@@ -7,7 +7,6 @@ namespace WinstonBot.Commands
     {
         public static string ActionName = "pvm-complete-team";
         public string Name => ActionName;
-        public ulong RoleId { get; set; }
 
         public async Task HandleAction(ActionContext actionContext)
         {

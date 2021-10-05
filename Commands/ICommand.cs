@@ -11,7 +11,6 @@ namespace WinstonBot.Commands
     public interface IAction
     {
         public string Name { get; }
-        public ulong RoleId { get; set; }
 
         public Task HandleAction(ActionContext context);
     }

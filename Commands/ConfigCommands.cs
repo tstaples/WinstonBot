@@ -103,11 +103,9 @@ namespace WinstonBot.Commands
 
                 if (action == null)
                 {
-                    Console.WriteLine("[ConfigureCommand] Failed to find action.");
+                    Console.WriteLine($"[ConfigureCommand] Failed to find action '{actionName}' for command {commandName}.");
                     return;
                 }
-
-                action.RoleId = role.Id;
 
                 // Update the config file.
                 var configService = _serviceProvider.GetRequiredService<ConfigService>();
