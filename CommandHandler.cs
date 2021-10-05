@@ -35,37 +35,37 @@ namespace WinstonBot
 
             // TODO: cache the roles by hashing guild id + command name + action name
             //var configService = _services.GetRequiredService<ConfigService>();
-            //foreach (SocketGuild guild in _client.Guilds)
-            //{
-            //    Console.WriteLine($"Registering commands for guild: {guild.Name}");
+            foreach (SocketGuild guild in _client.Guilds)
+            {
+                Console.WriteLine($"Registering commands for guild: {guild.Name}");
 
-            //    await ForceRefreshCommands.RegisterCommands(_client, guild, _commands);
+                await ForceRefreshCommands.RegisterCommands(_client, guild, _commands);
 
-            //    Console.WriteLine($"Setting action permissions for guild: {guild.Name}");
+                //Console.WriteLine($"Setting action permissions for guild: {guild.Name}");
 
-            //    // Set action roles from the config values
-            //    GuildEntry? guildEntry = null;
-            //    configService.Configuration.GuildEntries.TryGetValue(guild.Id, out guildEntry);
+                //// Set action roles from the config values
+                //GuildEntry? guildEntry = null;
+                //configService.Configuration.GuildEntries.TryGetValue(guild.Id, out guildEntry);
 
-            //    foreach (ICommand command in _commands)
-            //    {
-            //        Dictionary<string, ulong> actionRoles = new();
-            //        guildEntry?.CommandRoles.TryGetValue(command.Name, out actionRoles);
+                //foreach (ICommand command in _commands)
+                //{
+                //    Dictionary<string, ulong> actionRoles = new();
+                //    guildEntry?.Commands.TryGetValue(command.Name, out actionRoles);
 
-            //        foreach (IAction action in command.Actions)
-            //        {
-            //            ulong roleId = guild.EveryoneRole.Id;
-            //            if (!actionRoles.TryGetValue(action.Name, out roleId))
-            //            {
-            //                roleId = guild.EveryoneRole.Id;
-            //            }
+                //    foreach (IAction action in command.Actions)
+                //    {
+                //        ulong roleId = guild.EveryoneRole.Id;
+                //        if (!actionRoles.TryGetValue(action.Name, out roleId))
+                //        {
+                //            roleId = guild.EveryoneRole.Id;
+                //        }
 
-            //            var role = guild.GetRole(roleId);
-            //            Console.WriteLine($"Setting {command.Name}: {action.Name} role to {role.Name}");
-            //            action.RoleId = roleId;
-            //        }
-            //    }
-            //}
+                //        var role = guild.GetRole(roleId);
+                //        Console.WriteLine($"Setting {command.Name}: {action.Name} role to {role.Name}");
+                //        action.RoleId = roleId;
+                //    }
+                //}
+            }
         }
 
         private async Task HandleInteractionCreated(SocketInteraction arg)
@@ -86,21 +86,33 @@ namespace WinstonBot
             }
         }
 
-        private ulong GetRequiredRoleForAction(ConfigService configService, SocketGuild guild, string commandName, string actionName)
+        private IEnumerable<ulong> GetRequiredRolesForAction(ConfigService configService, SocketGuild guild, string commandName, string actionName)
         {
             if (configService.Configuration.GuildEntries.ContainsKey(guild.Id))
             {
-                var commandRoles = configService.Configuration.GuildEntries[guild.Id].CommandRoles;
+                var commandRoles = configService.Configuration.GuildEntries[guild.Id].Commands;
                 if (commandRoles.ContainsKey(commandName))
                 {
-                    var actions = commandRoles[commandName];
-                    if (actions.ContainsKey(actionName))
+                    var command = commandRoles[commandName];
+                    if (command.ActionRoles.ContainsKey(actionName))
                     {
-                        return actions[actionName];
+                        return command.ActionRoles[actionName];
                     }
                 }
             }
-            return guild.EveryoneRole.Id;
+            return new List<ulong>();
+        }
+
+        private bool DoesUserHaveAnyRequiredRole(SocketGuildUser user, IEnumerable<ulong> roles)
+        {
+            return !roles.Any() || user.Roles
+                .Where(role => roles.Contains(role.Id))
+                .Any();
+        }
+
+        private string GetRoleNames(SocketGuild guild, IEnumerable<ulong> roles)
+        {
+            return String.Join(',', roles.Select(roleId => guild.GetRole(roleId)));
         }
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
@@ -119,15 +131,10 @@ namespace WinstonBot
                     {
                         var user = (SocketGuildUser)component.User;
                         // TODO: cache this per guild
-                        var requiredRoleId = GetRequiredRoleForAction(configService, guildChannel.Guild, command.Name, action.Name);
-                        var requiredRole = guildChannel.Guild.GetRole(requiredRoleId);
-                        if (requiredRole == null)
+                        var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
+                        if (!DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
                         {
-                            Console.WriteLine($"Failed to find role {requiredRoleId} in guild {guildChannel.Guild.Name}");
-                        }
-                        else if (!user.Roles.Contains(requiredRole))
-                        {
-                            await component.RespondAsync($"You must have the {requiredRole.Name} role to do this action.", ephemeral:true);
+                            await component.RespondAsync($"You must have one of the following roles to do this action: {GetRoleNames(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
                             return;
                         }
                     }

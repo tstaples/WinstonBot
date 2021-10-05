@@ -18,6 +18,12 @@ namespace WinstonBot.Commands
         {
         };
 
+        private enum RoleOperation
+        {
+            Add,
+            Remove
+        }
+
         private CommandHandler _commandHandler;
         private IServiceProvider _serviceProvider;
 
@@ -54,6 +60,14 @@ namespace WinstonBot.Commands
                 .WithRequired(true)
                 .WithType(ApplicationCommandOptionType.String);
 
+            var operationOptionBuilder = new SlashCommandOptionBuilder()
+                .WithName("operation")
+                .WithDescription("Add or remove a role")
+                .WithRequired(true)
+                .WithType(ApplicationCommandOptionType.Integer)
+                .AddChoice("add-role", (int)RoleOperation.Add)
+                .AddChoice("remove-role", (int)RoleOperation.Remove);
+
             foreach (ICommand command in commandList)
             {
                 Debug.Assert(command.Name != this.Name);
@@ -67,6 +81,7 @@ namespace WinstonBot.Commands
 
             configureCommands.AddOption(commandOptionBuilder);
             configureCommands.AddOption(actionOptionBuilder);
+            configureCommands.AddOption(operationOptionBuilder);
             configureCommands.AddOption(new SlashCommandOptionBuilder()
                 .WithName("role")
                 .WithDescription("The role to set for this action")
@@ -82,7 +97,7 @@ namespace WinstonBot.Commands
             {
                 var guild = channel.Guild;
                 var options = context.SlashCommand.Data.Options;
-                if (options.Count != 3)
+                if (options.Count != 4)
                 {
                     Console.WriteLine("[Configure Command] Invalid number of options");
                     return;
@@ -90,8 +105,9 @@ namespace WinstonBot.Commands
 
                 string commandName = (string)options.ElementAt(0).Value;
                 string actionName = (string)options.ElementAt(1).Value;
+                RoleOperation operation = (RoleOperation)(long)options.ElementAt(2).Value;
                 var t = options.ElementAt(2).Value.GetType();
-                SocketRole role = (SocketRole)options.ElementAt(2).Value;
+                SocketRole role = (SocketRole)options.ElementAt(3).Value;
                 Console.WriteLine($"[ConfigureCommand] set {commandName}: {actionName} role to {role.Name}");
 
                 var command = _commandHandler.Commands
@@ -115,23 +131,47 @@ namespace WinstonBot.Commands
                     entries.TryAdd(guild.Id, new GuildEntry());
                 }
 
-                var commandRoles = entries[guild.Id].CommandRoles;
+                var commandRoles = entries[guild.Id].Commands;
                 if (!commandRoles.ContainsKey(commandName))
                 {
-                    commandRoles.Add(commandName, new Dictionary<string, ulong>());
+                    commandRoles.Add(commandName, new CommandEntry());
                 }
 
-                var actionRoles = commandRoles[commandName];
-                if (!actionRoles.ContainsKey(actionName))
+                List<ulong> roles = new();
+                var commandEntry = commandRoles[commandName];
+                if (!commandEntry.ActionRoles.ContainsKey(actionName))
                 {
-                    actionRoles.Add(actionName, role.Id);
+                    commandEntry.ActionRoles.Add(actionName, roles);
                 }
                 else
                 {
-                    actionRoles[actionName] = role.Id;
+                    roles = commandEntry.ActionRoles[actionName];
                 }
 
+                switch (operation)
+                {
+                    case RoleOperation.Add:
+                        roles.Add(role.Id);
+                        await context.SlashCommand.RespondAsync($"Added role {role.Name} to action {actionName} for command {commandName}", ephemeral: true);
+                        break;
+
+                    case RoleOperation.Remove:
+                        if (roles.Contains(role.Id))
+                        {
+                            roles.Remove(role.Id);
+                            await context.SlashCommand.RespondAsync($"Removed role {role.Name} to action {actionName} for command {commandName}", ephemeral: true);
+                        }
+                        else
+                        {
+                            await context.SlashCommand.RespondAsync($"Role {role.Name} isn't set for action {actionName} for command {commandName}", ephemeral: true);
+                        }
+                        break;
+                }
+
+                commandEntry.ActionRoles[actionName] = roles;
+
                 configService.UpdateConfig(configService.Configuration);
+
             }
         }
 
