@@ -39,8 +39,6 @@ namespace WinstonBot.Commands
             IEnumerable<ICommand> commandList = _commandHandler.Commands
                 .Where(cmd => cmd.Name != this.Name);
 
-            // TODO: user sub commands for add/set/get.
-
             //_client.Rest.BatchEditGuildCommandPermissions
             // could we just configure different commands with options?
             // /configure command:host-pvm action:host role:@pvm-teacher
@@ -132,9 +130,6 @@ namespace WinstonBot.Commands
 
             configureCommands.AddOption(actionCommandGroup);
             configureCommands.AddOption(commandCommandGroup);
-            //configureCommands.AddOption(commandOptionBuilder);
-            //configureCommands.AddOption(actionOptionBuilder);
-            //configureCommands.AddOption(roleOptionBuilder);
 
             return configureCommands.Build();
         }
@@ -155,15 +150,18 @@ namespace WinstonBot.Commands
                 var configureOperation = options.First().Options.First().Name;
                 options = options.First().Options.First().Options;
 
+                int roleIndex = -1;
                 switch (configureTarget)
                 {
                     case "action":
                         commandName = (string)options.ElementAt(0).Value;
                         actionName = (string)options.ElementAt(1).Value;
+                        roleIndex = 2;
                         break;
 
                     case "command":
                         commandName = (string)options.ElementAt(0).Value;
+                        roleIndex = 1;
                         break;
                 }
 
@@ -171,12 +169,12 @@ namespace WinstonBot.Commands
                 {
                     case "add-role":
                         operation = RoleOperation.Add;
-                        roleValue = (SocketRole)options.ElementAt(2).Value;
+                        roleValue = (SocketRole)options.ElementAt(roleIndex).Value;
                         break;
 
                     case "remove-role":
                         operation = RoleOperation.Remove;
-                        roleValue = (SocketRole)options.ElementAt(2).Value;
+                        roleValue = (SocketRole)options.ElementAt(roleIndex).Value;
                         break;
 
                     case "view-roles":

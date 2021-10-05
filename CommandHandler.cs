@@ -70,20 +70,85 @@ namespace WinstonBot
 
         private async Task HandleInteractionCreated(SocketInteraction arg)
         {
+            var configService = _services.GetRequiredService<ConfigService>();
             if (arg is SocketSlashCommand slashCommand)
             {
                 foreach (ICommand command in _commands)
                 {
-                    if (command.Name == slashCommand.Data.Name)
+                    if (command.Name != slashCommand.Data.Name)
                     {
-                        // TODO: should we lock the command?
-                        Console.WriteLine($"Command {command.Name} handling interaction");
-                        var context = new Commands.CommandContext(_client, slashCommand, _services);
-                        await command.HandleCommand(context);
-                        return;
+                        continue;
                     }
+
+                    // TODO: we shouldn't need to do this check as we should be able to update the permissions on the command itself.
+                    // Though this is likely much easier than dealing with role limits when batch editing.
+                    if (arg.Channel is SocketGuildChannel guildChannel)
+                    {
+                        var user = (SocketGuildUser)arg.User;
+                        // TODO: cache this per guild
+                        var requiredRoleIds = GetRequiredRolesForCommand(configService, guildChannel.Guild, command.Name);
+                        if (!DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
+                        {
+                            await arg.RespondAsync($"You must have one of the following roles to use this command: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral: true);
+                            return;
+                        }
+                    }
+
+                    // TODO: should we lock the command?
+                    Console.WriteLine($"Command {command.Name} handling interaction");
+                    var context = new Commands.CommandContext(_client, slashCommand, _services);
+                    await command.HandleCommand(context);
+                    return;
                 }
             }
+        }
+
+        private async Task HandleButtonExecuted(SocketMessageComponent component)
+        {
+            var configService = _services.GetRequiredService<ConfigService>();
+            foreach (ICommand command in _commands)
+            {
+                foreach (IAction action in command.Actions)
+                {
+                    if (!component.Data.CustomId.StartsWith(action.Name))
+                    {
+                        continue;
+                    }
+
+                    if (component.Channel is SocketGuildChannel guildChannel)
+                    {
+                        var user = (SocketGuildUser)component.User;
+                        // TODO: cache this per guild
+                        var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
+                        if (!DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
+                        {
+                            await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
+                            return;
+                        }
+                    }
+
+                    // TODO: should we lock the action?
+                    // TODO: action could define params and we could parse them in the future.
+                    // wouldn't work with the interface though.
+                    Console.WriteLine($"Command {command.Name} handling button action: {action.Name}");
+                    var context = command.CreateActionContext(_client, component, _services);
+                    await action.HandleAction(context);
+                    return;
+                }
+            }
+        }
+
+        private IEnumerable<ulong> GetRequiredRolesForCommand(ConfigService configService, SocketGuild guild, string commandName)
+        {
+            if (configService.Configuration.GuildEntries.ContainsKey(guild.Id))
+            {
+                var commands = configService.Configuration.GuildEntries[guild.Id].Commands;
+                if (commands.ContainsKey(commandName))
+                {
+                    return commands[commandName].Roles;
+                }
+            }
+            return new List<ulong>();
         }
 
         private IEnumerable<ulong> GetRequiredRolesForAction(ConfigService configService, SocketGuild guild, string commandName, string actionName)
@@ -108,41 +173,6 @@ namespace WinstonBot
             return !roles.Any() || user.Roles
                 .Where(role => roles.Contains(role.Id))
                 .Any();
-        }
-
-        private async Task HandleButtonExecuted(SocketMessageComponent component)
-        {
-            var configService = _services.GetRequiredService<ConfigService>();
-            foreach (ICommand command in _commands)
-            {
-                foreach (IAction action in command.Actions)
-                {
-                    if (!component.Data.CustomId.StartsWith(action.Name))
-                    {
-                        continue;
-                    }
-
-                    if (component.Channel is SocketGuildChannel guildChannel)
-                    {
-                        var user = (SocketGuildUser)component.User;
-                        // TODO: cache this per guild
-                        var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
-                        if (!DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
-                        {
-                            await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleNames(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
-                            return;
-                        }
-                    }
-
-                    // TODO: should we lock the action?
-                    // TODO: action could define params and we could parse them in the future.
-                    // wouldn't work with the interface though.
-                    Console.WriteLine($"Command {command.Name} handling button action: {action.Name}");
-                    var context = command.CreateActionContext(_client, component, _services);
-                    await action.HandleAction(context);
-                    return;
-                }
-            }
         }
     }
 }
