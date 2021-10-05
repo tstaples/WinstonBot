@@ -19,10 +19,12 @@ namespace WinstonBot.Commands
         };
 
         private CommandHandler _commandHandler;
+        private IServiceProvider _serviceProvider;
 
-        public ConfigCommand(CommandHandler commandHandler)
+        public ConfigCommand(CommandHandler commandHandler, IServiceProvider serviceProvider)
         {
             _commandHandler = commandHandler;
+            _serviceProvider = serviceProvider;
         }
 
         public SlashCommandProperties BuildCommand()
@@ -106,6 +108,32 @@ namespace WinstonBot.Commands
                 }
 
                 action.RoleId = role.Id;
+
+                // Update the config file.
+                var configService = _serviceProvider.GetRequiredService<ConfigService>();
+                var entries = configService.Configuration.GuildEntries;
+                if (!entries.ContainsKey(guild.Id))
+                {
+                    entries.TryAdd(guild.Id, new GuildEntry());
+                }
+
+                var commandRoles = entries[guild.Id].CommandRoles;
+                if (!commandRoles.ContainsKey(commandName))
+                {
+                    commandRoles.Add(commandName, new Dictionary<string, ulong>());
+                }
+
+                var actionRoles = commandRoles[commandName];
+                if (!actionRoles.ContainsKey(actionName))
+                {
+                    actionRoles.Add(actionName, role.Id);
+                }
+                else
+                {
+                    actionRoles[actionName] = role.Id;
+                }
+
+                configService.UpdateConfig(configService.Configuration);
             }
         }
 

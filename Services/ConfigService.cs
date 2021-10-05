@@ -7,10 +7,15 @@ using Newtonsoft.Json;
 
 namespace WinstonBot.Services
 {
+    public class GuildEntry
+    {
+        // command -> [action -> role id]
+        public Dictionary<string, Dictionary<string, ulong>> CommandRoles { get; set; } = new();
+    }
+
     public class Config
     {
-        public ulong TeamConfirmationChannelId { get; set; } = 0;
-        public string[] DebugTestNames { get; set; } = new string[] { };
+        public Dictionary<ulong, GuildEntry> GuildEntries { get; set; } = new();
     }
 
     public class ConfigService

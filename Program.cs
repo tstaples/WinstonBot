@@ -39,11 +39,12 @@ public class Program
 
         _emoteDatabase = new EmoteDatabase();
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
+
+        _services = BuildServiceProvider();
+
         _commandHandler = new CommandHandler(_services, _client);
 
         _client.Ready += ClientReady;
-
-        _services = BuildServiceProvider();
 
         await Task.Delay(-1);
     }
