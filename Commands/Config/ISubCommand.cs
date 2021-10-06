@@ -8,11 +8,8 @@ using System.Threading.Tasks;
 
 namespace WinstonBot.Commands.Config
 {
-    internal interface ISubCommand
+    internal interface ISubCommand : ICommandBase
     {
-        public string Name { get; }
-
         public SlashCommandOptionBuilder Build();
-        public Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options);
     }
 }

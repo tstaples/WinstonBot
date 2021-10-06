@@ -24,6 +24,11 @@ namespace WinstonBot.Commands
             _commandHandler = commandHandler;
         }
 
+        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        {
+            return new CommandContext(client, arg, services);
+        }
+
         public SlashCommandProperties BuildCommand()
         {
             var configureCommands = new SlashCommandBuilder()

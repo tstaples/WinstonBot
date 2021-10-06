@@ -22,6 +22,11 @@ namespace WinstonBot.Commands.Config
             new ViewRolesOperation()
         };
 
+        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        {
+            return new ConfigCommandContext(client, arg, services);
+        }
+
         public SlashCommandOptionBuilder Build()
         {
             var actionCommandGroup = new SlashCommandOptionBuilder()
@@ -38,23 +43,25 @@ namespace WinstonBot.Commands.Config
             return actionCommandGroup;
         }
 
-        public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+        public async Task HandleCommand(CommandContext commandContext)
         {
-            if (options == null)
-            {
-                Console.WriteLine($"Expected valid options for subcommand: {Name}");
-                return;
-            }
+            //var context = (ConfigCommandContext)commandContext;
+            //List<SocketSlashCommandDataOption> options = new();//temp
+            //if (options == null)
+            //{
+            //    Console.WriteLine($"Expected valid options for subcommand: {Name}");
+            //    return;
+            //}
 
-            string subCommandName = (string)options.First().Value;
-            foreach (ISubCommand subCommand in _subCommands)
-            {
-                if (subCommand.Name == subCommandName)
-                {
-                    await subCommand.HandleCommand(context, options.First().Options);
-                    return;
-                }
-            }
+            //string subCommandName = (string)options.First().Value;
+            //foreach (ISubCommand subCommand in _subCommands)
+            //{
+            //    if (subCommand.Name == subCommandName)
+            //    {
+            //        await subCommand.HandleCommand(context);
+            //        return;
+            //    }
+            //}
         }
 
         private static void GetActionRoles(ConfigService configService, ulong guildId, string commandName, string actionName, out List<ulong> roles)
@@ -94,29 +101,20 @@ namespace WinstonBot.Commands.Config
             [CommandOption("role")]
             public SocketRole TargetRole { get; set; }
 
+            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            {
+                return new ConfigCommandContext(client, arg, services);
+            }
+
             public SlashCommandOptionBuilder Build()
             {
                 return new SlashCommandOptionBuilder();
             }
 
-            public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+            public async Task HandleCommand(CommandContext commandContext)
             {
-                if (options == null)
-                {
-                    Console.WriteLine($"Expected valid options for subcommand: {Name}");
-                    return;
-                }
-
-                string? targetCommand = options.ElementAt(0).Value as string;
-                string? targetAction = options.ElementAt(1).Value as string;
-                SocketRole? targetRole = options.ElementAt(2).Value as SocketRole;
-                if (targetCommand == null || targetAction == null || targetRole == null)
-                {
-                    await context.SlashCommand.RespondAsync("Invalid arguments.", ephemeral: true);
-                    return;
-                }
-
-                if (targetRole.Id == context.Guild.EveryoneRole.Id)
+                var context = (ConfigCommandContext)commandContext;
+                if (TargetRole.Id == context.Guild.EveryoneRole.Id)
                 {
                     await context.SlashCommand.RespondAsync($"Cannot add {context.Guild.EveryoneRole.Mention} to commands as it is the default.\n" +
                         $"To set a command to {context.Guild.EveryoneRole.Mention}, remove all roles for it.", ephemeral: true);
@@ -125,15 +123,15 @@ namespace WinstonBot.Commands.Config
 
                 var configService = context.ConfigService;
                 List<ulong> actionRoles;
-                GetActionRoles(configService, context.Guild.Id, targetCommand, targetAction, out actionRoles);
-                if (Utility.AddUnique(actionRoles, targetRole.Id))
+                GetActionRoles(configService, context.Guild.Id, TargetCommand, TargetAction, out actionRoles);
+                if (Utility.AddUnique(actionRoles, TargetRole.Id))
                 {
                     configService.UpdateConfig(configService.Configuration);
-                    await context.SlashCommand.RespondAsync($"Added role {targetRole.Mention} to {targetCommand}:{targetAction}", ephemeral: true);
+                    await context.SlashCommand.RespondAsync($"Added role {TargetRole.Mention} to {TargetCommand}:{TargetAction}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"{targetCommand}:{targetAction} already contains role {targetRole.Mention}", ephemeral: true);
+                    await context.SlashCommand.RespondAsync($"{TargetCommand}:{TargetAction} already contains role {TargetRole.Mention}", ephemeral: true);
                 }
             }
         }
@@ -152,29 +150,20 @@ namespace WinstonBot.Commands.Config
             [CommandOption("role")]
             public SocketRole TargetRole { get; set; }
 
+            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            {
+                return new ConfigCommandContext(client, arg, services);
+            }
+
             public SlashCommandOptionBuilder Build()
             {
                 return new SlashCommandOptionBuilder();
             }
 
-            public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+            public async Task HandleCommand(CommandContext commandContext)
             {
-                if (options == null)
-                {
-                    Console.WriteLine($"Expected valid options for subcommand: {Name}");
-                    return;
-                }
-
-                string? targetCommand = options.ElementAt(0).Value as string;
-                string? targetAction = options.ElementAt(1).Value as string;
-                SocketRole? targetRole = options.ElementAt(2).Value as SocketRole;
-                if (targetCommand == null || targetAction == null || targetRole == null)
-                {
-                    await context.SlashCommand.RespondAsync("Invalid arguments.", ephemeral: true);
-                    return;
-                }
-
-                if (targetRole.Id == context.Guild.EveryoneRole.Id)
+                var context = (ConfigCommandContext)commandContext;
+                if (TargetRole.Id == context.Guild.EveryoneRole.Id)
                 {
                     await context.SlashCommand.RespondAsync($"Cannot remove {context.Guild.EveryoneRole.Mention} from commands as it is the default.\n" +
                         $"To make a command not available to {context.Guild.EveryoneRole.Mention}, add additional roles to it.", ephemeral: true);
@@ -183,21 +172,21 @@ namespace WinstonBot.Commands.Config
 
                 var configService = context.ConfigService;
                 List<ulong> actionRoles;
-                GetActionRoles(configService, context.Guild.Id, targetCommand, targetAction, out actionRoles);
-                if (!actionRoles.Contains(targetRole.Id))
+                GetActionRoles(configService, context.Guild.Id, TargetCommand, TargetAction, out actionRoles);
+                if (actionRoles.Contains(TargetRole.Id))
                 {
-                    actionRoles.Remove(targetRole.Id);
+                    actionRoles.Remove(TargetRole.Id);
                     configService.UpdateConfig(configService.Configuration);
-                    await context.SlashCommand.RespondAsync($"Removed role {targetRole.Mention} from {targetCommand}:{targetAction}", ephemeral: true);
+                    await context.SlashCommand.RespondAsync($"Removed role {TargetRole.Mention} from {TargetCommand}:{TargetAction}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"{targetCommand}:{targetAction} doesn't contain role {targetRole.Mention}", ephemeral: true);
+                    await context.SlashCommand.RespondAsync($"{TargetCommand}:{TargetAction} doesn't contain role {TargetRole.Mention}", ephemeral: true);
                 }
             }
         }
 
-        [SubCommand(Name = "remove-role", ParentCommand = typeof(ConfigureActionSubCommand))]
+        [SubCommand(Name = "view-roles", ParentCommand = typeof(ConfigureActionSubCommand))]
         private class ViewRolesOperation : ISubCommand
         {
             public string Name => "view-roles";
@@ -208,36 +197,29 @@ namespace WinstonBot.Commands.Config
             [CommandOption("action")]
             public string TargetAction { get; set; }
 
+            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            {
+                return new ConfigCommandContext(client, arg, services);
+            }
+
             public SlashCommandOptionBuilder Build()
             {
                 return new SlashCommandOptionBuilder();
             }
 
-            public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+            public async Task HandleCommand(CommandContext commandContext)
             {
-                if (options == null)
-                {
-                    Console.WriteLine($"Expected valid options for subcommand: {Name}");
-                    return;
-                }
-
-                string? targetCommand = options.ElementAt(0).Value as string;
-                string? targetAction = options.ElementAt(1).Value as string;
-                if (targetCommand == null || targetAction == null)
-                {
-                    await context.SlashCommand.RespondAsync("Invalid arguments.", ephemeral: true);
-                    return;
-                }
+                var context = (ConfigCommandContext)commandContext;
 
                 List<ulong> actionRoles;
-                GetActionRoles(context.ConfigService, context.Guild.Id, targetCommand, targetAction, out actionRoles);
+                GetActionRoles(context.ConfigService, context.Guild.Id, TargetCommand, TargetAction, out actionRoles);
                 if (actionRoles.Count > 0)
                 {
-                    await context.SlashCommand.RespondAsync($"Roles for {targetCommand}:{targetAction}: \n{Utility.JoinRoleMentions(context.Guild, actionRoles)}", ephemeral: true);
+                    await context.SlashCommand.RespondAsync($"Roles for {TargetCommand}:{TargetAction}: \n{Utility.JoinRoleMentions(context.Guild, actionRoles)}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"Roles for {targetCommand}:{targetAction}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
+                    await context.SlashCommand.RespondAsync($"Roles for {TargetCommand}:{TargetAction}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
                 }
             }
         }

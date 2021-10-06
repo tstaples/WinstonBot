@@ -15,7 +15,16 @@ namespace WinstonBot.Commands
         public Task HandleAction(ActionContext context);
     }
 
-    public interface ICommand
+    public interface ICommandBase
+    {
+        public string Name { get; }
+
+        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services);
+
+        public Task HandleCommand(CommandContext context);
+    }
+
+    public interface ICommand : ICommandBase
     {
         public enum Permission
         { 
@@ -23,13 +32,13 @@ namespace WinstonBot.Commands
             AdminOnly
         }
 
-        public string Name { get; }
         public Permission DefaultPermission { get; }
         public ulong AppCommandId { get; set; }
+        // TODO: sub command can have actions too
         public IEnumerable<IAction> Actions { get; }
 
         public SlashCommandProperties BuildCommand();
-        public Task HandleCommand(Commands.CommandContext context);
+        // TODO: move this into base
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services);
     }
 }

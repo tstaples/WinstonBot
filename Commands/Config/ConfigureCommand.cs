@@ -21,6 +21,11 @@ namespace WinstonBot.Commands.Config
             new ViewRolesOperation()
         };
 
+        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        {
+            return new ConfigCommandContext(client, arg, services);
+        }
+
         public SlashCommandOptionBuilder Build()
         {
             var actionCommandGroup = new SlashCommandOptionBuilder()
@@ -37,23 +42,23 @@ namespace WinstonBot.Commands.Config
             return actionCommandGroup;
         }
 
-        public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+        public async Task HandleCommand(CommandContext context)
         {
-            if (options == null)
-            {
-                Console.WriteLine($"Expected valid options for subcommand: {Name}");
-                return;
-            }
+            //if (options == null)
+            //{
+            //    Console.WriteLine($"Expected valid options for subcommand: {Name}");
+            //    return;
+            //}
 
-            string subCommandName = (string)options.First().Value;
-            foreach (ISubCommand subCommand in _subCommands)
-            {
-                if (subCommand.Name == subCommandName)
-                {
-                    await subCommand.HandleCommand(context, options.First().Options);
-                    return;
-                }
-            }
+            //string subCommandName = (string)options.First().Value;
+            //foreach (ISubCommand subCommand in _subCommands)
+            //{
+            //    if (subCommand.Name == subCommandName)
+            //    {
+            //        await subCommand.HandleCommand(context, options.First().Options);
+            //        return;
+            //    }
+            //}
         }
 
         private static CommandEntry GetCommandEntry(ConfigService configService, ulong guildId, string commandName)
@@ -77,13 +82,21 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "add-role";
 
+            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            {
+                return new ConfigCommandContext(client, arg, services);
+            }
+
             public SlashCommandOptionBuilder Build()
             {
                 return new SlashCommandOptionBuilder();
             }
 
-            public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+            public async Task HandleCommand(CommandContext commandContext)
             {
+                var context = (ConfigCommandContext)commandContext;
+                List<SocketSlashCommandDataOption> options = new();//temp
+
                 if (options == null)
                 {
                     Console.WriteLine($"Expected valid options for subcommand: {Name}");
@@ -123,13 +136,20 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "remove-role";
 
+            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            {
+                return new ConfigCommandContext(client, arg, services);
+            }
+
             public SlashCommandOptionBuilder Build()
             {
                 return new SlashCommandOptionBuilder();
             }
 
-            public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+            public async Task HandleCommand(CommandContext commandContext)
             {
+                var context = (ConfigCommandContext)commandContext;
+                List<SocketSlashCommandDataOption> options = new();//temp
                 if (options == null)
                 {
                     Console.WriteLine($"Expected valid options for subcommand: {Name}");
@@ -170,13 +190,20 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "view-roles";
 
+            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            {
+                return new ConfigCommandContext(client, arg, services);
+            }
+
             public SlashCommandOptionBuilder Build()
             {
                 return new SlashCommandOptionBuilder();
             }
 
-            public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+            public async Task HandleCommand(CommandContext commandContext)
             {
+                var context = (ConfigCommandContext)commandContext;
+                List<SocketSlashCommandDataOption> options = new();//temp
                 if (options == null)
                 {
                     Console.WriteLine($"Expected valid options for subcommand: {Name}");

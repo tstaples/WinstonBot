@@ -29,12 +29,9 @@ namespace WinstonBot
             public List<CommandOptionInfo> Options { get; set; }
         }
 
-        private class SubCommandInfo
+        private class SubCommandInfo : CommandInfo
         {
-            public string Name { get; set; }
-            public Type Type { get; set; }
             public Type ParentCommandType { get; set; }
-            public List<CommandOptionInfo> Options { get; set; }
         }
 
         //private class SubCommandEntry
@@ -195,43 +192,88 @@ namespace WinstonBot
 
                     var dataOptions = slashCommand.Data.Options;
 
-                    ICommand? commandInstance = Activator.CreateInstance(command.Type) as ICommand;
+                    KeyValuePair<SubCommandInfo,IReadOnlyCollection<SocketSlashCommandDataOption>?>? FindDeepestSubCommand(IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+                    {
+                        if (options == null)
+                        {
+                            return null;
+                        }
+
+                        foreach (var optionData in options)
+                        {
+                            if (optionData.Type == Discord.ApplicationCommandOptionType.SubCommandGroup ||
+                                optionData.Type == Discord.ApplicationCommandOptionType.SubCommand)
+                            {
+                                var result = FindDeepestSubCommand(optionData.Options);
+                                if (result != null)
+                                {
+                                    return result;
+                                }
+
+                                string subCommandName = optionData.Name;
+                                SubCommandInfo? info = _subCommandEntries.Find(sub => sub.Name == subCommandName);
+                                if (info != null)
+                                {
+                                    return new(info, optionData.Options);
+                                }
+                            }
+                        }
+                        return null;
+                    }
+
+                    ICommandBase? commandInstance = null;
+                    CommandInfo commandInfo = command;
+                    var subCommandResult = FindDeepestSubCommand(dataOptions);
+                    if (subCommandResult != null)
+                    {
+                        commandInfo = subCommandResult.Value.Key;
+                        dataOptions = subCommandResult.Value.Value;
+                        commandInstance = Activator.CreateInstance(subCommandResult.Value.Key.Type) as ICommandBase;
+                    }
+                    else
+                    {
+                        commandInstance = Activator.CreateInstance(command.Type) as ICommandBase;
+                    }
+
                     if (commandInstance == null)
                     {
                         throw new Exception($"Failed to construct command {command.Type}");
                     }
 
-                    HashSet<string> setProperties = new();
-                    foreach (var optionData in dataOptions)
+                    if (dataOptions != null)
                     {
-                        CommandOptionInfo? optionInfo = command.Options.Find(op => op.Name == optionData.Name);
-                        if (optionInfo == null)
+                        HashSet<string> setProperties = new();
+                        foreach (var optionData in dataOptions)
                         {
-                            Console.WriteLine($"Could not find option {optionData.Name} for command {command.Name}");
-                            continue;
+                            CommandOptionInfo? optionInfo = commandInfo.Options.Find(op => op.Name == optionData.Name);
+                            if (optionInfo == null)
+                            {
+                                Console.WriteLine($"Could not find option {optionData.Name} for command {commandInfo.Name}");
+                                continue;
+                            }
+
+                            PropertyInfo? property = commandInfo.Type.GetProperty(optionInfo.PropertyName);
+                            if (property == null)
+                            {
+                                throw new Exception($"Failed to get property {optionInfo.PropertyName} from type {commandInfo.Type}");
+                            }
+
+                            setProperties.Add(optionData.Name);
+                            property.SetValue(commandInstance, optionData.Value);
                         }
 
-                        PropertyInfo? property = command.Type.GetProperty(optionInfo.PropertyName);
-                        if (property == null)
+                        var requiredParamsNotSet = commandInfo.Options
+                            .Where(opt => opt.Required && !setProperties.Contains(opt.Name))
+                            .Select(opt => opt.Name);
+                        if (requiredParamsNotSet.Any())
                         {
-                            throw new Exception($"Failed to get property {optionInfo.PropertyName} from type {command.Type}");
+                            throw new ArgumentException($"Missing required arguments for command {commandInfo.Name}: {String.Join(',', requiredParamsNotSet)}");
                         }
-
-                        setProperties.Add(optionData.Name);
-                        property.SetValue(commandInstance, optionData.Value);
                     }
 
-                    var requiredParamsNotSet = command.Options
-                        .Where(opt => opt.Required && !setProperties.Contains(opt.Name))
-                        .Select(opt => opt.Name);
-                    if (requiredParamsNotSet.Any())
-                    {
-                        throw new ArgumentException($"Missing required arguments for command {command.Name}: {String.Join(',', requiredParamsNotSet)}");
-                    }
-
-                    // TODO: should we lock the command?
                     Console.WriteLine($"Command {command.Name} handling interaction");
-                    var context = new Commands.CommandContext(_client, slashCommand, _services);
+                    //var context = new Commands.CommandContext(_client, slashCommand, _services);
+                    var context = commandInstance.CreateContext(_client, slashCommand, _services);
                     await commandInstance.HandleCommand(context);
                     return;
                 }

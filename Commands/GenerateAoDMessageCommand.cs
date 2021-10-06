@@ -13,6 +13,11 @@ namespace WinstonBot.Commands
 
         public IEnumerable<IAction> Actions => new List<IAction>();
 
+        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        {
+            return new CommandContext(client, arg, services);
+        }
+
         public SlashCommandProperties BuildCommand()
         {
             return new SlashCommandBuilder()

@@ -46,6 +46,11 @@ namespace WinstonBot.Commands
         private ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> _originalSignupsForMessage = new();
         private ConcurrentDictionary<ulong, bool> _messagesBeingEdited = new();
 
+        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        {
+            return new CommandContext(client, arg, services);
+        }
+
         public SlashCommandProperties BuildCommand()
         {
             var choices = new SlashCommandOptionBuilder()
