@@ -41,8 +41,17 @@ namespace WinstonBot.Commands
             var builder = new SlashCommandOptionBuilder()
                 .WithName(info.Name)
                 .WithDescription(info.Description)
-                .WithRequired(true)
                 .WithType(type);
+
+            foreach (SubCommandInfo subInfo in subCommands)
+            {
+                builder.AddOption(BuildSlashCommandOption(subInfo));
+            }
+
+            foreach (CommandOptionInfo optionInfo in info.Options)
+            {
+                builder.AddOption(BuildSlashCommandOption(optionInfo));
+            }
             return builder;
         }
 

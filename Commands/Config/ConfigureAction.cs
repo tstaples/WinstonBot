@@ -92,7 +92,7 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "add-role";
 
-            [CommandOption("command", "The command to modify")]
+            [CommandOption("command", "The command to modify", dataProvider:typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("action", "The action to modify")]
@@ -136,7 +136,7 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "remove-role";
 
-            [CommandOption("command", "The command to modify")]
+            [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("action", "The action to modify")]
@@ -181,7 +181,7 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "view-roles";
 
-            [CommandOption("command", "The command to modify")]
+            [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("action", "The action to modify")]

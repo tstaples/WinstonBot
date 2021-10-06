@@ -62,6 +62,7 @@ namespace WinstonBot.Commands
             {
                 foreach (CommandInfo commandInfo in CommandHandler.CommandEntries)
                 {
+                    Console.WriteLine($"Building command {commandInfo.Name}");
                     var commandBuilder = CommandBuilder.BuildSlashCommand(commandInfo);
                     SocketApplicationCommand appCommand = await guild.CreateApplicationCommandAsync(commandBuilder.Build());
                     appCommandIds.Add(commandInfo.Name, appCommand.Id);

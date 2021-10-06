@@ -52,7 +52,7 @@ namespace WinstonBot.Commands
             return new ConfigCommandContext(client, arg, services);
         }
 
-        public static SlashCommandBuilder BuildCommand()
+        public static SlashCommandBuilder BuildCommandDontCallThis()
         {
             //IEnumerable<ICommand> commandList = _commandHandler.Commands
             //    .Where(cmd => cmd.Name != this.Name);

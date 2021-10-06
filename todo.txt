@@ -1,7 +1,6 @@
-﻿- how do we build the commands?
-	- can we generate them from the attribute metadata???
-- handle subcommands
-- handle actions
+﻿- handle actions
+- split other config commands into subcommands
+- markup any commands missing it.
 
 - how can we add role requirements for specific bosses?
 - test multiple people hitting buttons at once
