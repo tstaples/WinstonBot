@@ -24,7 +24,7 @@ namespace WinstonBot.Commands.Config
         public SlashCommandOptionBuilder Build()
         {
             var actionCommandGroup = new SlashCommandOptionBuilder()
-                .WithName("action")
+                .WithName("command")
                 .WithDescription("Configure command action permissions")
                 .WithRequired(false)
                 .WithType(ApplicationCommandOptionType.SubCommandGroup);

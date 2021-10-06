@@ -1,5 +1,6 @@
 ﻿using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 using WinstonBot.Commands;
 using WinstonBot.Services;
 
@@ -13,22 +14,120 @@ namespace WinstonBot
         private IServiceProvider _services;
         private List<ICommand> _commands;
 
+        private class CommandOptionInfo
+        {
+            public string Name {  get; set; }
+            public string PropertyName {  get; set; }
+            public Type Type {  get; set; }
+            public bool Required {  get; set; }
+        }
+
+        private class CommandInfo
+        {
+            public string Name {  get; set; }
+            public Type Type {  get; set; }
+            public List<CommandOptionInfo> Options { get; set; }
+        }
+
+        private class SubCommandInfo
+        {
+            public string Name { get; set; }
+            public Type Type { get; set; }
+            public Type ParentCommandType { get; set; }
+            public List<CommandOptionInfo> Options { get; set; }
+        }
+
+        //private class SubCommandEntry
+        //{
+        //    public SubCommandInfo Info { get; set; }
+        //    public List<SubCommandInfo> SubCommands { get; set; }
+        //}
+
+        //private class CommandEntry
+        //{
+        //    public CommandInfo Info {  get; set; }
+        //    public List<SubCommandEntry> SubCommands { get; set; }
+        //}
+
+        private List<CommandInfo> _commandEntries = new();
+        private List<SubCommandInfo> _subCommandEntries = new();
+
         public CommandHandler(IServiceProvider services, DiscordSocketClient client)
         {
             _client = client;
             _services = services;
 
-            _commands = new List<ICommand>()
+            //_commands = new List<ICommand>()
+            //{
+            //    new HostPvmSignup(),
+            //    new ConfigCommand(this, _services), // not great but will do for now.
+            //    new ForceRefreshCommands(this),
+            //    new GenerateAoDMessageCommand(),
+            //};
+        }
+
+        private async Task LoadCommands()
+        {
+            List<CommandOptionInfo> GetOptions(TypeInfo info)
             {
-                new HostPvmSignup(),
-                new ConfigCommand(this, _services), // not great but will do for now.
-                new ForceRefreshCommands(this),
-                new GenerateAoDMessageCommand(),
-            };
+                return info.DeclaredProperties
+                    .Where(prop => prop.GetCustomAttribute<Attributes.CommandOptionAttribute>() != null)
+                    .Select(prop =>
+                    {
+                        var optionInfo = prop.GetCustomAttribute<Attributes.CommandOptionAttribute>();
+                        return new CommandOptionInfo()
+                        {
+                            Name = optionInfo.Name,
+                            PropertyName = prop.Name,
+                            Required = optionInfo.Required,
+                            Type = prop.PropertyType
+                        };
+                    })
+                    .ToList();
+            }
+
+            var assembly = Assembly.GetEntryAssembly();
+            foreach (TypeInfo typeInfo in assembly.DefinedTypes)
+            {
+                var commandAttribute = typeInfo.GetCustomAttribute<Attributes.CommandAttribute>();
+                if (commandAttribute != null)
+                {
+                    var commandInfo = new CommandInfo()
+                    {
+                        Name = commandAttribute.Name,
+                        Type = typeInfo.AsType(),
+                        Options = GetOptions(typeInfo)
+                    };
+
+                    _commandEntries.Add(commandInfo);
+                }
+
+                var subCommandAttribute = typeInfo.GetCustomAttribute<Attributes.SubCommandAttribute>();
+                if (subCommandAttribute != null)
+                {
+                    if (subCommandAttribute.ParentCommand.GetCustomAttribute<Attributes.SubCommandAttribute>() == null &&
+                        subCommandAttribute.ParentCommand.GetCustomAttribute<Attributes.CommandAttribute>() == null)
+                    {
+                        throw new Exception($"ParentCommand for type {typeInfo.Name} must have either a Command or SubCommand attribute");
+                    }
+
+                    var subCommandInfo = new SubCommandInfo()
+                    {
+                        Name = subCommandAttribute.Name,
+                        Type = typeInfo.AsType(),
+                        ParentCommandType = subCommandAttribute.ParentCommand,
+                        Options = GetOptions(typeInfo)
+                    };
+
+                    _subCommandEntries.Add(subCommandInfo);
+                }
+            }
         }
 
         public async Task InstallCommandsAsync()
         {
+            await LoadCommands();
+
             // Hook the MessageReceived event into our command handler
             _client.ButtonExecuted += HandleButtonExecuted;
             _client.InteractionCreated += HandleInteractionCreated;
@@ -39,7 +138,7 @@ namespace WinstonBot
             {
                 Console.WriteLine($"Registering commands for guild: {guild.Name}");
 
-                await ForceRefreshCommands.RegisterCommands(_client, guild, _commands);
+                //await ForceRefreshCommands.RegisterCommands(_client, guild, _commands);
 
                 //Console.WriteLine($"Setting action permissions for guild: {guild.Name}");
 
@@ -73,7 +172,7 @@ namespace WinstonBot
             var configService = _services.GetRequiredService<ConfigService>();
             if (arg is SocketSlashCommand slashCommand)
             {
-                foreach (ICommand command in _commands)
+                foreach (CommandInfo command in _commandEntries)
                 {
                     if (command.Name != slashCommand.Data.Name)
                     {
@@ -94,10 +193,46 @@ namespace WinstonBot
                         }
                     }
 
+                    var dataOptions = slashCommand.Data.Options;
+
+                    ICommand? commandInstance = Activator.CreateInstance(command.Type) as ICommand;
+                    if (commandInstance == null)
+                    {
+                        throw new Exception($"Failed to construct command {command.Type}");
+                    }
+
+                    HashSet<string> setProperties = new();
+                    foreach (var optionData in dataOptions)
+                    {
+                        CommandOptionInfo? optionInfo = command.Options.Find(op => op.Name == optionData.Name);
+                        if (optionInfo == null)
+                        {
+                            Console.WriteLine($"Could not find option {optionData.Name} for command {command.Name}");
+                            continue;
+                        }
+
+                        PropertyInfo? property = command.Type.GetProperty(optionInfo.PropertyName);
+                        if (property == null)
+                        {
+                            throw new Exception($"Failed to get property {optionInfo.PropertyName} from type {command.Type}");
+                        }
+
+                        setProperties.Add(optionData.Name);
+                        property.SetValue(commandInstance, optionData.Value);
+                    }
+
+                    var requiredParamsNotSet = command.Options
+                        .Where(opt => opt.Required && !setProperties.Contains(opt.Name))
+                        .Select(opt => opt.Name);
+                    if (requiredParamsNotSet.Any())
+                    {
+                        throw new ArgumentException($"Missing required arguments for command {command.Name}: {String.Join(',', requiredParamsNotSet)}");
+                    }
+
                     // TODO: should we lock the command?
                     Console.WriteLine($"Command {command.Name} handling interaction");
                     var context = new Commands.CommandContext(_client, slashCommand, _services);
-                    await command.HandleCommand(context);
+                    await commandInstance.HandleCommand(context);
                     return;
                 }
             }
@@ -105,37 +240,38 @@ namespace WinstonBot
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
-            var configService = _services.GetRequiredService<ConfigService>();
-            foreach (ICommand command in _commands)
-            {
-                foreach (IAction action in command.Actions)
-                {
-                    if (!component.Data.CustomId.StartsWith(action.Name))
-                    {
-                        continue;
-                    }
+            // TODO: handle actions with action attribute
+            //var configService = _services.GetRequiredService<ConfigService>();
+            //foreach (CommandInfo command in _commandEntries)
+            //{
+            //    foreach (IAction action in command.Actions)
+            //    {
+            //        if (!component.Data.CustomId.StartsWith(action.Name))
+            //        {
+            //            continue;
+            //        }
 
-                    if (component.Channel is SocketGuildChannel guildChannel)
-                    {
-                        var user = (SocketGuildUser)component.User;
-                        // TODO: cache this per guild
-                        var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
-                        if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
-                        {
-                            await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
-                            return;
-                        }
-                    }
+            //        if (component.Channel is SocketGuildChannel guildChannel)
+            //        {
+            //            var user = (SocketGuildUser)component.User;
+            //            // TODO: cache this per guild
+            //            var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
+            //            if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
+            //            {
+            //                await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
+            //                return;
+            //            }
+            //        }
 
-                    // TODO: should we lock the action?
-                    // TODO: action could define params and we could parse them in the future.
-                    // wouldn't work with the interface though.
-                    Console.WriteLine($"Command {command.Name} handling button action: {action.Name}");
-                    var context = command.CreateActionContext(_client, component, _services);
-                    await action.HandleAction(context);
-                    return;
-                }
-            }
+            //        // TODO: should we lock the action?
+            //        // TODO: action could define params and we could parse them in the future.
+            //        // wouldn't work with the interface though.
+            //        Console.WriteLine($"Command {command.Name} handling button action: {action.Name}");
+            //        var context = command.CreateActionContext(_client, component, _services);
+            //        await action.HandleAction(context);
+            //        return;
+            //    }
+            //}
         }
 
         private IEnumerable<ulong> GetRequiredRolesForCommand(ConfigService configService, SocketGuild guild, string commandName)

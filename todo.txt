@@ -1,4 +1,8 @@
-﻿- how can we add role requirements for specific bosses?
+﻿- how do we build the commands?
+	- can we generate them from the attribute metadata???
+- handle subcommands
+
+- how can we add role requirements for specific bosses?
 - test multiple people hitting buttons at once
 
 - implement actual aod team selection

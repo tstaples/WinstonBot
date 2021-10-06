@@ -1,10 +1,10 @@
-﻿using Discord.Commands;
-using WinstonBot.Services;
+﻿using WinstonBot.Services;
 using Discord;
 using Microsoft.Extensions.DependencyInjection;
 using Discord.WebSocket;
 using System.Diagnostics;
 using WinstonBot.Data;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
@@ -19,6 +19,7 @@ namespace WinstonBot.Commands
         }
     }
 
+    [Command("configure")]
     public class ConfigCommand : ICommand
     {
         public string Name => "configure";

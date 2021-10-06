@@ -3,11 +3,19 @@ using WinstonBot.Data;
 using Discord.WebSocket;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
+    [Command("host-pvm-signup")]
     public class HostPvmSignup : ICommand
     {
+        [CommandOption("boss")]
+        public long BossIndex { get; set; }
+
+        [CommandOption("message", required: false)]
+        public string Message { get; set; }
+
         public string Name => "host-pvm-signup";
         public ICommand.Permission DefaultPermission => ICommand.Permission.Everyone;
         public ulong AppCommandId { get; set; }

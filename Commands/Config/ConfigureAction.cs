@@ -6,9 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WinstonBot.Services;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands.Config
 {
+    [SubCommand(Name = "action", ParentCommand = typeof(ConfigCommand))]
     internal class ConfigureActionSubCommand : ISubCommand
     {
         public string Name => "action";
@@ -23,7 +25,7 @@ namespace WinstonBot.Commands.Config
         public SlashCommandOptionBuilder Build()
         {
             var actionCommandGroup = new SlashCommandOptionBuilder()
-                .WithName("command")
+                .WithName("action")
                 .WithDescription("Configure command action permissions")
                 .WithRequired(false)
                 .WithType(ApplicationCommandOptionType.SubCommandGroup);
@@ -78,9 +80,19 @@ namespace WinstonBot.Commands.Config
             roles = commandEntry.ActionRoles[actionName];
         }
 
+        [SubCommand(Name = "add-role", ParentCommand = typeof(ConfigureActionSubCommand))]
         private class AddRoleOperation : ISubCommand
         {
             public string Name => "add-role";
+
+            [CommandOption("command")]
+            public string TargetCommand { get; set; }
+
+            [CommandOption("action")]
+            public string TargetAction { get; set; }
+
+            [CommandOption("role")]
+            public SocketRole TargetRole { get; set; }
 
             public SlashCommandOptionBuilder Build()
             {
@@ -126,9 +138,19 @@ namespace WinstonBot.Commands.Config
             }
         }
 
+        [SubCommand(Name = "remove-role", ParentCommand = typeof(ConfigureActionSubCommand))]
         private class RemoveRoleOperation : ISubCommand
         {
             public string Name => "remove-role";
+
+            [CommandOption("command")]
+            public string TargetCommand { get; set; }
+
+            [CommandOption("action")]
+            public string TargetAction { get; set; }
+
+            [CommandOption("role")]
+            public SocketRole TargetRole { get; set; }
 
             public SlashCommandOptionBuilder Build()
             {
@@ -175,9 +197,16 @@ namespace WinstonBot.Commands.Config
             }
         }
 
+        [SubCommand(Name = "remove-role", ParentCommand = typeof(ConfigureActionSubCommand))]
         private class ViewRolesOperation : ISubCommand
         {
             public string Name => "view-roles";
+
+            [CommandOption("command")]
+            public string TargetCommand { get; set; }
+
+            [CommandOption("action")]
+            public string TargetAction { get; set; }
 
             public SlashCommandOptionBuilder Build()
             {
