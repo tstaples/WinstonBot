@@ -84,5 +84,15 @@ namespace WinstonBot
                 .Where(role => roles.Contains(role.Id))
                 .Any();
         }
+
+        public static bool AddUnique<T>(List<T> list, T value)
+        {
+            if (!list.Contains(value))
+            {
+                list.Add(value);
+                return true;
+            }
+            return false;
+        }
     }
 }

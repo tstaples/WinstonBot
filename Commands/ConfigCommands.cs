@@ -8,6 +8,17 @@ using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
+    public class ConfigCommandContext : CommandContext
+    {
+        public SocketGuild Guild { get; set; }
+        public ConfigService ConfigService => ServiceProvider.GetRequiredService<ConfigService>();
+
+        public ConfigCommandContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services) : base(client, arg, services)
+        {
+            Guild = ((SocketGuildChannel)arg.Channel).Guild;
+        }
+    }
+
     public class ConfigCommand : ICommand
     {
         public string Name => "configure";
@@ -137,11 +148,12 @@ namespace WinstonBot.Commands
                     .WithName("view-roles")
                     .WithDescription("View the roles that are allowed to use this command.")
                     .WithType(ApplicationCommandOptionType.SubCommand)
-                    .AddOption(commandOptionBuilder))
-                .AddOption(new SlashCommandOptionBuilder()
-                    .WithName("view-all")
-                    .WithDescription("Display roles for all the commands and their actions.")
-                    .WithType(ApplicationCommandOptionType.SubCommand));
+                    .AddOption(commandOptionBuilder));
+                // TODO: make view-all a separate command that displays all config values.
+                //.AddOption(new SlashCommandOptionBuilder()
+                //    .WithName("view-all")
+                //    .WithDescription("Display roles for all the commands and their actions.")
+                //    .WithType(ApplicationCommandOptionType.SubCommand));
 
             var bossRolesCommandGroup = new SlashCommandOptionBuilder()
                 .WithName("boss-signup")
@@ -183,6 +195,16 @@ namespace WinstonBot.Commands
             {
                 var guild = channel.Guild;
                 var options = context.SlashCommand.Data.Options;
+
+                string subCommandName = options.First().Name;
+                foreach (ISubCommand subCommand in _subCommands)
+                {
+                    if (subCommand.Name == subCommandName)
+                    {
+                        await subCommand.HandleCommand(context, options.First().Options);
+                        return;
+                    }
+                }
 
                 string? commandName = null;
                 string? actionName = null;
