@@ -12,19 +12,23 @@ namespace WinstonBot.Attributes
         public string Name { get; set; }
         public string Description { get; set; }
         public bool Required {  get; set; }
+        // Populates the option choices
+        public Type? ChoiceDataProvider { get; set; }
 
         public CommandOptionAttribute()
         {
             Name = null;
             Description = "PLEASE FILL ME OUT";
             Required = true;
+            ChoiceDataProvider = null;
         }
 
-        public CommandOptionAttribute(string name, string description, bool required = true)
+        public CommandOptionAttribute(string name, string description, bool required = true, Type? dataProvider = null)
         {
             Name = name;
             Description = description;
             Required = required;
+            ChoiceDataProvider = dataProvider;
         }
     }
 }

@@ -7,10 +7,21 @@ using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
+    public class BossChoiceDataProvider
+    {
+        public static void PopulateChoices(SlashCommandOptionBuilder builder)
+        {
+            foreach (var entry in BossData.Entries)
+            {
+                builder.AddChoice(entry.CommandName, (int)entry.Id);
+            }
+        }
+    }
+
     [Command("host-pvm-signup", "Create a signup for a pvm event")]
     public class HostPvmSignup : ICommand
     {
-        [CommandOption("boss", "The boss to create an event for.")]
+        [CommandOption("boss", "The boss to create an event for.", dataProvider: typeof(BossChoiceDataProvider))]
         public long BossIndex { get; set; }
 
         [CommandOption("message", "An optional message to display.", required: false)]
@@ -50,27 +61,27 @@ namespace WinstonBot.Commands
             return new CommandContext(client, arg, services);
         }
 
-        public static SlashCommandBuilder BuildCommand()
-        {
-            var choices = new SlashCommandOptionBuilder()
-                    .WithName("boss")
-                    .WithDescription("The boss to host")
-                    .WithRequired(true)
-                    .WithType(ApplicationCommandOptionType.Integer);
+        //public static SlashCommandBuilder BuildCommand()
+        //{
+        //    var choices = new SlashCommandOptionBuilder()
+        //            .WithName("boss")
+        //            .WithDescription("The boss to host")
+        //            .WithRequired(true)
+        //            .WithType(ApplicationCommandOptionType.Integer);
 
-            foreach (var entry in BossData.Entries)
-            {
-                choices.AddChoice(entry.CommandName, (int)entry.Id);
-            }
+        //    foreach (var entry in BossData.Entries)
+        //    {
+        //        choices.AddChoice(entry.CommandName, (int)entry.Id);
+        //    }
 
-            var hostQueuedCommand = new SlashCommandBuilder()
-                .WithName("host-pvm-signup")
-                .WithDescription("Create a signup for a pvm event")
-                .AddOption(choices)
-                .AddOption("message", ApplicationCommandOptionType.String, "Additional info about the event to be added to the message body.", required: false);
+        //    var hostQueuedCommand = new SlashCommandBuilder()
+        //        .WithName("host-pvm-signup")
+        //        .WithDescription("Create a signup for a pvm event")
+        //        .AddOption(choices)
+        //        .AddOption("message", ApplicationCommandOptionType.String, "Additional info about the event to be added to the message body.", required: false);
 
-            return hostQueuedCommand;
-        }
+        //    return hostQueuedCommand;
+        //}
 
         public async Task HandleCommand(Commands.CommandContext context)
         {

@@ -51,8 +51,22 @@ namespace WinstonBot.Commands
             var builder = new SlashCommandOptionBuilder()
                 .WithName(info.Name)
                 .WithDescription(info.Description)
-                .WithRequired(true)
+                .WithRequired(info.Required)
                 .WithType(GetOptionForType(info.Type));
+
+            if (info.ChoiceProviderType != null)
+            {
+                Console.WriteLine($"Invoking choice provider: {info.ChoiceProviderType.Name} for option {info.Name}");
+                try
+                {
+                    info.ChoiceProviderType.GetMethod("PopulateChoices").Invoke(null, new object[] { builder });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error invoking choice provider: {ex.Message}");
+                }
+            }
+
             return builder;
         }
 

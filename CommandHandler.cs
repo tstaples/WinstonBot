@@ -15,6 +15,7 @@ namespace WinstonBot
         public string PropertyName { get; set; }
         public Type Type { get; set; }
         public bool Required { get; set; }
+        public Type? ChoiceProviderType { get; set; }
     }
 
     public class CommandInfo
@@ -61,9 +62,11 @@ namespace WinstonBot
                         return new CommandOptionInfo()
                         {
                             Name = optionInfo.Name,
+                            Description = optionInfo.Description,
                             PropertyName = prop.Name,
                             Required = optionInfo.Required,
-                            Type = prop.PropertyType
+                            Type = prop.PropertyType,
+                            ChoiceProviderType = optionInfo.ChoiceDataProvider
                         };
                     })
                     .ToList();
