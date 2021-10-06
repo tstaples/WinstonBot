@@ -26,21 +26,21 @@ namespace WinstonBot.Commands.Config
             return new ConfigCommandContext(client, arg, services);
         }
 
-        public SlashCommandOptionBuilder Build()
-        {
-            var actionCommandGroup = new SlashCommandOptionBuilder()
-                .WithName("command")
-                .WithDescription("Configure command action permissions")
-                .WithRequired(false)
-                .WithType(ApplicationCommandOptionType.SubCommandGroup);
+        //public SlashCommandOptionBuilder Build()
+        //{
+        //    var actionCommandGroup = new SlashCommandOptionBuilder()
+        //        .WithName("command")
+        //        .WithDescription("Configure command action permissions")
+        //        .WithRequired(false)
+        //        .WithType(ApplicationCommandOptionType.SubCommandGroup);
 
-            foreach (ISubCommand subCommand in _subCommands)
-            {
-                actionCommandGroup.AddOption(subCommand.Build());
-            }
+        //    foreach (ISubCommand subCommand in _subCommands)
+        //    {
+        //        actionCommandGroup.AddOption(subCommand.Build());
+        //    }
 
-            return actionCommandGroup;
-        }
+        //    return actionCommandGroup;
+        //}
 
         public async Task HandleCommand(CommandContext context)
         {

@@ -19,11 +19,10 @@ namespace WinstonBot.Commands
         }
     }
 
-    [Command("configure")]
+    [Command("configure", "Configure the bot.", DefaultPermission.AdminOnly)]
     public class ConfigCommand : ICommand
     {
         public string Name => "configure";
-        public ICommand.Permission DefaultPermission => ICommand.Permission.AdminOnly;
         public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => _actions;
 
@@ -53,10 +52,10 @@ namespace WinstonBot.Commands
             return new ConfigCommandContext(client, arg, services);
         }
 
-        public SlashCommandProperties BuildCommand()
+        public static SlashCommandBuilder BuildCommand()
         {
-            IEnumerable<ICommand> commandList = _commandHandler.Commands
-                .Where(cmd => cmd.Name != this.Name);
+            //IEnumerable<ICommand> commandList = _commandHandler.Commands
+            //    .Where(cmd => cmd.Name != this.Name);
 
             //_client.Rest.BatchEditGuildCommandPermissions
             // could we just configure different commands with options?
@@ -64,7 +63,7 @@ namespace WinstonBot.Commands
             // /configure command:host-pvm action:complete role:@pvm-teacher
             // TODO: we might want to use sub commands so we can also do configure view or something. or just make it a separate command.
             var configureCommands = new SlashCommandBuilder()
-                .WithName(Name)
+                .WithName("configure")
                 .WithDefaultPermission(false)
                 .WithDescription("Set role permissions for the various action");
 
@@ -86,15 +85,19 @@ namespace WinstonBot.Commands
                 .WithType(ApplicationCommandOptionType.Role)
                 .WithRequired(true);
 
-            foreach (ICommand command in commandList)
+            foreach (CommandInfo command in CommandHandler.CommandEntries)
             {
-                Debug.Assert(command.Name != this.Name);
+                if (command.Name == "configure")
+                {
+                    continue;
+                }
 
                 commandOptionBuilder.AddChoice(command.Name, command.Name);
-                foreach (IAction action in command.Actions)
-                {
-                    actionOptionBuilder.AddChoice(action.Name, action.Name);
-                }
+                // TODO: support actions
+                //foreach (IAction action in command.Actions)
+                //{
+                //    actionOptionBuilder.AddChoice(action.Name, action.Name);
+                //}
             }
 
             var bossOptionBuilder = new SlashCommandOptionBuilder()
@@ -191,254 +194,254 @@ namespace WinstonBot.Commands
             configureCommands.AddOption(bossRolesCommandGroup);
             configureCommands.AddOption(rulesChannelCommandGroup);
 
-            return configureCommands.Build();
+            return configureCommands;
         }
 
         // This is horrible and I hate it.
         public async Task HandleCommand(Commands.CommandContext context)
         {
-            if (context.SlashCommand.Channel is SocketGuildChannel channel)
-            {
-                var guild = channel.Guild;
-                var options = context.SlashCommand.Data.Options;
+            //if (context.SlashCommand.Channel is SocketGuildChannel channel)
+            //{
+            //    var guild = channel.Guild;
+            //    var options = context.SlashCommand.Data.Options;
 
-                //string subCommandName = options.First().Name;
-                //foreach (ISubCommand subCommand in _subCommands)
-                //{
-                //    if (subCommand.Name == subCommandName)
-                //    {
-                //        await subCommand.HandleCommand(context, options.First().Options);
-                //        return;
-                //    }
-                //}
+            //    //string subCommandName = options.First().Name;
+            //    //foreach (ISubCommand subCommand in _subCommands)
+            //    //{
+            //    //    if (subCommand.Name == subCommandName)
+            //    //    {
+            //    //        await subCommand.HandleCommand(context, options.First().Options);
+            //    //        return;
+            //    //    }
+            //    //}
 
-                string? commandName = null;
-                string? actionName = null;
-                SocketRole? roleValue = null;
-                RoleOperation operation = RoleOperation.View;
+            //    string? commandName = null;
+            //    string? actionName = null;
+            //    SocketRole? roleValue = null;
+            //    RoleOperation operation = RoleOperation.View;
 
-                var configureTarget = options.First().Name;
-                var configureOperation = options.First().Options.First().Name;
-                options = options.First().Options.First().Options;
+            //    var configureTarget = options.First().Name;
+            //    var configureOperation = options.First().Options.First().Name;
+            //    options = options.First().Options.First().Options;
 
-                T? TryGetValueAt<T>(int index) where T : class
-                {
-                    if (options != null && index < options.Count)
-                    {
-                        return (T)options.ElementAt(index).Value;
-                    }
-                    return null;
-                }
+            //    T? TryGetValueAt<T>(int index) where T : class
+            //    {
+            //        if (options != null && index < options.Count)
+            //        {
+            //            return (T)options.ElementAt(index).Value;
+            //        }
+            //        return null;
+            //    }
 
-                int roleIndex = -1;
-                switch (configureTarget)
-                {
-                    case "action":
-                        commandName = TryGetValueAt<string>(0);
-                        actionName = TryGetValueAt<string>(1);
-                        roleIndex = 2;
-                        break;
+            //    int roleIndex = -1;
+            //    switch (configureTarget)
+            //    {
+            //        case "action":
+            //            commandName = TryGetValueAt<string>(0);
+            //            actionName = TryGetValueAt<string>(1);
+            //            roleIndex = 2;
+            //            break;
 
-                    case "command":
-                        commandName = TryGetValueAt<string>(0);
-                        roleIndex = 1;
-                        break;
-                }
+            //        case "command":
+            //            commandName = TryGetValueAt<string>(0);
+            //            roleIndex = 1;
+            //            break;
+            //    }
 
-                switch (configureOperation)
-                {
-                    case "add-role":
-                        operation = RoleOperation.Add;
-                        roleValue = TryGetValueAt<SocketRole>(roleIndex);
-                        break;
+            //    switch (configureOperation)
+            //    {
+            //        case "add-role":
+            //            operation = RoleOperation.Add;
+            //            roleValue = TryGetValueAt<SocketRole>(roleIndex);
+            //            break;
 
-                    case "remove-role":
-                        operation = RoleOperation.Remove;
-                        roleValue = TryGetValueAt<SocketRole>(roleIndex);
-                        break;
+            //        case "remove-role":
+            //            operation = RoleOperation.Remove;
+            //            roleValue = TryGetValueAt<SocketRole>(roleIndex);
+            //            break;
 
-                    case "view-roles":
-                        // maybe?
-                        operation = RoleOperation.View;
-                        break;
+            //        case "view-roles":
+            //            // maybe?
+            //            operation = RoleOperation.View;
+            //            break;
 
-                    case "view-all":
-                        operation = RoleOperation.ViewAll;
-                        break;
-                }
+            //        case "view-all":
+            //            operation = RoleOperation.ViewAll;
+            //            break;
+            //    }
 
-                if (roleValue != null && roleValue.Id == guild.EveryoneRole.Id && (operation == RoleOperation.Add || operation == RoleOperation.Remove))
-                {
-                    await context.SlashCommand.RespondAsync($"Cannot add/remove {guild.EveryoneRole.Mention} to/from commands/actions as it is the default.\n" +
-                        $"To set an action/command to {guild.EveryoneRole.Mention} remove all roles for it.", ephemeral:true);
-                    return;
-                }
+            //    if (roleValue != null && roleValue.Id == guild.EveryoneRole.Id && (operation == RoleOperation.Add || operation == RoleOperation.Remove))
+            //    {
+            //        await context.SlashCommand.RespondAsync($"Cannot add/remove {guild.EveryoneRole.Mention} to/from commands/actions as it is the default.\n" +
+            //            $"To set an action/command to {guild.EveryoneRole.Mention} remove all roles for it.", ephemeral:true);
+            //        return;
+            //    }
 
-                Console.WriteLine($"[ConfigureCommand] running {configureTarget} {configureOperation} for command: {commandName}, action: {actionName}, with role: {roleValue?.Name}");
+            //    Console.WriteLine($"[ConfigureCommand] running {configureTarget} {configureOperation} for command: {commandName}, action: {actionName}, with role: {roleValue?.Name}");
 
-                var command = _commandHandler.Commands
-                    .Where(cmd => cmd.Name == commandName)
-                    .SingleOrDefault();
-                if (command == null && operation != RoleOperation.ViewAll)
-                {
-                    Console.WriteLine($"[ConfigureCommand] Failed to find command '{commandName}'.");
-                    return;
-                }
+            //    var command = _commandHandler.Commands
+            //        .Where(cmd => cmd.Name == commandName)
+            //        .SingleOrDefault();
+            //    if (command == null && operation != RoleOperation.ViewAll)
+            //    {
+            //        Console.WriteLine($"[ConfigureCommand] Failed to find command '{commandName}'.");
+            //        return;
+            //    }
 
-                var action = actionName != null && command != null
-                    ? command.Actions.Where(action => action.Name == actionName).Single()
-                    : null;
+            //    var action = actionName != null && command != null
+            //        ? command.Actions.Where(action => action.Name == actionName).Single()
+            //        : null;
 
-                if (actionName != null && action == null)
-                {
-                    Console.WriteLine($"[ConfigureCommand] Failed to find action '{actionName}' for command {commandName}.");
-                    return;
-                }
+            //    if (actionName != null && action == null)
+            //    {
+            //        Console.WriteLine($"[ConfigureCommand] Failed to find action '{actionName}' for command {commandName}.");
+            //        return;
+            //    }
 
-                var configService = _serviceProvider.GetRequiredService<ConfigService>();
-                CommandEntry? entry = commandName != null ? GetCommandEntry(configService, guild.Id, commandName) : null;
+            //    var configService = _serviceProvider.GetRequiredService<ConfigService>();
+            //    CommandEntry? entry = commandName != null ? GetCommandEntry(configService, guild.Id, commandName) : null;
 
-                // TODO: remove the switch and do something nicer.
-                // TODO: add remove all command for particular action/command.
-                switch (operation)
-                {
-                    case RoleOperation.Add:
-                        if (action != null)
-                        {
-                            if (!entry.ActionRoles.ContainsKey(actionName))
-                            {
-                                entry.ActionRoles.Add(actionName, new List<ulong>());
-                            }
+            //    // TODO: remove the switch and do something nicer.
+            //    // TODO: add remove all command for particular action/command.
+            //    switch (operation)
+            //    {
+            //        case RoleOperation.Add:
+            //            if (action != null)
+            //            {
+            //                if (!entry.ActionRoles.ContainsKey(actionName))
+            //                {
+            //                    entry.ActionRoles.Add(actionName, new List<ulong>());
+            //                }
                             
-                            if (AddUnique(entry.ActionRoles[actionName], roleValue.Id))
-                            {
-                                configService.UpdateConfig(configService.Configuration);
-                                await context.SlashCommand.RespondAsync($"Added role {roleValue.Mention} to {commandName}:{actionName}", ephemeral: true);
-                                return;
-                            }
-                            else
-                            {
-                                await context.SlashCommand.RespondAsync($"{commandName}:{actionName} already contains role {roleValue.Mention}", ephemeral: true);
-                            }
-                        }
-                        else
-                        {
-                            if (AddUnique(entry.Roles, roleValue.Id))
-                            {
-                                configService.UpdateConfig(configService.Configuration);
-                                await context.SlashCommand.RespondAsync($"Added role {roleValue.Mention} to command {commandName}", ephemeral: true);
-                            }
-                            else
-                            {
-                                await context.SlashCommand.RespondAsync($"{commandName} already contains role {roleValue.Mention}", ephemeral: true);
-                            }
-                        }
-                        break;
+            //                if (AddUnique(entry.ActionRoles[actionName], roleValue.Id))
+            //                {
+            //                    configService.UpdateConfig(configService.Configuration);
+            //                    await context.SlashCommand.RespondAsync($"Added role {roleValue.Mention} to {commandName}:{actionName}", ephemeral: true);
+            //                    return;
+            //                }
+            //                else
+            //                {
+            //                    await context.SlashCommand.RespondAsync($"{commandName}:{actionName} already contains role {roleValue.Mention}", ephemeral: true);
+            //                }
+            //            }
+            //            else
+            //            {
+            //                if (AddUnique(entry.Roles, roleValue.Id))
+            //                {
+            //                    configService.UpdateConfig(configService.Configuration);
+            //                    await context.SlashCommand.RespondAsync($"Added role {roleValue.Mention} to command {commandName}", ephemeral: true);
+            //                }
+            //                else
+            //                {
+            //                    await context.SlashCommand.RespondAsync($"{commandName} already contains role {roleValue.Mention}", ephemeral: true);
+            //                }
+            //            }
+            //            break;
 
-                    case RoleOperation.Remove:
-                        if (action != null)
-                        {
-                            if (entry.ActionRoles.ContainsKey(actionName))
-                            {
-                                if (entry.ActionRoles[actionName].Remove(roleValue.Id))
-                                {
-                                    configService.UpdateConfig(configService.Configuration);
-                                }
-                                await context.SlashCommand.RespondAsync($"Removed role {roleValue.Mention} from {commandName}:{actionName}", ephemeral: true);
-                            }
-                            else
-                            {
-                                await context.SlashCommand.RespondAsync($"No roles set for {commandName}:{actionName}", ephemeral: true);
-                            }
-                        }
-                        else
-                        {
-                            if (entry.Roles.Remove(roleValue.Id))
-                            {
-                                configService.UpdateConfig(configService.Configuration);
-                            }
-                            await context.SlashCommand.RespondAsync($"Removed role {roleValue.Mention} from command {commandName}", ephemeral: true);
-                        }
-                        break;
+            //        case RoleOperation.Remove:
+            //            if (action != null)
+            //            {
+            //                if (entry.ActionRoles.ContainsKey(actionName))
+            //                {
+            //                    if (entry.ActionRoles[actionName].Remove(roleValue.Id))
+            //                    {
+            //                        configService.UpdateConfig(configService.Configuration);
+            //                    }
+            //                    await context.SlashCommand.RespondAsync($"Removed role {roleValue.Mention} from {commandName}:{actionName}", ephemeral: true);
+            //                }
+            //                else
+            //                {
+            //                    await context.SlashCommand.RespondAsync($"No roles set for {commandName}:{actionName}", ephemeral: true);
+            //                }
+            //            }
+            //            else
+            //            {
+            //                if (entry.Roles.Remove(roleValue.Id))
+            //                {
+            //                    configService.UpdateConfig(configService.Configuration);
+            //                }
+            //                await context.SlashCommand.RespondAsync($"Removed role {roleValue.Mention} from command {commandName}", ephemeral: true);
+            //            }
+            //            break;
 
-                    case RoleOperation.View:
-                        if (action != null)
-                        {
-                            List<ulong> roles;
-                            if (entry.ActionRoles.TryGetValue(actionName, out roles))
-                            {
-                                await context.SlashCommand.RespondAsync($"Roles for {commandName}:{actionName}: \n{Utility.JoinRoleMentions(guild, roles)}", ephemeral: true);
-                            }
-                            else
-                            {
-                                await context.SlashCommand.RespondAsync($"Roles for {commandName}:{actionName}: \n{guild.EveryoneRole.Mention}", ephemeral: true);
-                            }
-                        }
-                        else if (command != null)
-                        {
-                            if (entry.Roles.Count > 0)
-                            {
-                                await context.SlashCommand.RespondAsync($"Roles for {commandName}: \n{Utility.JoinRoleMentions(guild, entry.Roles)}", ephemeral: true);
-                            }
-                            else
-                            {
-                                await context.SlashCommand.RespondAsync($"Roles for {commandName}:{actionName}: \n{guild.EveryoneRole.Mention}", ephemeral: true);
-                            }
-                        }
-                        break;
+            //        case RoleOperation.View:
+            //            if (action != null)
+            //            {
+            //                List<ulong> roles;
+            //                if (entry.ActionRoles.TryGetValue(actionName, out roles))
+            //                {
+            //                    await context.SlashCommand.RespondAsync($"Roles for {commandName}:{actionName}: \n{Utility.JoinRoleMentions(guild, roles)}", ephemeral: true);
+            //                }
+            //                else
+            //                {
+            //                    await context.SlashCommand.RespondAsync($"Roles for {commandName}:{actionName}: \n{guild.EveryoneRole.Mention}", ephemeral: true);
+            //                }
+            //            }
+            //            else if (command != null)
+            //            {
+            //                if (entry.Roles.Count > 0)
+            //                {
+            //                    await context.SlashCommand.RespondAsync($"Roles for {commandName}: \n{Utility.JoinRoleMentions(guild, entry.Roles)}", ephemeral: true);
+            //                }
+            //                else
+            //                {
+            //                    await context.SlashCommand.RespondAsync($"Roles for {commandName}:{actionName}: \n{guild.EveryoneRole.Mention}", ephemeral: true);
+            //                }
+            //            }
+            //            break;
 
-                    case RoleOperation.ViewAll:
-                        {
-                            var adminRoles = guild.Roles.Where(role => role.Id == 773757083904114689);
+            //        case RoleOperation.ViewAll:
+            //            {
+            //                var adminRoles = guild.Roles.Where(role => role.Id == 773757083904114689);
 
-                            // show all commands
-                            List<Embed> embeds = new();
-                            var commandEntries = configService.Configuration.GuildEntries[guild.Id].Commands;
-                            foreach (ICommand cmd in _commandHandler.Commands)
-                            {
-                                var embedBuilder = new EmbedBuilder()
-                                    .WithTitle(cmd.Name);
-                                var commandEntry = commandEntries.ContainsKey(cmd.Name) ? commandEntries[cmd.Name] : null;
+            //                // show all commands
+            //                List<Embed> embeds = new();
+            //                var commandEntries = configService.Configuration.GuildEntries[guild.Id].Commands;
+            //                foreach (ICommand cmd in _commandHandler.Commands)
+            //                {
+            //                    var embedBuilder = new EmbedBuilder()
+            //                        .WithTitle(cmd.Name);
+            //                    var commandEntry = commandEntries.ContainsKey(cmd.Name) ? commandEntries[cmd.Name] : null;
 
-                                var fieldBuilder = new EmbedFieldBuilder()
-                                        .WithName("Roles for command");
-                                if (commandEntry != null && commandEntry.Roles.Any())
-                                {
-                                    fieldBuilder.WithValue(Utility.JoinRoleMentions(guild, commandEntry.Roles));
-                                }
-                                else if (cmd.DefaultPermission == ICommand.Permission.AdminOnly)
-                                {
-                                    fieldBuilder.WithValue(String.Join('\n', adminRoles.Select(role => role.Mention)));
-                                }
-                                else
-                                {
-                                    fieldBuilder.WithValue(guild.EveryoneRole.Mention);
-                                }
+            //                    var fieldBuilder = new EmbedFieldBuilder()
+            //                            .WithName("Roles for command");
+            //                    if (commandEntry != null && commandEntry.Roles.Any())
+            //                    {
+            //                        fieldBuilder.WithValue(Utility.JoinRoleMentions(guild, commandEntry.Roles));
+            //                    }
+            //                    //else if (cmd.DefaultPermission == ICommand.Permission.AdminOnly)
+            //                    //{
+            //                    //    fieldBuilder.WithValue(String.Join('\n', adminRoles.Select(role => role.Mention)));
+            //                    //}
+            //                    //else
+            //                    //{
+            //                    //    fieldBuilder.WithValue(guild.EveryoneRole.Mention);
+            //                    //}
 
-                                embedBuilder.AddField(fieldBuilder);
+            //                    embedBuilder.AddField(fieldBuilder);
 
-                                foreach (IAction myAction in cmd.Actions)
-                                {
-                                    ulong[] roles = new ulong[]{ guild.EveryoneRole.Id };
-                                    if (commandEntry != null && commandEntry.ActionRoles.ContainsKey(myAction.Name) && commandEntry.ActionRoles[myAction.Name].Any())
-                                    {
-                                        roles = commandEntry.ActionRoles[myAction.Name].ToArray();
-                                    }
+            //                    foreach (IAction myAction in cmd.Actions)
+            //                    {
+            //                        ulong[] roles = new ulong[]{ guild.EveryoneRole.Id };
+            //                        if (commandEntry != null && commandEntry.ActionRoles.ContainsKey(myAction.Name) && commandEntry.ActionRoles[myAction.Name].Any())
+            //                        {
+            //                            roles = commandEntry.ActionRoles[myAction.Name].ToArray();
+            //                        }
 
-                                    embedBuilder.AddField(new EmbedFieldBuilder()
-                                        .WithName(myAction.Name)
-                                        .WithValue(Utility.JoinRoleMentions(guild, roles)));
-                                }
+            //                        embedBuilder.AddField(new EmbedFieldBuilder()
+            //                            .WithName(myAction.Name)
+            //                            .WithValue(Utility.JoinRoleMentions(guild, roles)));
+            //                    }
 
-                                embeds.Add(embedBuilder.Build());
-                            }
+            //                    embeds.Add(embedBuilder.Build());
+            //                }
 
-                            await context.SlashCommand.RespondAsync(embeds: embeds.ToArray(), ephemeral: true);
-                            return;
-                        }
-                        break;
-                }
-            }
+            //                await context.SlashCommand.RespondAsync(embeds: embeds.ToArray(), ephemeral: true);
+            //                return;
+            //            }
+            //            break;
+            //    }
+            //}
         }
 
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)

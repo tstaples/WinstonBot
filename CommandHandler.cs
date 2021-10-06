@@ -1,66 +1,52 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.ObjectModel;
 using System.Reflection;
 using WinstonBot.Commands;
 using WinstonBot.Services;
 
 namespace WinstonBot
 {
+    public class CommandOptionInfo
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string PropertyName { get; set; }
+        public Type Type { get; set; }
+        public bool Required { get; set; }
+    }
+
+    public class CommandInfo
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public DefaultPermission DefaultPermission { get; set; }
+        public Type Type { get; set; }
+        public List<CommandOptionInfo> Options { get; set; }
+        public MethodInfo? BuildCommandMethod { get; set; }
+    }
+
+    public class SubCommandInfo : CommandInfo
+    {
+        public Type ParentCommandType { get; set; }
+    }
+
     public class CommandHandler
     {
-        public IEnumerable<ICommand> Commands => _commands;
-
         private readonly DiscordSocketClient _client;
         private IServiceProvider _services;
-        private List<ICommand> _commands;
 
-        private class CommandOptionInfo
-        {
-            public string Name {  get; set; }
-            public string PropertyName {  get; set; }
-            public Type Type {  get; set; }
-            public bool Required {  get; set; }
-        }
+        private static List<CommandInfo> _commandEntries = new();
+        private static List<SubCommandInfo> _subCommandEntries = new();
 
-        private class CommandInfo
-        {
-            public string Name {  get; set; }
-            public Type Type {  get; set; }
-            public List<CommandOptionInfo> Options { get; set; }
-        }
-
-        private class SubCommandInfo : CommandInfo
-        {
-            public Type ParentCommandType { get; set; }
-        }
-
-        //private class SubCommandEntry
-        //{
-        //    public SubCommandInfo Info { get; set; }
-        //    public List<SubCommandInfo> SubCommands { get; set; }
-        //}
-
-        //private class CommandEntry
-        //{
-        //    public CommandInfo Info {  get; set; }
-        //    public List<SubCommandEntry> SubCommands { get; set; }
-        //}
-
-        private List<CommandInfo> _commandEntries = new();
-        private List<SubCommandInfo> _subCommandEntries = new();
+        public static IReadOnlyCollection<CommandInfo> CommandEntries => new ReadOnlyCollection<CommandInfo>(_commandEntries);
+        public static IReadOnlyCollection<SubCommandInfo> SubCommandEntries => new ReadOnlyCollection<SubCommandInfo>(_subCommandEntries);
 
         public CommandHandler(IServiceProvider services, DiscordSocketClient client)
         {
             _client = client;
             _services = services;
-
-            //_commands = new List<ICommand>()
-            //{
-            //    new HostPvmSignup(),
-            //    new ConfigCommand(this, _services), // not great but will do for now.
-            //    new ForceRefreshCommands(this),
-            //    new GenerateAoDMessageCommand(),
-            //};
         }
 
         private async Task LoadCommands()
@@ -83,6 +69,12 @@ namespace WinstonBot
                     .ToList();
             }
 
+            MethodInfo? GetBuildMethod(TypeInfo info)
+            {
+                // TODO: make a more robust way to define the method (eg. attribute)
+                return info.DeclaredMethods.Where(method => method.IsStatic && method.Name == "BuildCommand").SingleOrDefault();
+            }
+
             var assembly = Assembly.GetEntryAssembly();
             foreach (TypeInfo typeInfo in assembly.DefinedTypes)
             {
@@ -92,8 +84,11 @@ namespace WinstonBot
                     var commandInfo = new CommandInfo()
                     {
                         Name = commandAttribute.Name,
+                        Description = commandAttribute.Description,
+                        DefaultPermission = commandAttribute.DefaultPermission,
                         Type = typeInfo.AsType(),
-                        Options = GetOptions(typeInfo)
+                        Options = GetOptions(typeInfo),
+                        BuildCommandMethod = GetBuildMethod(typeInfo)
                     };
 
                     _commandEntries.Add(commandInfo);
@@ -111,9 +106,11 @@ namespace WinstonBot
                     var subCommandInfo = new SubCommandInfo()
                     {
                         Name = subCommandAttribute.Name,
+                        Description = subCommandAttribute.Description,
                         Type = typeInfo.AsType(),
                         ParentCommandType = subCommandAttribute.ParentCommand,
-                        Options = GetOptions(typeInfo)
+                        Options = GetOptions(typeInfo),
+                        BuildCommandMethod = GetBuildMethod(typeInfo)
                     };
 
                     _subCommandEntries.Add(subCommandInfo);
@@ -129,38 +126,11 @@ namespace WinstonBot
             _client.ButtonExecuted += HandleButtonExecuted;
             _client.InteractionCreated += HandleInteractionCreated;
 
-            // TODO: cache the roles by hashing guild id + command name + action name
-            //var configService = _services.GetRequiredService<ConfigService>();
             foreach (SocketGuild guild in _client.Guilds)
             {
                 Console.WriteLine($"Registering commands for guild: {guild.Name}");
 
-                //await ForceRefreshCommands.RegisterCommands(_client, guild, _commands);
-
-                //Console.WriteLine($"Setting action permissions for guild: {guild.Name}");
-
-                //// Set action roles from the config values
-                //GuildEntry? guildEntry = null;
-                //configService.Configuration.GuildEntries.TryGetValue(guild.Id, out guildEntry);
-
-                //foreach (ICommand command in _commands)
-                //{
-                //    Dictionary<string, ulong> actionRoles = new();
-                //    guildEntry?.Commands.TryGetValue(command.Name, out actionRoles);
-
-                //    foreach (IAction action in command.Actions)
-                //    {
-                //        ulong roleId = guild.EveryoneRole.Id;
-                //        if (!actionRoles.TryGetValue(action.Name, out roleId))
-                //        {
-                //            roleId = guild.EveryoneRole.Id;
-                //        }
-
-                //        var role = guild.GetRole(roleId);
-                //        Console.WriteLine($"Setting {command.Name}: {action.Name} role to {role.Name}");
-                //        action.RoleId = roleId;
-                //    }
-                //}
+                await ForceRefreshCommands.RegisterCommands(_client, guild);
             }
         }
 
@@ -272,7 +242,6 @@ namespace WinstonBot
                     }
 
                     Console.WriteLine($"Command {command.Name} handling interaction");
-                    //var context = new Commands.CommandContext(_client, slashCommand, _services);
                     var context = commandInstance.CreateContext(_client, slashCommand, _services);
                     await commandInstance.HandleCommand(context);
                     return;

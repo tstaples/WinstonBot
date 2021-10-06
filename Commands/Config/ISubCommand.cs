@@ -10,6 +10,6 @@ namespace WinstonBot.Commands.Config
 {
     internal interface ISubCommand : ICommandBase
     {
-        public SlashCommandOptionBuilder Build();
+        //public SlashCommandOptionBuilder Build();
     }
 }

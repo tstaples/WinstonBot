@@ -10,17 +10,20 @@ namespace WinstonBot.Attributes
     public class CommandOptionAttribute : Attribute
     {
         public string Name { get; set; }
+        public string Description { get; set; }
         public bool Required {  get; set; }
 
         public CommandOptionAttribute()
         {
             Name = null;
+            Description = "PLEASE FILL ME OUT";
             Required = true;
         }
 
-        public CommandOptionAttribute(string name, bool required = true)
+        public CommandOptionAttribute(string name, string description, bool required = true)
         {
             Name = name;
+            Description = description;
             Required = required;
         }
     }

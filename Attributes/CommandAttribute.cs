@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using WinstonBot.Commands;
 
 namespace WinstonBot.Attributes
 {
@@ -10,15 +6,21 @@ namespace WinstonBot.Attributes
     public class CommandAttribute : Attribute
     {
         public string Name { get; set; }
+        public string Description { get; set; }
+        public DefaultPermission DefaultPermission { get; set; }
 
         public CommandAttribute()
         {
             Name = null;
+            Description = null;
+            DefaultPermission = DefaultPermission.Everyone;
         }
 
-        public CommandAttribute(string name)
+        public CommandAttribute(string name, string description, DefaultPermission defaultPermission = DefaultPermission.Everyone)
         {
             Name = name;
+            Description = description;
+            DefaultPermission = defaultPermission;
         }
     }
 }

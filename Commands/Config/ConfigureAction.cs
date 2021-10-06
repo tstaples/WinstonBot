@@ -10,7 +10,7 @@ using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands.Config
 {
-    [SubCommand(Name = "action", ParentCommand = typeof(ConfigCommand))]
+    [SubCommand("action", "Configure command action permissions", typeof(ConfigCommand))]
     internal class ConfigureActionSubCommand : ISubCommand
     {
         public string Name => "action";
@@ -27,21 +27,21 @@ namespace WinstonBot.Commands.Config
             return new ConfigCommandContext(client, arg, services);
         }
 
-        public SlashCommandOptionBuilder Build()
-        {
-            var actionCommandGroup = new SlashCommandOptionBuilder()
-                .WithName("action")
-                .WithDescription("Configure command action permissions")
-                .WithRequired(false)
-                .WithType(ApplicationCommandOptionType.SubCommandGroup);
+        //public SlashCommandOptionBuilder BuildCommand()
+        //{
+        //    var actionCommandGroup = new SlashCommandOptionBuilder()
+        //        .WithName("action")
+        //        .WithDescription("Configure command action permissions")
+        //        .WithRequired(false)
+        //        .WithType(ApplicationCommandOptionType.SubCommandGroup);
 
-            foreach (ISubCommand subCommand in _subCommands)
-            {
-                actionCommandGroup.AddOption(subCommand.Build());
-            }
+        //    foreach (ISubCommand subCommand in _subCommands)
+        //    {
+        //        actionCommandGroup.AddOption(subCommand.Build());
+        //    }
 
-            return actionCommandGroup;
-        }
+        //    return actionCommandGroup;
+        //}
 
         public async Task HandleCommand(CommandContext commandContext)
         {
@@ -92,23 +92,18 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "add-role";
 
-            [CommandOption("command")]
+            [CommandOption("command", "The command to modify")]
             public string TargetCommand { get; set; }
 
-            [CommandOption("action")]
+            [CommandOption("action", "The action to modify")]
             public string TargetAction { get; set; }
 
-            [CommandOption("role")]
+            [CommandOption("role", "The role to add")]
             public SocketRole TargetRole { get; set; }
 
             public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
-            }
-
-            public SlashCommandOptionBuilder Build()
-            {
-                return new SlashCommandOptionBuilder();
             }
 
             public async Task HandleCommand(CommandContext commandContext)
@@ -141,23 +136,18 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "remove-role";
 
-            [CommandOption("command")]
+            [CommandOption("command", "The command to modify")]
             public string TargetCommand { get; set; }
 
-            [CommandOption("action")]
+            [CommandOption("action", "The action to modify")]
             public string TargetAction { get; set; }
 
-            [CommandOption("role")]
+            [CommandOption("role", "The role to add")]
             public SocketRole TargetRole { get; set; }
 
             public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
-            }
-
-            public SlashCommandOptionBuilder Build()
-            {
-                return new SlashCommandOptionBuilder();
             }
 
             public async Task HandleCommand(CommandContext commandContext)
@@ -191,20 +181,15 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "view-roles";
 
-            [CommandOption("command")]
+            [CommandOption("command", "The command to modify")]
             public string TargetCommand { get; set; }
 
-            [CommandOption("action")]
+            [CommandOption("action", "The action to modify")]
             public string TargetAction { get; set; }
 
             public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
-            }
-
-            public SlashCommandOptionBuilder Build()
-            {
-                return new SlashCommandOptionBuilder();
             }
 
             public async Task HandleCommand(CommandContext commandContext)

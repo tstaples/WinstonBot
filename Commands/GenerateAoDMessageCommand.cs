@@ -1,13 +1,13 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
+    [Command("generate-aod-message", "Post the daily aod signup message")]
     public class GenerateAoDMessageCommand : ICommand
     {
         public string Name => "generate-aod-message";
-
-        public ICommand.Permission DefaultPermission => ICommand.Permission.Everyone;
 
         public ulong AppCommandId { get; set; }
 
@@ -18,13 +18,13 @@ namespace WinstonBot.Commands
             return new CommandContext(client, arg, services);
         }
 
-        public SlashCommandProperties BuildCommand()
-        {
-            return new SlashCommandBuilder()
-                .WithName(Name)
-                .WithDescription("Post the daily aod signup message.")
-                .Build();
-        }
+        //public SlashCommandProperties BuildCommand()
+        //{
+        //    return new SlashCommandBuilder()
+        //        .WithName(Name)
+        //        .WithDescription("Post the daily aod signup message.")
+        //        .Build();
+        //}
 
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
         {

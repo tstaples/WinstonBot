@@ -10,17 +10,20 @@ namespace WinstonBot.Attributes
     public class SubCommandAttribute : Attribute
     {
         public string Name { get; set; }
+        public string Description { get; set; }
         public Type ParentCommand { get; set; }
 
         public SubCommandAttribute()
         {
             Name = null;
+            Description = "PLEASE FILL ME OUT";
             ParentCommand = null;
         }
 
-        public SubCommandAttribute(string name, Type parentCommand)
+        public SubCommandAttribute(string name, string description, Type parentCommand)
         {
             Name = name;
+            Description = description;
             ParentCommand = parentCommand;
         }
     }

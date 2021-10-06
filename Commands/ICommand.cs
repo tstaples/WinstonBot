@@ -26,18 +26,11 @@ namespace WinstonBot.Commands
 
     public interface ICommand : ICommandBase
     {
-        public enum Permission
-        { 
-            Everyone,
-            AdminOnly
-        }
-
-        public Permission DefaultPermission { get; }
         public ulong AppCommandId { get; set; }
         // TODO: sub command can have actions too
         public IEnumerable<IAction> Actions { get; }
 
-        public SlashCommandProperties BuildCommand();
+        //public SlashCommandProperties BuildCommand();
         // TODO: move this into base
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services);
     }

@@ -7,17 +7,16 @@ using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
-    [Command("host-pvm-signup")]
+    [Command("host-pvm-signup", "Create a signup for a pvm event")]
     public class HostPvmSignup : ICommand
     {
-        [CommandOption("boss")]
+        [CommandOption("boss", "The boss to create an event for.")]
         public long BossIndex { get; set; }
 
-        [CommandOption("message", required: false)]
+        [CommandOption("message", "An optional message to display.", required: false)]
         public string Message { get; set; }
 
         public string Name => "host-pvm-signup";
-        public ICommand.Permission DefaultPermission => ICommand.Permission.Everyone;
         public ulong AppCommandId { get; set; }
         public IEnumerable<IAction> Actions => _actions;
 
@@ -51,7 +50,7 @@ namespace WinstonBot.Commands
             return new CommandContext(client, arg, services);
         }
 
-        public SlashCommandProperties BuildCommand()
+        public static SlashCommandBuilder BuildCommand()
         {
             var choices = new SlashCommandOptionBuilder()
                     .WithName("boss")
@@ -65,12 +64,12 @@ namespace WinstonBot.Commands
             }
 
             var hostQueuedCommand = new SlashCommandBuilder()
-                .WithName(Name)
+                .WithName("host-pvm-signup")
                 .WithDescription("Create a signup for a pvm event")
                 .AddOption(choices)
                 .AddOption("message", ApplicationCommandOptionType.String, "Additional info about the event to be added to the message body.", required: false);
 
-            return hostQueuedCommand.Build();
+            return hostQueuedCommand;
         }
 
         public async Task HandleCommand(Commands.CommandContext context)
