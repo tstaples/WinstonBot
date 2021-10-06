@@ -196,15 +196,15 @@ namespace WinstonBot.Commands
                 var guild = channel.Guild;
                 var options = context.SlashCommand.Data.Options;
 
-                string subCommandName = options.First().Name;
-                foreach (ISubCommand subCommand in _subCommands)
-                {
-                    if (subCommand.Name == subCommandName)
-                    {
-                        await subCommand.HandleCommand(context, options.First().Options);
-                        return;
-                    }
-                }
+                //string subCommandName = options.First().Name;
+                //foreach (ISubCommand subCommand in _subCommands)
+                //{
+                //    if (subCommand.Name == subCommandName)
+                //    {
+                //        await subCommand.HandleCommand(context, options.First().Options);
+                //        return;
+                //    }
+                //}
 
                 string? commandName = null;
                 string? actionName = null;

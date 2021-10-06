@@ -82,6 +82,11 @@ namespace WinstonBot.Commands.Config
         {
             public string Name => "add-role";
 
+            public SlashCommandOptionBuilder Build()
+            {
+                return new SlashCommandOptionBuilder();
+            }
+
             public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
             {
                 if (options == null)
@@ -124,6 +129,11 @@ namespace WinstonBot.Commands.Config
         private class RemoveRoleOperation : ISubCommand
         {
             public string Name => "remove-role";
+
+            public SlashCommandOptionBuilder Build()
+            {
+                return new SlashCommandOptionBuilder();
+            }
 
             public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
             {
@@ -168,6 +178,11 @@ namespace WinstonBot.Commands.Config
         private class ViewRolesOperation : ISubCommand
         {
             public string Name => "view-roles";
+
+            public SlashCommandOptionBuilder Build()
+            {
+                return new SlashCommandOptionBuilder();
+            }
 
             public async Task HandleCommand(ConfigCommandContext context, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
             {
