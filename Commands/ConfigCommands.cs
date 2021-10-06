@@ -4,6 +4,7 @@ using Discord;
 using Microsoft.Extensions.DependencyInjection;
 using Discord.WebSocket;
 using System.Diagnostics;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
@@ -79,6 +80,15 @@ namespace WinstonBot.Commands
                 }
             }
 
+            var bossOptionBuilder = new SlashCommandOptionBuilder()
+                .WithName("boss")
+                .WithDescription("The boss to configure")
+                .WithRequired(true)
+                .WithType(ApplicationCommandOptionType.String);
+            foreach (BossData.Entry entry in BossData.Entries)
+            {
+                bossOptionBuilder.AddChoice(entry.CommandName, entry.CommandName);
+            }
 
             var actionCommandGroup = new SlashCommandOptionBuilder()
                 .WithName("action")
@@ -133,12 +143,40 @@ namespace WinstonBot.Commands
                     .WithDescription("Display roles for all the commands and their actions.")
                     .WithType(ApplicationCommandOptionType.SubCommand));
 
+            var bossRolesCommandGroup = new SlashCommandOptionBuilder()
+                .WithName("boss-signup")
+                .WithDescription("Configure boss signup permissions.")
+                .WithRequired(false)
+                .WithType(ApplicationCommandOptionType.SubCommandGroup)
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("add-role")
+                    .WithDescription("Add a role that is allowed to use this command.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(bossOptionBuilder)
+                    .AddOption(roleOptionBuilder))
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("remove-role")
+                    .WithDescription("Remove a role from this boss.")
+                    .WithType(ApplicationCommandOptionType.SubCommand)
+                    .AddOption(bossOptionBuilder)
+                    .AddOption(roleOptionBuilder));
+
+            var rulesChannelCommandGroup = new SlashCommandOptionBuilder()
+                .WithName("pvm-rules-channel")
+                .WithDescription("Set the rules channel.")
+                .WithRequired(false)
+                .WithType(ApplicationCommandOptionType.SubCommand)
+                .AddOption("channel", ApplicationCommandOptionType.Channel, "The channel to set for pvm-rules.");
+
             configureCommands.AddOption(actionCommandGroup);
             configureCommands.AddOption(commandCommandGroup);
+            configureCommands.AddOption(bossRolesCommandGroup);
+            configureCommands.AddOption(rulesChannelCommandGroup);
 
             return configureCommands.Build();
         }
 
+        // This is horrible and I hate it.
         public async Task HandleCommand(Commands.CommandContext context)
         {
             if (context.SlashCommand.Channel is SocketGuildChannel channel)

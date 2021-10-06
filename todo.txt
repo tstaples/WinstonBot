@@ -1,4 +1,5 @@
-﻿- implement role requirements
+﻿- how can we add role requirements for specific bosses?
+- test multiple people hitting buttons at once
 
 - implement actual aod team selection
 - role requirements for commands

@@ -18,6 +18,9 @@ namespace WinstonBot.Services
     {
         // command -> [action -> role id]
         public Dictionary<string, CommandEntry> Commands { get; set; } = new();
+
+        public Dictionary<string, List<ulong>> RolesNeededForBoss {  get; set; } = new();
+        public ulong PvMRulesChannelId { get; set; }
     }
 
     public class Config
@@ -57,7 +60,7 @@ namespace WinstonBot.Services
         public void UpdateConfig(Config newConfig)
         {
             _config = newConfig;
-            string value = JsonConvert.SerializeObject(_config);
+            string value = JsonConvert.SerializeObject(_config, Formatting.Indented);
             File.WriteAllText(_configPath, value);
             Console.WriteLine("Updated config file");
         }

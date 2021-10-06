@@ -87,7 +87,7 @@ namespace WinstonBot
                         var user = (SocketGuildUser)arg.User;
                         // TODO: cache this per guild
                         var requiredRoleIds = GetRequiredRolesForCommand(configService, guildChannel.Guild, command.Name);
-                        if (!DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
+                        if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
                         {
                             await arg.RespondAsync($"You must have one of the following roles to use this command: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral: true);
                             return;
@@ -120,7 +120,7 @@ namespace WinstonBot
                         var user = (SocketGuildUser)component.User;
                         // TODO: cache this per guild
                         var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
-                        if (!DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
+                        if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
                         {
                             await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
                             return;
@@ -166,13 +166,6 @@ namespace WinstonBot
                 }
             }
             return new List<ulong>();
-        }
-
-        private bool DoesUserHaveAnyRequiredRole(SocketGuildUser user, IEnumerable<ulong> roles)
-        {
-            return !roles.Any() || user.Roles
-                .Where(role => roles.Contains(role.Id))
-                .Any();
         }
     }
 }

@@ -77,5 +77,12 @@ namespace WinstonBot
         {
             return String.Join('\n', roles.Select(roleId => guild.GetRole(roleId).Mention));
         }
+
+        public static bool DoesUserHaveAnyRequiredRole(SocketGuildUser user, IEnumerable<ulong> roles)
+        {
+            return !roles.Any() || user.Roles
+                .Where(role => roles.Contains(role.Id))
+                .Any();
+        }
     }
 }
