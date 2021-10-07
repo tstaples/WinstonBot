@@ -39,9 +39,9 @@ namespace WinstonBot.Commands
 
         public HostMessageMetadata? GetOriginalMessageData()
         {
-            if (Component.Message.Embeds.Any() && Component.Message.Embeds.First().Footer.HasValue)
+            if (Message.Embeds.Any() && Message.Embeds.First().Footer.HasValue)
             {
-                return HostMessageMetadata.ParseMetadata(Client, Component.Message.Embeds.First().Footer.Value.Text);
+                return HostMessageMetadata.ParseMetadata(Client, Message.Embeds.First().Footer.Value.Text);
             }
             return null;
         }

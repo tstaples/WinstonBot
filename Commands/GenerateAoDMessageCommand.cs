@@ -18,14 +18,6 @@ namespace WinstonBot.Commands
             return new CommandContext(client, arg, services);
         }
 
-        //public SlashCommandProperties BuildCommand()
-        //{
-        //    return new SlashCommandBuilder()
-        //        .WithName(Name)
-        //        .WithDescription("Post the daily aod signup message.")
-        //        .Build();
-        //}
-
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
         {
             return new ActionContext(client, arg, services);
@@ -42,7 +34,7 @@ namespace WinstonBot.Commands
                 $"People will be selected by the bot based on roles they can do and how often they've come in the last 5 days (people who have come less will be chosen over those who have gone more)\n\n" +
                 $"The team will be announced at<t:{resetTimestamp}>, so you have until then to add a reaction.";
 
-            await context.SlashCommand.RespondAsync(message, allowedMentions:new AllowedMentions(AllowedMentionTypes.Roles));
+            await context.RespondAsync(message, allowedMentions:new AllowedMentions(AllowedMentionTypes.Roles));
         }
 
         private DateTime GetReset()

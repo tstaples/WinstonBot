@@ -12,19 +12,22 @@ namespace WinstonBot.Attributes
         public string Name { get; set; }
         public string Description { get; set; }
         public Type ParentCommand { get; set; }
+        public Type[]? Actions { get; set; }
 
         public SubCommandAttribute()
         {
             Name = null;
             Description = "PLEASE FILL ME OUT";
             ParentCommand = null;
+            Actions = null;
         }
 
-        public SubCommandAttribute(string name, string description, Type parentCommand)
+        public SubCommandAttribute(string name, string description, Type parentCommand, Type[]? actions = null)
         {
             Name = name;
             Description = description;
             ParentCommand = parentCommand;
+            Actions = actions;
         }
     }
 }

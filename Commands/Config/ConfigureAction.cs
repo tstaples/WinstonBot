@@ -111,7 +111,7 @@ namespace WinstonBot.Commands.Config
                 var context = (ConfigCommandContext)commandContext;
                 if (TargetRole.Id == context.Guild.EveryoneRole.Id)
                 {
-                    await context.SlashCommand.RespondAsync($"Cannot add {context.Guild.EveryoneRole.Mention} to commands as it is the default.\n" +
+                    await context.RespondAsync($"Cannot add {context.Guild.EveryoneRole.Mention} to commands as it is the default.\n" +
                         $"To set a command to {context.Guild.EveryoneRole.Mention}, remove all roles for it.", ephemeral: true);
                     return;
                 }
@@ -122,11 +122,11 @@ namespace WinstonBot.Commands.Config
                 if (Utility.AddUnique(actionRoles, TargetRole.Id))
                 {
                     configService.UpdateConfig(configService.Configuration);
-                    await context.SlashCommand.RespondAsync($"Added role {TargetRole.Mention} to {TargetCommand}:{TargetAction}", ephemeral: true);
+                    await context.RespondAsync($"Added role {TargetRole.Mention} to {TargetCommand}:{TargetAction}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"{TargetCommand}:{TargetAction} already contains role {TargetRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"{TargetCommand}:{TargetAction} already contains role {TargetRole.Mention}", ephemeral: true);
                 }
             }
         }
@@ -155,7 +155,7 @@ namespace WinstonBot.Commands.Config
                 var context = (ConfigCommandContext)commandContext;
                 if (TargetRole.Id == context.Guild.EveryoneRole.Id)
                 {
-                    await context.SlashCommand.RespondAsync($"Cannot remove {context.Guild.EveryoneRole.Mention} from commands as it is the default.\n" +
+                    await context.RespondAsync($"Cannot remove {context.Guild.EveryoneRole.Mention} from commands as it is the default.\n" +
                         $"To make a command not available to {context.Guild.EveryoneRole.Mention}, add additional roles to it.", ephemeral: true);
                     return;
                 }
@@ -167,11 +167,11 @@ namespace WinstonBot.Commands.Config
                 {
                     actionRoles.Remove(TargetRole.Id);
                     configService.UpdateConfig(configService.Configuration);
-                    await context.SlashCommand.RespondAsync($"Removed role {TargetRole.Mention} from {TargetCommand}:{TargetAction}", ephemeral: true);
+                    await context.RespondAsync($"Removed role {TargetRole.Mention} from {TargetCommand}:{TargetAction}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"{TargetCommand}:{TargetAction} doesn't contain role {TargetRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"{TargetCommand}:{TargetAction} doesn't contain role {TargetRole.Mention}", ephemeral: true);
                 }
             }
         }
@@ -200,11 +200,11 @@ namespace WinstonBot.Commands.Config
                 GetActionRoles(context.ConfigService, context.Guild.Id, TargetCommand, TargetAction, out actionRoles);
                 if (actionRoles.Count > 0)
                 {
-                    await context.SlashCommand.RespondAsync($"Roles for {TargetCommand}:{TargetAction}: \n{Utility.JoinRoleMentions(context.Guild, actionRoles)}", ephemeral: true);
+                    await context.RespondAsync($"Roles for {TargetCommand}:{TargetAction}: \n{Utility.JoinRoleMentions(context.Guild, actionRoles)}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"Roles for {TargetCommand}:{TargetAction}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"Roles for {TargetCommand}:{TargetAction}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
                 }
             }
         }

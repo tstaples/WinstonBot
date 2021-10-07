@@ -8,6 +8,7 @@ namespace WinstonBot.Attributes
         public string Name { get; set; }
         public string Description { get; set; }
         public DefaultPermission DefaultPermission { get; set; }
+        public Type[]? Actions {  get; set; }
 
         public CommandAttribute()
         {
@@ -16,11 +17,16 @@ namespace WinstonBot.Attributes
             DefaultPermission = DefaultPermission.Everyone;
         }
 
-        public CommandAttribute(string name, string description, DefaultPermission defaultPermission = DefaultPermission.Everyone)
+        public CommandAttribute(
+            string name,
+            string description,
+            DefaultPermission defaultPermission = DefaultPermission.Everyone,
+            Type[]? actions = null)
         {
             Name = name;
             Description = description;
             DefaultPermission = defaultPermission;
+            Actions = actions;
         }
     }
 }

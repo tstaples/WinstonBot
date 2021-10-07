@@ -1,10 +1,15 @@
-﻿- handle actions
+﻿- hide slashcommand etc from commands/actions.
+- expose custom reply methods in the context
+- within these custom replies we can track the command that created the message
+
+- handle actions
 - split other config commands into subcommands
 - markup any commands missing it.
 
 - how can we add role requirements for specific bosses?
 - test multiple people hitting buttons at once
 
+- boss embed color
 - implement actual aod team selection
 - role requirements for commands
 - notifying people trying to sign up without having read rules

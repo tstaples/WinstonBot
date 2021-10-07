@@ -9,12 +9,12 @@
             var context = (HostActionContext)actionContext;
             if (context.OriginalMessageData == null || !context.IsMessageDataValid)
             {
-                await context.Component.RespondAsync("The original message this interaction was created from could not be found.", ephemeral: true);
+                await context.RespondAsync("The original message this interaction was created from could not be found.", ephemeral: true);
                 return;
             }
 
-            var currentEmbed = context.Component.Message.Embeds.First();
-            string mention = context.Component.Data.CustomId.Split('_')[2];
+            var currentEmbed = context.Message.Embeds.First();
+            string mention = context.Data.CustomId.Split('_')[2];
 
             ulong userId = Utility.GetUserIdFromMention(mention);
             var ids = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
@@ -25,7 +25,7 @@
 
             if (!context.OriginalSignupsForMessage.ContainsKey(context.OriginalMessageData.MessageId))
             {
-                await context.Component.RespondAsync($"No user data could be found for message {context.OriginalMessageData.MessageId}.\n" +
+                await context.RespondAsync($"No user data could be found for message {context.OriginalMessageData.MessageId}.\n" +
                     $"This may be because the bot restarted while you were editing.\n" +
                     $"Please click 'Confirm Team' on the original message to try again.",
                     ephemeral: true);
@@ -39,7 +39,7 @@
                 .Where(id => !ids.Contains(id));
             var unselectedNames = Utility.ConvertUserIdListToMentions(context.Guild, unselectedUserIds);
 
-            await context.Component.UpdateAsync(msgProps =>
+            await context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildTeamSelectionEmbed(
                     context.OriginalMessageData.GuildId,

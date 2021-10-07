@@ -12,18 +12,18 @@ namespace WinstonBot.Commands
             var context = (HostActionContext)actionContext;
             if (context.OriginalMessageData == null || !context.IsMessageDataValid)
             {
-                throw new NullReferenceException($"Failed to get message metadat for {context.Component.Message.Id}.");
+                throw new NullReferenceException($"Failed to get message metadat for {context.Message.Id}.");
             }
 
             var originalMessage = await context.GetOriginalMessage();
             if (originalMessage == null || context.Channel == null)
             {
                 // This can happen if the original message is deleted but the edit window is still open.
-                await context.Component.RespondAsync("Failed to find the original message this interaction was created from.", ephemeral: true);
+                await context.RespondAsync("Failed to find the original message this interaction was created from.", ephemeral: true);
                 return;
             }
 
-            var currentEmbed = context.Component.Message.Embeds.First();
+            var currentEmbed = context.Message.Embeds.First();
             var selectedNames = HostHelpers.ParseNamesToList(currentEmbed.Description);
 
             // TODO: ping the people that are going.
@@ -32,7 +32,7 @@ namespace WinstonBot.Commands
             {
                 msgProps.Embed = new EmbedBuilder()
                     .WithTitle($"Selected Team for {context.BossEntry.PrettyName}")
-                    .WithFooter($"Finalized by {context.Component.User.Username}")
+                    .WithFooter($"Finalized by {context.User.Username}")
                     .WithDescription(String.Join(Environment.NewLine, selectedNames))
                     .WithThumbnailUrl(context.BossEntry.IconUrl)
                     .Build();
@@ -41,15 +41,15 @@ namespace WinstonBot.Commands
                     .Build();
             });
 
-            var builder = ComponentBuilder.FromComponents(context.Component.Message.Components);
+            var builder = ComponentBuilder.FromComponents(context.Message.Components);
 
             context.EditFinishedForMessage(context.OriginalMessageData.MessageId);
 
             // Delete the edit team message from the DM
-            await context.Component.Message.DeleteAsync();
+            await context.Message.DeleteAsync();
 
             // Even though this is a DM, make it ephemeral so they can dismiss it as they can't delete the messages in DM.
-            await context.Component.RespondAsync("Team updated in original message.", ephemeral: true);
+            await context.RespondAsync("Team updated in original message.", ephemeral: true);
         }
     }
 }

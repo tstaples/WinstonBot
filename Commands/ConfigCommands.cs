@@ -85,20 +85,20 @@ namespace WinstonBot.Commands
                 .WithType(ApplicationCommandOptionType.Role)
                 .WithRequired(true);
 
-            foreach (CommandInfo command in CommandHandler.CommandEntries)
-            {
-                if (command.Name == "configure")
-                {
-                    continue;
-                }
+            //foreach (CommandInfo command in CommandHandler.CommandEntries)
+            //{
+            //    if (command.Name == "configure")
+            //    {
+            //        continue;
+            //    }
 
-                commandOptionBuilder.AddChoice(command.Name, command.Name);
-                // TODO: support actions
-                //foreach (IAction action in command.Actions)
-                //{
-                //    actionOptionBuilder.AddChoice(action.Name, action.Name);
-                //}
-            }
+            //    commandOptionBuilder.AddChoice(command.Name, command.Name);
+            //    // TODO: support actions
+            //    //foreach (IAction action in command.Actions)
+            //    //{
+            //    //    actionOptionBuilder.AddChoice(action.Name, action.Name);
+            //    //}
+            //}
 
             var bossOptionBuilder = new SlashCommandOptionBuilder()
                 .WithName("boss")

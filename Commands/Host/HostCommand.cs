@@ -7,7 +7,18 @@ using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
-    [Command("host-pvm-signup", "Create a signup for a pvm event")]
+    [Command(
+        "host-pvm-signup",
+        "Create a signup for a pvm event",
+        actions: new Type[] {
+            typeof(SignupAction),
+            typeof(QuitAction),
+            typeof(CompleteTeamAction),
+            typeof(ConfirmTeamAction),
+            typeof(CancelTeamConfirmationAction),
+            typeof(EditCompletedTeamAction)
+        }
+    )]
     public class HostPvmSignup : ICommand
     {
         [CommandOption("boss", "The boss to create an event for.", dataProvider: typeof(BossChoiceDataProvider))]
@@ -74,26 +85,19 @@ namespace WinstonBot.Commands
 
         public async Task HandleCommand(Commands.CommandContext context)
         {
-            var slashCommand = context.SlashCommand;
-
-            var bossIndex = (long)slashCommand.Data.Options.First().Value;
-            if (!BossData.ValidBossIndex(bossIndex))
+            if (!BossData.ValidBossIndex(BossIndex))
             {
-                await slashCommand.RespondAsync($"Invalid boss index {bossIndex}. Max Index is {(long)BossData.Boss.Count - 1}", ephemeral: true);
+                await context.RespondAsync($"Invalid boss index {BossIndex}. Max Index is {(long)BossData.Boss.Count - 1}", ephemeral: true);
                 return;
             }
 
-            var bossPrettyName = BossData.Entries[bossIndex].PrettyName;
-            string message = $"Sign up for {bossPrettyName}"; // default message
-            if (slashCommand.Data.Options.Count > 1)
-            {
-                message = (string)slashCommand.Data.Options.ElementAt(1).Value;
-            }
+            var bossPrettyName = BossData.Entries[BossIndex].PrettyName;
+            string message = Message ?? $"Sign up for {bossPrettyName}"; // default message
 
-            var buttons = HostHelpers.BuildSignupButtons(bossIndex);
-            var embed = HostHelpers.BuildSignupEmbed(bossIndex, testNames);
+            var buttons = HostHelpers.BuildSignupButtons(BossIndex);
+            var embed = HostHelpers.BuildSignupEmbed(BossIndex, testNames);
 
-            await slashCommand.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);
+            await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);
         }
 
         public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)

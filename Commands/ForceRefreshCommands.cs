@@ -2,11 +2,6 @@
 using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
@@ -23,19 +18,9 @@ namespace WinstonBot.Commands
             return new CommandContext(client, arg, services);
         }
 
-        //public SlashCommandProperties BuildCommand()
-        //{
-        //    var configureCommands = new SlashCommandBuilder()
-        //        .WithName(Name)
-        //        .WithDefaultPermission(false)
-        //        .WithDescription("Delete all applications commands and re-create them.");
-
-        //    return configureCommands.Build();
-        //}
-
         public async Task HandleCommand(CommandContext context)
         {
-            if (context.SlashCommand.Channel is SocketGuildChannel channel)
+            if (context.Channel is SocketGuildChannel channel)
             {
                 Console.WriteLine("Clearing all commands for this bot from guild:");
                 await channel.Guild.DeleteApplicationCommandsAsync();
@@ -43,7 +28,7 @@ namespace WinstonBot.Commands
                 Console.WriteLine("Registering commands");
                 await RegisterCommands(context.Client, channel.Guild);
 
-                await context.SlashCommand.RespondAsync("All commands refreshed", ephemeral: true);
+                await context.RespondAsync("All commands refreshed", ephemeral: true);
             }
         }
 
@@ -60,25 +45,13 @@ namespace WinstonBot.Commands
 
             try
             {
-                foreach (CommandInfo commandInfo in CommandHandler.CommandEntries)
+                foreach (CommandInfo commandInfo in CommandHandler.CommandEntries.Values)
                 {
                     Console.WriteLine($"Building command {commandInfo.Name}");
                     var commandBuilder = CommandBuilder.BuildSlashCommand(commandInfo);
                     SocketApplicationCommand appCommand = await guild.CreateApplicationCommandAsync(commandBuilder.Build());
                     appCommandIds.Add(commandInfo.Name, appCommand.Id);
                 }
-                //foreach (ICommand command in commands)
-                //{
-                //    Console.WriteLine($"Registering command {command.Name}.");
-                //    SocketApplicationCommand appCommand = await guild.CreateApplicationCommandAsync(command.BuildCommand());
-                //    if (appCommand == null)
-                //    {
-                //        Console.WriteLine($"Failed to register command: {command.Name}");
-                //        continue;
-                //    }
-
-                //    command.AppCommandId = appCommand.Id;
-                //}
             }
             catch (ApplicationCommandException ex)
             {
@@ -91,7 +64,7 @@ namespace WinstonBot.Commands
 
             // Setup default command permissions
             var permDict = new Dictionary<ulong, ApplicationCommandPermission[]>();
-            foreach (CommandInfo commandInfo in CommandHandler.CommandEntries)
+            foreach (CommandInfo commandInfo in CommandHandler.CommandEntries.Values)
             {
                 List<ApplicationCommandPermission> perms = new();
                 if (commandInfo.DefaultPermission == DefaultPermission.AdminOnly)

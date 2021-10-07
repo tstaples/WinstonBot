@@ -7,7 +7,7 @@ namespace WinstonBot.Commands
     {
         public static void PopulateChoices(SlashCommandOptionBuilder builder)
         {
-            foreach (CommandInfo command in CommandHandler.CommandEntries)
+            foreach (CommandInfo command in CommandHandler.CommandEntries.Values)
             {
                 // TODO: at least use a constant or something
                 if (command.Name != "configure")

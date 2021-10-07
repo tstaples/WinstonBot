@@ -107,13 +107,13 @@ namespace WinstonBot.Commands.Config
                 SocketRole? targetRole = options.ElementAt(1).Value as SocketRole;
                 if (targetCommand == null || targetRole == null)
                 {
-                    await context.SlashCommand.RespondAsync("Invalid arguments.", ephemeral: true);
+                    await context.RespondAsync("Invalid arguments.", ephemeral: true);
                     return;
                 }
 
                 if (targetRole.Id == context.Guild.EveryoneRole.Id)
                 {
-                    await context.SlashCommand.RespondAsync($"Cannot add {context.Guild.EveryoneRole.Mention} to commands as it is the default.\n" +
+                    await context.RespondAsync($"Cannot add {context.Guild.EveryoneRole.Mention} to commands as it is the default.\n" +
                         $"To set a command to {context.Guild.EveryoneRole.Mention}, remove all roles for it.", ephemeral: true);
                     return;
                 }
@@ -123,11 +123,11 @@ namespace WinstonBot.Commands.Config
                 if (Utility.AddUnique(commandEntry.Roles, targetRole.Id))
                 {
                     configService.UpdateConfig(configService.Configuration);
-                    await context.SlashCommand.RespondAsync($"Added role {targetRole.Mention} to command {targetCommand}", ephemeral: true);
+                    await context.RespondAsync($"Added role {targetRole.Mention} to command {targetCommand}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"{targetCommand} already contains role {targetRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"{targetCommand} already contains role {targetRole.Mention}", ephemeral: true);
                 }
             }
         }
@@ -160,13 +160,13 @@ namespace WinstonBot.Commands.Config
                 SocketRole? targetRole = options.ElementAt(1).Value as SocketRole;
                 if (targetCommand == null || targetRole == null)
                 {
-                    await context.SlashCommand.RespondAsync("Invalid arguments.", ephemeral: true);
+                    await context.RespondAsync("Invalid arguments.", ephemeral: true);
                     return;
                 }
 
                 if (targetRole.Id == context.Guild.EveryoneRole.Id)
                 {
-                    await context.SlashCommand.RespondAsync($"Cannot remove {context.Guild.EveryoneRole.Mention} from commands as it is the default.\n" +
+                    await context.RespondAsync($"Cannot remove {context.Guild.EveryoneRole.Mention} from commands as it is the default.\n" +
                         $"To make a command not available to {context.Guild.EveryoneRole.Mention}, add additional roles to it.", ephemeral: true);
                     return;
                 }
@@ -177,11 +177,11 @@ namespace WinstonBot.Commands.Config
                 {
                     commandEntry.Roles.Remove(targetRole.Id);
                     configService.UpdateConfig(configService.Configuration);
-                    await context.SlashCommand.RespondAsync($"Removed role {targetRole.Mention} from command {targetCommand}", ephemeral: true);
+                    await context.RespondAsync($"Removed role {targetRole.Mention} from command {targetCommand}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"{targetCommand} doesn't contain role {targetRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"{targetCommand} doesn't contain role {targetRole.Mention}", ephemeral: true);
                 }
             }
         }
@@ -213,7 +213,7 @@ namespace WinstonBot.Commands.Config
                 string? targetCommand = options.ElementAt(0).Value as string;
                 if (targetCommand == null)
                 {
-                    await context.SlashCommand.RespondAsync("Invalid arguments.", ephemeral: true);
+                    await context.RespondAsync("Invalid arguments.", ephemeral: true);
                     return;
                 }
 
@@ -221,11 +221,11 @@ namespace WinstonBot.Commands.Config
                 var commandEntry = GetCommandEntry(configService, context.Guild.Id, targetCommand);
                 if (commandEntry.Roles.Count > 0)
                 {
-                    await context.SlashCommand.RespondAsync($"Roles for {targetCommand}: \n{Utility.JoinRoleMentions(context.Guild, commandEntry.Roles)}", ephemeral: true);
+                    await context.RespondAsync($"Roles for {targetCommand}: \n{Utility.JoinRoleMentions(context.Guild, commandEntry.Roles)}", ephemeral: true);
                 }
                 else
                 {
-                    await context.SlashCommand.RespondAsync($"Roles for {targetCommand}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"Roles for {targetCommand}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
                 }
             }
         }
