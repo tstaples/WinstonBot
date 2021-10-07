@@ -27,41 +27,8 @@ namespace WinstonBot.Commands.Config
             return new ConfigCommandContext(client, arg, services);
         }
 
-        //public SlashCommandOptionBuilder BuildCommand()
-        //{
-        //    var actionCommandGroup = new SlashCommandOptionBuilder()
-        //        .WithName("action")
-        //        .WithDescription("Configure command action permissions")
-        //        .WithRequired(false)
-        //        .WithType(ApplicationCommandOptionType.SubCommandGroup);
-
-        //    foreach (ISubCommand subCommand in _subCommands)
-        //    {
-        //        actionCommandGroup.AddOption(subCommand.Build());
-        //    }
-
-        //    return actionCommandGroup;
-        //}
-
         public async Task HandleCommand(CommandContext commandContext)
         {
-            //var context = (ConfigCommandContext)commandContext;
-            //List<SocketSlashCommandDataOption> options = new();//temp
-            //if (options == null)
-            //{
-            //    Console.WriteLine($"Expected valid options for subcommand: {Name}");
-            //    return;
-            //}
-
-            //string subCommandName = (string)options.First().Value;
-            //foreach (ISubCommand subCommand in _subCommands)
-            //{
-            //    if (subCommand.Name == subCommandName)
-            //    {
-            //        await subCommand.HandleCommand(context);
-            //        return;
-            //    }
-            //}
         }
 
         private static void GetActionRoles(ConfigService configService, ulong guildId, string commandName, string actionName, out List<ulong> roles)
