@@ -3,6 +3,7 @@ using Discord.WebSocket;
 
 namespace WinstonBot.Commands
 {
+    [Attributes.Action("pvm-complete-team")]
     internal class CompleteTeamAction : IAction
     {
         public static string ActionName = "pvm-complete-team";

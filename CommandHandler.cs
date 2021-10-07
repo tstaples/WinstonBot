@@ -240,6 +240,8 @@ namespace WinstonBot
                         }
 
                         string subCommandName = optionData.Name;
+                        // TODO: the sub command parent type doesn't always match command type (eg for /configure action view-roles, view-roles parent is action.
+                        // need to switch to listing subcommands on the command attribute.
                         SubCommandInfo? info = _subCommandEntries.Find(sub => sub.Name == subCommandName && sub.ParentCommandType == command.Type);
                         if (info != null)
                         {

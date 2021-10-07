@@ -62,7 +62,7 @@ namespace WinstonBot.Commands.Config
             [CommandOption("command", "The command to modify", dataProvider:typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
-            [CommandOption("action", "The action to modify")]
+            [CommandOption("action", "The action to modify", dataProvider:typeof(ActionDataProvider))]
             public string TargetAction { get; set; }
 
             [CommandOption("role", "The role to add")]
@@ -106,7 +106,7 @@ namespace WinstonBot.Commands.Config
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
-            [CommandOption("action", "The action to modify")]
+            [CommandOption("action", "The action to modify", dataProvider: typeof(ActionDataProvider))]
             public string TargetAction { get; set; }
 
             [CommandOption("role", "The role to add")]
@@ -151,7 +151,7 @@ namespace WinstonBot.Commands.Config
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
-            [CommandOption("action", "The action to modify")]
+            [CommandOption("action", "The action to modify", dataProvider: typeof(ActionDataProvider))]
             public string TargetAction { get; set; }
 
             public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)

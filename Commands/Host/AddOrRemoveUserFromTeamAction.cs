@@ -56,6 +56,7 @@
         protected abstract List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users);
     }
 
+    [Attributes.Action("remove-user-from-team")]
     internal class RemoveUserFromTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "remove-user-from-team";
@@ -74,6 +75,7 @@
         }
     }
 
+    [Attributes.Action("add-user-to-team")]
     internal class AddUserToTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "add-user-to-team";

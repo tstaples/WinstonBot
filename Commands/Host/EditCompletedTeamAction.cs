@@ -3,6 +3,7 @@ using Discord.WebSocket;
 
 namespace WinstonBot.Commands
 {
+    [Attributes.Action("pvm-edit-team")]
     internal class EditCompletedTeamAction : IAction
     {
         public static string ActionName = "pvm-edit-team";

@@ -1,5 +1,6 @@
 ﻿namespace WinstonBot.Commands
 {
+    [Attributes.Action("pvm-cancel-team-confirmation")]
     internal class CancelTeamConfirmationAction : IAction
     {
         public static string ActionName = "pvm-cancel-team-confirmation";
