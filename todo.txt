@@ -1,10 +1,8 @@
-﻿- hide slashcommand etc from commands/actions.
-- expose custom reply methods in the context
-- within these custom replies we can track the command that created the message
-
-- handle actions
+﻿- handle actions
 - split other config commands into subcommands
 - markup any commands missing it.
+- list subcommands in action/subcommand attribute
+- find a way to set command context for action data provider
 
 - how can we add role requirements for specific bosses?
 - test multiple people hitting buttons at once

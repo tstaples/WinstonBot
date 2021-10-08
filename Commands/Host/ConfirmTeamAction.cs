@@ -1,12 +1,16 @@
 ﻿using Discord;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
-    [Attributes.Action("pvm-confirm-team")]
+    [Action("pvm-confirm-team")]
     internal class ConfirmTeamAction : IAction
     {
         public static string ActionName = "pvm-confirm-team";
         public string Name => ActionName;
+
+        [ActionParam]
+        public long BossIndex { get; set; }
 
         public async Task HandleAction(ActionContext actionContext)
         {

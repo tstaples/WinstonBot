@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
+using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
@@ -18,6 +20,7 @@ namespace WinstonBot.Commands
             Client = client;
             SlashCommand = arg;
             ServiceProvider = services;
+            _commandName = SlashCommand.CommandName;
         }
 
         // TODO: need to expose way to delete the message which deletes the interaction
@@ -26,10 +29,11 @@ namespace WinstonBot.Commands
             // if there's a component then this message could contain an interaction
             if (component != null)
             {
+                await SlashCommand.DeferAsync();
                 var message = await SlashCommand.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
-                // TODO
-                //var interactionService = ServiceProvider.GetRequiredServer<interactionService>();
-                //interactionService.AddInteraction(_commandName, message.Id);
+
+                var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
+                interactionService.AddInteraction(_commandName, message.Id);
             }
             else
             {
@@ -47,13 +51,14 @@ namespace WinstonBot.Commands
         public SocketUser User => Component.User;
 
         private SocketMessageComponent Component { get; set; }
-        private string _commandName;
+        private string _commandName; // TODO: set this
 
-        public ActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
+        public ActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services, string owningCommand)
         {
             Client = client;
             Component = arg;
             ServiceProvider = services;
+            _commandName = owningCommand;
         }
 
         public async Task RespondAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)
@@ -61,10 +66,11 @@ namespace WinstonBot.Commands
             // if there's a component then this message could contain an interaction
             if (component != null)
             {
+                await Component.DeferAsync();
                 var message = await Component.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
-                // TODO
-                //var interactionService = ServiceProvider.GetRequiredServer<interactionService>();
-                //interactionService.AddInteraction(_commandName, message.Id);
+
+                var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
+                interactionService.AddInteraction(_commandName, message.Id);
             }
             else
             {

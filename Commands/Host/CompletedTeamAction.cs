@@ -1,13 +1,16 @@
 ﻿using Discord;
-using Discord.WebSocket;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
-    [Attributes.Action("pvm-complete-team")]
+    [Action("pvm-complete-team")]
     internal class CompleteTeamAction : IAction
     {
         public static string ActionName = "pvm-complete-team";
         public string Name => ActionName;
+
+        [ActionParam]
+        public long BossIndex { get; set; }
 
         public async Task HandleAction(ActionContext actionContext)
         {

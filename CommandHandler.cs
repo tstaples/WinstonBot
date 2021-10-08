@@ -18,10 +18,17 @@ namespace WinstonBot
         public Type? ChoiceProviderType { get; set; }
     }
 
+    public class ActionOptionInfo
+    {
+        //public string Name { get; set; }
+        public PropertyInfo Property { get; set; }
+    }
+
     public class ActionInfo
     {
         public string Name { get; set; }
-        public string Description { get; set; }
+        public Type Type { get; set; }
+        public List<ActionOptionInfo>? Options { get; set; }
     }
 
     public class CommandInfo
@@ -117,6 +124,11 @@ namespace WinstonBot
                     var actionInfo = new ActionInfo()
                     {
                         Name = actionAttribute.Name,
+                        Type = typeInfo.GetType(),
+                        Options = typeInfo.DeclaredProperties
+                            .Where(prop => prop.GetCustomAttribute<Attributes.ActionAttribute>() != null)
+                            .Select(prop => new ActionOptionInfo() { Property = prop })
+                            .ToList()
                     };
 
                     if (!_actionEntries.TryAdd(actionAttribute.Name, actionInfo))
@@ -309,9 +321,29 @@ namespace WinstonBot
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
+            Console.WriteLine($"Interaction id: {component.Token}");
+
             // Via interaction service
+            // Q: do we need to re-use actions?
+            // interaction service:
+            // - store date of message and expire messages after n days so we don't accumulate them infinitely.
+            // - listen to message deleted so we can remove in that case too (important for testing)
             //CommandInfo interactionOwner = GetInteractionOwner(component.Message.Id);
-            CommandInfo interactionOwner = new CommandInfo();
+            var interactionService = _services.GetRequiredService<InteractionService>();
+            string? owningCommandName = interactionService.TryGetOwningCommand(component.Message.Id);
+            if (owningCommandName == null)
+            {
+                Console.WriteLine($"No interaction owner found for message {component.Message.Id}");
+                return;
+
+            }
+
+            CommandInfo interactionOwner;
+            if (!_commandEntries.TryGetValue(owningCommandName, out interactionOwner))
+            {
+                Console.WriteLine($"ERROR: failed to get command {owningCommandName}");
+                return;
+            }
 
             var configService = _services.GetRequiredService<ConfigService>();
             foreach (ActionInfo action in interactionOwner.Actions.Values)
@@ -334,40 +366,45 @@ namespace WinstonBot
                         return;
                     }
                 }
+
+                IAction actionInstance = Activator.CreateInstance(action.Type) as IAction;
+                if (actionInstance == null)
+                {
+                    throw new Exception($"Failed to construct action {action.Type}");
+                }
+
+                var tokens = component.Data.CustomId.Split('_');
+                if (tokens.Length > 1)
+                {
+                    if (action.Options?.Count != tokens.Length)
+                    {
+                        throw new Exception($"Action option mismatch. Got {tokens.Length}, expected {action.Options?.Count}");
+                    }
+
+                    for (int i = 1; i < tokens.Length; ++i)
+                    {
+                        ActionOptionInfo optionInfo = action.Options[i];
+                        object value = null;
+                        if (optionInfo.Property.PropertyType == typeof(string))
+                        {
+                            value = tokens[i];
+                        }
+                        else if (optionInfo.Property.PropertyType == typeof(long))
+                        {
+                            value = long.Parse(tokens[i]);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Unsupported action option type: {optionInfo.Property.PropertyType}");
+                        }
+
+                        optionInfo.Property.SetValue(actionInstance, value);
+                    }
+                }
+
+
+                await actionInstance.HandleAction();
             }
-
-            // TODO: handle actions with action attribute
-            //var configService = _services.GetRequiredService<ConfigService>();
-            //foreach (CommandInfo command in _commandEntries)
-            //{
-            //    foreach (IAction action in command.Actions)
-            //    {
-            //        if (!component.Data.CustomId.StartsWith(action.Name))
-            //        {
-            //            continue;
-            //        }
-
-            //        if (component.Channel is SocketGuildChannel guildChannel)
-            //        {
-            //            var user = (SocketGuildUser)component.User;
-            //            // TODO: cache this per guild
-            //            var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, command.Name, action.Name);
-            //            if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
-            //            {
-            //                await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral:true);
-            //                return;
-            //            }
-            //        }
-
-            //        // TODO: should we lock the action?
-            //        // TODO: action could define params and we could parse them in the future.
-            //        // wouldn't work with the interface though.
-            //        Console.WriteLine($"Command {command.Name} handling button action: {action.Name}");
-            //        var context = command.CreateActionContext(_client, component, _services);
-            //        await action.HandleAction(context);
-            //        return;
-            //    }
-            //}
         }
 
         private IEnumerable<ulong> GetRequiredRolesForCommand(ConfigService configService, SocketGuild guild, string commandName)

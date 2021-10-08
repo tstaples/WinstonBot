@@ -1,10 +1,15 @@
-﻿namespace WinstonBot.Commands
+﻿using WinstonBot.Attributes;
+
+namespace WinstonBot.Commands
 {
-    [Attributes.Action("pvm-quit-signup")]
+    [Action("pvm-quit-signup")]
     internal class QuitAction : IAction
     {
         public static string ActionName = "pvm-quit-signup";
         public string Name => ActionName;
+
+        [ActionParam]
+        public long BossIndex { get; set; }
 
         public async Task HandleAction(ActionContext actionContext)
         {

@@ -68,6 +68,8 @@ namespace WinstonBot.Commands
                 Console.WriteLine($"Invoking choice provider: {info.ChoiceProviderType.Name} for option {info.Name}");
                 try
                 {
+                    // TODO: how can we pass in contextual information when it depends on runtime value?
+                    // I don't think that's something we had before either though so probably just don't support it?
                     info.ChoiceProviderType.GetMethod("PopulateChoices").Invoke(null, new object[] { builder });
                 }
                 catch (Exception ex)

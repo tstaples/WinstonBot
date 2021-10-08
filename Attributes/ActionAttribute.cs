@@ -10,17 +10,23 @@ namespace WinstonBot.Attributes
     public class ActionAttribute : Attribute
     {
         public string Name { get; set; }
-        //public string Description { get; set; }
 
         public ActionAttribute()
         {
             Name = null;
-            //Description = null;
         }
 
         public ActionAttribute(string name)
         {
             Name = name;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+    public class ActionParamAttribute : Attribute
+    {
+        public ActionParamAttribute()
+        {
         }
     }
 }

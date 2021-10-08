@@ -1,8 +1,16 @@
-﻿namespace WinstonBot.Commands
+﻿using WinstonBot.Attributes;
+
+namespace WinstonBot.Commands
 {
     internal abstract class AddOrRemoveUserFromTeamBase : IAction
     {
         public abstract string Name { get; }
+
+        [ActionParam]
+        public long BossIndex { get; set; }
+
+        [ActionParam]
+        public string MentionToAdd { get; set; }
 
         public async Task HandleAction(ActionContext actionContext)
         {
@@ -56,7 +64,7 @@
         protected abstract List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users);
     }
 
-    [Attributes.Action("remove-user-from-team")]
+    [Action("remove-user-from-team")]
     internal class RemoveUserFromTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "remove-user-from-team";
@@ -75,7 +83,7 @@
         }
     }
 
-    [Attributes.Action("add-user-to-team")]
+    [Action("add-user-to-team")]
     internal class AddUserToTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "add-user-to-team";

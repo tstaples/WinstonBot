@@ -11,6 +11,9 @@ namespace WinstonBot.Commands
         public static string ActionName = "pvm-team-signup";
         public string Name => ActionName;
 
+        [ActionParam]
+        public long BossIndex { get; set; }
+
         public async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
