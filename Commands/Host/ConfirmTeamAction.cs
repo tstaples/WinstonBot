@@ -1,5 +1,6 @@
 ﻿using Discord;
 using WinstonBot.Attributes;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
@@ -7,10 +8,11 @@ namespace WinstonBot.Commands
     internal class ConfirmTeamAction : IAction
     {
         public static string ActionName = "pvm-confirm-team";
-        public string Name => ActionName;
 
         [ActionParam]
         public long BossIndex { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
@@ -21,7 +23,7 @@ namespace WinstonBot.Commands
             }
 
             var originalMessage = await context.GetOriginalMessage();
-            if (originalMessage == null || context.Channel == null)
+            if (originalMessage == null || context.OriginalChannel == null)
             {
                 // This can happen if the original message is deleted but the edit window is still open.
                 await context.RespondAsync("Failed to find the original message this interaction was created from.", ephemeral: true);
@@ -33,16 +35,17 @@ namespace WinstonBot.Commands
 
             // TODO: ping the people that are going.
             // Should that be a separate message or should we just not use an embed for this?
-            await context.Channel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
+            // TODO: store the interaction for this.
+            await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
                 msgProps.Embed = new EmbedBuilder()
-                    .WithTitle($"Selected Team for {context.BossEntry.PrettyName}")
+                    .WithTitle($"Selected Team for {BossEntry.PrettyName}")
                     .WithFooter($"Finalized by {context.User.Username}")
                     .WithDescription(String.Join(Environment.NewLine, selectedNames))
-                    .WithThumbnailUrl(context.BossEntry.IconUrl)
+                    .WithThumbnailUrl(BossEntry.IconUrl)
                     .Build();
                 msgProps.Components = new ComponentBuilder()
-                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{context.BossIndex}", ButtonStyle.Danger)
+                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger)
                     .Build();
             });
 

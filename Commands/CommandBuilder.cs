@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -29,16 +30,18 @@ namespace WinstonBot.Commands
 
         public static SlashCommandOptionBuilder BuildSlashCommandOption(SubCommandInfo info)
         {
-            if (info.BuildCommandMethod != null)
+            var buildFunc = Utility.GetInheritedStaticMethod(info.Type, CommandBase.BuildCommandOptionName);
+            SlashCommandOptionBuilder builder = buildFunc.Invoke(null, null) as SlashCommandOptionBuilder;
+            if (builder != null)
             {
                 Console.WriteLine($"Using custom BuildCommand for {info.Name}");
-                return (SlashCommandOptionBuilder)info.BuildCommandMethod.Invoke(null, null);
+                return builder;
             }
 
             var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
             var type = subCommands.Any() ? ApplicationCommandOptionType.SubCommandGroup : ApplicationCommandOptionType.SubCommand;
 
-            var builder = new SlashCommandOptionBuilder()
+            builder = new SlashCommandOptionBuilder()
                 .WithName(info.Name)
                 .WithDescription(info.Description)
                 .WithType(type);
@@ -83,13 +86,15 @@ namespace WinstonBot.Commands
 
         public static SlashCommandBuilder BuildSlashCommand(CommandInfo info)
         {
-            if (info.BuildCommandMethod != null)
+            var buildFunc = Utility.GetInheritedStaticMethod(info.Type, CommandBase.BuildCommandName);
+            SlashCommandBuilder builder = buildFunc.Invoke(null, null) as SlashCommandBuilder;
+            if (builder != null)
             {
                 Console.WriteLine($"Using custom BuildCommand for {info.Name}");
-                return (SlashCommandBuilder)info.BuildCommandMethod.Invoke(null, null);
+                return builder;
             }
 
-            var builder = new SlashCommandBuilder()
+            builder = new SlashCommandBuilder()
                 .WithName(info.Name)
                 .WithDescription(info.Description)
                 .WithDefaultPermission(info.DefaultPermission == DefaultPermission.Everyone);

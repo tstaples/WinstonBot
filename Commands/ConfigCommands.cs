@@ -20,24 +20,8 @@ namespace WinstonBot.Commands
     }
 
     [Command("configure", "Configure the bot.", DefaultPermission.AdminOnly)]
-    public class ConfigCommand : ICommand
+    public class ConfigCommand : CommandBase
     {
-        public string Name => "configure";
-        public ulong AppCommandId { get; set; }
-        public IEnumerable<IAction> Actions => _actions;
-
-        private List<IAction> _actions = new List<IAction>()
-        {
-        };
-
-        private enum RoleOperation
-        {
-            Add,
-            Remove,
-            View,
-            ViewAll
-        }
-
         private CommandHandler _commandHandler;
         private IServiceProvider _serviceProvider;
 
@@ -47,11 +31,12 @@ namespace WinstonBot.Commands
             _serviceProvider = serviceProvider;
         }
 
-        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {
             return new ConfigCommandContext(client, arg, services);
         }
 
+        // TODO: remove this once we extract the other commands from it
         public static SlashCommandBuilder BuildCommandDontCallThis()
         {
             //IEnumerable<ICommand> commandList = _commandHandler.Commands
@@ -442,38 +427,6 @@ namespace WinstonBot.Commands
             //            break;
             //    }
             //}
-        }
-
-        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
-        {
-            return new ActionContext(client, arg, services);
-        }
-
-        private bool AddUnique(List<ulong> list, ulong value)
-        {
-            if (!list.Contains(value))
-            {
-                list.Add(value);
-                return true;
-            }
-            return false;
-        }
-
-        private CommandEntry GetCommandEntry(ConfigService configService, ulong guildId, string commandName)
-        {
-            var entries = configService.Configuration.GuildEntries;
-            if (!entries.ContainsKey(guildId))
-            {
-                entries.TryAdd(guildId, new GuildEntry());
-            }
-
-            var commandEntries = entries[guildId].Commands;
-            if (!commandEntries.ContainsKey(commandName))
-            {
-                commandEntries.Add(commandName, new CommandEntry());
-            }
-
-            return commandEntries[commandName];
         }
     }
 }

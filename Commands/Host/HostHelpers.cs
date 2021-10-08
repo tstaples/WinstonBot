@@ -65,8 +65,14 @@ namespace WinstonBot.Commands
             var builder = new ComponentBuilder();
             foreach (var mention in selectedNames)
             {
-                ulong userid = Utility.GetUserIdFromMention(mention);
-                var username = guild.GetUser(userid).Username;
+                var user = guild.GetUser(Utility.GetUserIdFromMention(mention));
+                if (user == null)
+                {
+                    // This user is likely no long in the discord
+                    continue;
+                }
+
+                var username = user.Username;
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"❌ {username}")
                     .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{bossIndex}_{mention}")
@@ -75,7 +81,14 @@ namespace WinstonBot.Commands
 
             foreach (var mention in unselectedNames)
             {
-                var username = guild.GetUser(Utility.GetUserIdFromMention(mention)).Username;
+                var user = guild.GetUser(Utility.GetUserIdFromMention(mention));
+                if (user == null)
+                {
+                    // This user is likely no long in the discord
+                    continue;
+                }
+
+                var username = user.Username;
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"{username}")
                     .WithEmote(new Emoji("➕"))

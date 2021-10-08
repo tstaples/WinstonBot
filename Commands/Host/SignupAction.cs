@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using WinstonBot.Services;
 using WinstonBot.Attributes;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
@@ -9,29 +10,29 @@ namespace WinstonBot.Commands
     internal class SignupAction : IAction
     {
         public static string ActionName = "pvm-team-signup";
-        public string Name => ActionName;
 
         [ActionParam]
         public long BossIndex { get; set; }
 
-        public async Task HandleAction(ActionContext actionContext)
-        {
-            var context = (HostActionContext)actionContext;
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
+        public async Task HandleAction(ActionContext context)
+        {
             if (!context.Message.Embeds.Any())
             {
                 await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
                 return;
             }
 
+            var guild = ((SocketGuildChannel)context.Message.Channel).Guild;
             var configService = context.ServiceProvider.GetRequiredService<ConfigService>();
             List<ulong> rolesForBoss = new();
-            if (configService.Configuration.GuildEntries[context.Guild.Id].RolesNeededForBoss.TryGetValue(context.BossEntry.CommandName, out rolesForBoss))
+            if (configService.Configuration.GuildEntries[guild.Id].RolesNeededForBoss.TryGetValue(BossEntry.CommandName, out rolesForBoss))
             {
                 if (!Utility.DoesUserHaveAnyRequiredRole((SocketGuildUser)context.User, rolesForBoss))
                 {
                     await context.RespondAsync(
-                        $"You must have one of the following roles to sign up:\n{Utility.JoinRoleMentions(context.Guild, rolesForBoss)}\n" +
+                        $"You must have one of the following roles to sign up:\n{Utility.JoinRoleMentions(guild, rolesForBoss)}\n" +
                         $"Please see #pvm-rules.", ephemeral: true);
                     return;
                 }
@@ -54,7 +55,7 @@ namespace WinstonBot.Commands
 
             await context.UpdateAsync(msgProps =>
             {
-                msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names);
+                msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
             });
         }
     }

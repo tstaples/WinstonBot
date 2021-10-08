@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using WinstonBot.Commands;
 using WinstonBot.Services;
+using WinstonBot.Attributes;
 
 namespace WinstonBot
 {
@@ -38,7 +39,6 @@ namespace WinstonBot
         public DefaultPermission DefaultPermission { get; set; }
         public Type Type { get; set; }
         public List<CommandOptionInfo> Options { get; set; }
-        public MethodInfo? BuildCommandMethod { get; set; }
         public Dictionary<string, ActionInfo>? Actions { get; set; }
     }
 
@@ -70,11 +70,11 @@ namespace WinstonBot
         {
             List<CommandOptionInfo> GetOptions(TypeInfo info)
             {
-                return info.DeclaredProperties
-                    .Where(prop => prop.GetCustomAttribute<Attributes.CommandOptionAttribute>() != null)
+                return info.GetProperties(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance)
+                    .Where(prop => prop.GetCustomAttribute<CommandOptionAttribute>() != null)
                     .Select(prop =>
                     {
-                        var optionInfo = prop.GetCustomAttribute<Attributes.CommandOptionAttribute>();
+                        var optionInfo = prop.GetCustomAttribute<CommandOptionAttribute>();
                         return new CommandOptionInfo()
                         {
                             Name = optionInfo.Name,
@@ -88,12 +88,6 @@ namespace WinstonBot
                     .ToList();
             }
 
-            MethodInfo? GetBuildMethod(TypeInfo info)
-            {
-                // TODO: make a more robust way to define the method (eg. attribute)
-                return info.DeclaredMethods.Where(method => method.IsStatic && method.Name == "BuildCommand").SingleOrDefault();
-            }
-
             Dictionary<string, ActionInfo>? GetActions(IEnumerable<Type>? actionTypes)
             {
                 if (actionTypes == null)
@@ -103,7 +97,7 @@ namespace WinstonBot
 
                 return actionTypes.Select(t =>
                 {
-                    var att = t.GetCustomAttribute<Attributes.ActionAttribute>();
+                    var att = t.GetCustomAttribute<ActionAttribute>();
                     if (att == null)
                     {
                         throw new ArgumentException($"Expected ActionAttribute on type {t.Name}");
@@ -118,15 +112,15 @@ namespace WinstonBot
             // Build the list of actions first
             foreach (TypeInfo typeInfo in assembly.DefinedTypes)
             {
-                var actionAttribute = typeInfo.GetCustomAttribute<Attributes.ActionAttribute>();
+                var actionAttribute = typeInfo.GetCustomAttribute<ActionAttribute>();
                 if (actionAttribute != null)
                 {
                     var actionInfo = new ActionInfo()
                     {
                         Name = actionAttribute.Name,
-                        Type = typeInfo.GetType(),
-                        Options = typeInfo.DeclaredProperties
-                            .Where(prop => prop.GetCustomAttribute<Attributes.ActionAttribute>() != null)
+                        Type = typeInfo,
+                        Options = typeInfo.GetProperties(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance)
+                            .Where(prop => prop.GetCustomAttribute<ActionParamAttribute>() != null)
                             .Select(prop => new ActionOptionInfo() { Property = prop })
                             .ToList()
                     };
@@ -140,7 +134,7 @@ namespace WinstonBot
 
             foreach (TypeInfo typeInfo in assembly.DefinedTypes)
             {
-                var commandAttribute = typeInfo.GetCustomAttribute<Attributes.CommandAttribute>();
+                var commandAttribute = typeInfo.GetCustomAttribute<CommandAttribute>();
                 if (commandAttribute != null)
                 {
                     var commandInfo = new CommandInfo()
@@ -148,9 +142,8 @@ namespace WinstonBot
                         Name = commandAttribute.Name,
                         Description = commandAttribute.Description,
                         DefaultPermission = commandAttribute.DefaultPermission,
-                        Type = typeInfo.AsType(),
+                        Type = typeInfo,
                         Options = GetOptions(typeInfo),
-                        BuildCommandMethod = GetBuildMethod(typeInfo),
                         Actions = GetActions(commandAttribute.Actions)
                     };
 
@@ -160,11 +153,11 @@ namespace WinstonBot
                     }
                 }
 
-                var subCommandAttribute = typeInfo.GetCustomAttribute<Attributes.SubCommandAttribute>();
+                var subCommandAttribute = typeInfo.GetCustomAttribute<SubCommandAttribute>();
                 if (subCommandAttribute != null)
                 {
-                    if (subCommandAttribute.ParentCommand.GetCustomAttribute<Attributes.SubCommandAttribute>() == null &&
-                        subCommandAttribute.ParentCommand.GetCustomAttribute<Attributes.CommandAttribute>() == null)
+                    if (subCommandAttribute.ParentCommand.GetCustomAttribute<SubCommandAttribute>() == null &&
+                        subCommandAttribute.ParentCommand.GetCustomAttribute<CommandAttribute>() == null)
                     {
                         throw new Exception($"ParentCommand for type {typeInfo.Name} must have either a Command or SubCommand attribute");
                     }
@@ -173,10 +166,9 @@ namespace WinstonBot
                     {
                         Name = subCommandAttribute.Name,
                         Description = subCommandAttribute.Description,
-                        Type = typeInfo.AsType(),
+                        Type = typeInfo,
                         ParentCommandType = subCommandAttribute.ParentCommand,
                         Options = GetOptions(typeInfo),
-                        BuildCommandMethod = GetBuildMethod(typeInfo),
                         Actions = GetActions(subCommandAttribute.Actions)
                     };
 
@@ -264,18 +256,18 @@ namespace WinstonBot
                 return null;
             }
 
-            ICommandBase? commandInstance = null;
+            CommandBase? commandInstance = null;
             CommandInfo commandInfo = command;
             var subCommandResult = FindDeepestSubCommand(dataOptions);
             if (subCommandResult != null)
             {
                 commandInfo = subCommandResult.Value.Key;
                 dataOptions = subCommandResult.Value.Value;
-                commandInstance = Activator.CreateInstance(subCommandResult.Value.Key.Type) as ICommandBase;
+                commandInstance = Activator.CreateInstance(subCommandResult.Value.Key.Type) as CommandBase;
             }
             else
             {
-                commandInstance = Activator.CreateInstance(command.Type) as ICommandBase;
+                commandInstance = Activator.CreateInstance(command.Type) as CommandBase;
             }
 
             if (commandInstance == null)
@@ -315,27 +307,24 @@ namespace WinstonBot
             }
 
             Console.WriteLine($"Command {command.Name} handling interaction");
-            var context = commandInstance.CreateContext(_client, slashCommand, _services);
+            var createContextFunction = Utility.GetInheritedStaticMethod(command.Type, CommandBase.CreateContextName);
+            var context = createContextFunction?.Invoke(null, new object[] { _client, slashCommand, _services }) as CommandContext;
+            if (context == null)
+            {
+                throw new ArgumentNullException($"Failed to create context for command {command.Name}");
+            }
             await commandInstance.HandleCommand(context);
         }
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
-            Console.WriteLine($"Interaction id: {component.Token}");
-
-            // Via interaction service
-            // Q: do we need to re-use actions?
-            // interaction service:
-            // - store date of message and expire messages after n days so we don't accumulate them infinitely.
-            // - listen to message deleted so we can remove in that case too (important for testing)
-            //CommandInfo interactionOwner = GetInteractionOwner(component.Message.Id);
+            // Find the command that started this interaction
             var interactionService = _services.GetRequiredService<InteractionService>();
             string? owningCommandName = interactionService.TryGetOwningCommand(component.Message.Id);
             if (owningCommandName == null)
             {
                 Console.WriteLine($"No interaction owner found for message {component.Message.Id}");
                 return;
-
             }
 
             CommandInfo interactionOwner;
@@ -343,6 +332,11 @@ namespace WinstonBot
             {
                 Console.WriteLine($"ERROR: failed to get command {owningCommandName}");
                 return;
+            }
+
+            if (interactionOwner.Actions == null)
+            {
+                throw new Exception($"Command {owningCommandName} is trying to handle an interaction but has no actions defined!");
             }
 
             var configService = _services.GetRequiredService<ConfigService>();
@@ -376,12 +370,14 @@ namespace WinstonBot
                 var tokens = component.Data.CustomId.Split('_');
                 if (tokens.Length > 1)
                 {
+                    // Skip the first token which is the action name
+                    tokens = tokens.TakeLast(tokens.Length - 1).ToArray();
                     if (action.Options?.Count != tokens.Length)
                     {
                         throw new Exception($"Action option mismatch. Got {tokens.Length}, expected {action.Options?.Count}");
                     }
 
-                    for (int i = 1; i < tokens.Length; ++i)
+                    for (int i = 0; i < tokens.Length; ++i)
                     {
                         ActionOptionInfo optionInfo = action.Options[i];
                         object value = null;
@@ -402,8 +398,14 @@ namespace WinstonBot
                     }
                 }
 
+                var createContextFunction = Utility.GetInheritedStaticMethod(interactionOwner.Type, CommandBase.CreateActionContextName);
+                var context = createContextFunction?.Invoke(null, new object[] { _client, component, _services, interactionOwner.Name }) as ActionContext;
+                if (context == null)
+                {
+                    throw new ArgumentNullException($"Failed to create action context for {interactionOwner.Name}:{action.Name}");
+                }
 
-                await actionInstance.HandleAction();
+                await actionInstance.HandleAction(context);
             }
         }
 

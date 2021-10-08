@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -102,6 +103,11 @@ namespace WinstonBot
                 dict.Add(key, new TValue());
             }
             return dict[key];
+        }
+
+        public static MethodInfo? GetInheritedStaticMethod(Type type, string methodName)
+        {
+            return type.GetMethod(methodName, BindingFlags.Static | BindingFlags.FlattenHierarchy | BindingFlags.Public);
         }
     }
 }

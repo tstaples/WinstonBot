@@ -6,15 +6,12 @@ namespace WinstonBot.Commands
     internal class QuitAction : IAction
     {
         public static string ActionName = "pvm-quit-signup";
-        public string Name => ActionName;
 
         [ActionParam]
         public long BossIndex { get; set; }
 
-        public async Task HandleAction(ActionContext actionContext)
+        public async Task HandleAction(ActionContext context)
         {
-            var context = (HostActionContext)actionContext;
-
             if (!context.Message.Embeds.Any())
             {
                 await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
@@ -37,7 +34,7 @@ namespace WinstonBot.Commands
 
             await context.UpdateAsync(msgProps =>
             {
-                msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names);
+                msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
             });
         }
     }

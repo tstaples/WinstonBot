@@ -49,6 +49,7 @@ namespace WinstonBot.Commands
         public SocketUserMessage Message => Component.Message;
         public SocketMessageComponentData Data => Component.Data;
         public SocketUser User => Component.User;
+        public ISocketMessageChannel Channel => Component.Channel;
 
         private SocketMessageComponent Component { get; set; }
         private string _commandName; // TODO: set this

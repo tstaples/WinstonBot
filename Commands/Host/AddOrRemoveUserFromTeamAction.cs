@@ -1,16 +1,17 @@
 ﻿using WinstonBot.Attributes;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
     internal abstract class AddOrRemoveUserFromTeamBase : IAction
     {
-        public abstract string Name { get; }
-
         [ActionParam]
         public long BossIndex { get; set; }
 
         [ActionParam]
         public string MentionToAdd { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
@@ -54,9 +55,9 @@ namespace WinstonBot.Commands
                     context.OriginalMessageData.ChannelId,
                     context.OriginalMessageData.MessageId,
                     context.OriginalMessageData.TeamConfirmedBefore,
-                    context.BossEntry,
+                    BossEntry,
                     selectedNames);
-                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, context.BossIndex, selectedNames, unselectedNames);
+                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, BossIndex, selectedNames, unselectedNames);
             });
         }
 
@@ -68,7 +69,6 @@ namespace WinstonBot.Commands
     internal class RemoveUserFromTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "remove-user-from-team";
-        public override string Name => ActionName;
 
         protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
         {
@@ -87,7 +87,6 @@ namespace WinstonBot.Commands
     internal class AddUserToTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "add-user-to-team";
-        public override string Name => ActionName;
 
         protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
         {

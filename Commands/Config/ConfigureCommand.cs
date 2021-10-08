@@ -6,17 +6,11 @@ using WinstonBot.Attributes;
 namespace WinstonBot.Commands.Config
 {
     [SubCommand("command", "Configure command permissions", typeof(ConfigCommand))]
-    internal class ConfigureCommandSubCommand : ISubCommand
+    internal class ConfigureCommandSubCommand : CommandBase
     {
-        public string Name => "command";
-
-        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {
             return new ConfigCommandContext(client, arg, services);
-        }
-
-        public async Task HandleCommand(CommandContext context)
-        {
         }
 
         private static CommandEntry GetCommandEntry(ConfigService configService, ulong guildId, string commandName)
@@ -37,22 +31,20 @@ namespace WinstonBot.Commands.Config
         }
 
         [SubCommand(Name = "add-role", ParentCommand = typeof(ConfigureCommandSubCommand))]
-        private class AddRoleOperation : ISubCommand
+        private class AddRoleOperation : CommandBase
         {
-            public string Name => "add-role";
-
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("role", "The role to add")]
             public SocketRole TargetRole { get; set; }
 
-            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
             }
 
-            public async Task HandleCommand(CommandContext commandContext)
+            public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
 
@@ -78,22 +70,20 @@ namespace WinstonBot.Commands.Config
         }
 
         [SubCommand(Name = "remove-role", ParentCommand = typeof(ConfigureCommandSubCommand))]
-        private class RemoveRoleOperation : ISubCommand
+        private class RemoveRoleOperation : CommandBase
         {
-            public string Name => "remove-role";
-
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("role", "The role to remove")]
             public SocketRole TargetRole { get; set; }
 
-            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
             }
 
-            public async Task HandleCommand(CommandContext commandContext)
+            public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
 
@@ -120,19 +110,17 @@ namespace WinstonBot.Commands.Config
         }
 
         [SubCommand(Name = "view-roles", ParentCommand = typeof(ConfigureCommandSubCommand))]
-        private class ViewRolesOperation : ISubCommand
+        private class ViewRolesOperation : CommandBase
         {
-            public string Name => "view-roles";
-
             [CommandOption("command", "The command to view the roles for", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
-            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
             }
 
-            public async Task HandleCommand(CommandContext commandContext)
+            public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
 

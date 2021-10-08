@@ -11,24 +11,11 @@ using WinstonBot.Attributes;
 namespace WinstonBot.Commands.Config
 {
     [SubCommand("action", "Configure command action permissions", typeof(ConfigCommand))]
-    internal class ConfigureActionSubCommand : ISubCommand
+    internal class ConfigureActionSubCommand : CommandBase
     {
-        public string Name => "action";
-
-        private List<ISubCommand> _subCommands = new()
-        {
-            new AddRoleOperation(),
-            new RemoveRoleOperation(),
-            new ViewRolesOperation()
-        };
-
-        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {
             return new ConfigCommandContext(client, arg, services);
-        }
-
-        public async Task HandleCommand(CommandContext commandContext)
-        {
         }
 
         private static void GetActionRoles(ConfigService configService, ulong guildId, string commandName, string actionName, out List<ulong> roles)
@@ -55,10 +42,8 @@ namespace WinstonBot.Commands.Config
         }
 
         [SubCommand(Name = "add-role", ParentCommand = typeof(ConfigureActionSubCommand))]
-        private class AddRoleOperation : ISubCommand
+        private class AddRoleOperation : CommandBase
         {
-            public string Name => "add-role";
-
             [CommandOption("command", "The command to modify", dataProvider:typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
@@ -68,12 +53,12 @@ namespace WinstonBot.Commands.Config
             [CommandOption("role", "The role to add")]
             public SocketRole TargetRole { get; set; }
 
-            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
             }
 
-            public async Task HandleCommand(CommandContext commandContext)
+            public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
                 if (TargetRole.Id == context.Guild.EveryoneRole.Id)
@@ -99,10 +84,8 @@ namespace WinstonBot.Commands.Config
         }
 
         [SubCommand(Name = "remove-role", ParentCommand = typeof(ConfigureActionSubCommand))]
-        private class RemoveRoleOperation : ISubCommand
+        private class RemoveRoleOperation : CommandBase
         {
-            public string Name => "remove-role";
-
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
@@ -112,12 +95,12 @@ namespace WinstonBot.Commands.Config
             [CommandOption("role", "The role to add")]
             public SocketRole TargetRole { get; set; }
 
-            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
             }
 
-            public async Task HandleCommand(CommandContext commandContext)
+            public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
                 if (TargetRole.Id == context.Guild.EveryoneRole.Id)
@@ -144,22 +127,20 @@ namespace WinstonBot.Commands.Config
         }
 
         [SubCommand(Name = "view-roles", ParentCommand = typeof(ConfigureActionSubCommand))]
-        private class ViewRolesOperation : ISubCommand
+        private class ViewRolesOperation : CommandBase
         {
-            public string Name => "view-roles";
-
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("action", "The action to modify", dataProvider: typeof(ActionDataProvider))]
             public string TargetAction { get; set; }
 
-            public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+            public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
             }
 
-            public async Task HandleCommand(CommandContext commandContext)
+            public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
 

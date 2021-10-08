@@ -5,24 +5,8 @@ using WinstonBot.Attributes;
 namespace WinstonBot.Commands
 {
     [Command("generate-aod-message", "Post the daily aod signup message")]
-    public class GenerateAoDMessageCommand : ICommand
+    public class GenerateAoDMessageCommand : CommandBase
     {
-        public string Name => "generate-aod-message";
-
-        public ulong AppCommandId { get; set; }
-
-        public IEnumerable<IAction> Actions => new List<IAction>();
-
-        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
-        {
-            return new CommandContext(client, arg, services);
-        }
-
-        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
-        {
-            return new ActionContext(client, arg, services);
-        }
-
         public async Task HandleCommand(CommandContext context)
         {
             var reset = new DateTimeOffset(GetReset().AddDays(1));

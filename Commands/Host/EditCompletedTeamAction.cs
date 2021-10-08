@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using WinstonBot.Attributes;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
@@ -8,10 +9,11 @@ namespace WinstonBot.Commands
     internal class EditCompletedTeamAction : IAction
     {
         public static string ActionName = "pvm-edit-team";
-        public string Name => ActionName;
 
         [ActionParam]
         public long BossIndex { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
@@ -37,7 +39,7 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            var guild = ((SocketGuildChannel)context.Channel).Guild;
+            var guild = ((SocketGuildChannel)context.Message.Channel).Guild;
             var allIds = new List<ulong>();
             if (context.OriginalSignupsForMessage.ContainsKey(context.Message.Id))
             {
@@ -61,7 +63,7 @@ namespace WinstonBot.Commands
                 .WithFooter($"Being edited by {context.User.Username}")
                 .Build();
                 msgProps.Components = new ComponentBuilder()
-                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{context.BossIndex}", ButtonStyle.Danger, disabled: true)
+                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger, disabled: true)
                     .Build();
             });
 
@@ -70,8 +72,8 @@ namespace WinstonBot.Commands
                 "\nOnce you're done click Confirm Team." +
                 "\nYou may continue making changes after you confirm the team by hitting confirm again." +
                 "\nOnce you're finished making changes you can dismiss this message.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, context.Channel.Id, context.Message.Id, true, context.BossEntry, selectedNames),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, context.BossIndex, selectedNames, unselectedNames));
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, context.Channel.Id, context.Message.Id, true, BossEntry, selectedNames),
+                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedNames, unselectedNames));
 
             await context.DeferAsync();
         }

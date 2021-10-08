@@ -11,6 +11,7 @@ public class Program
     private CommandHandler _commandHandler;
     private EmoteDatabase _emoteDatabase;
     private ConfigService _configService;
+    private MessageDatabase _messageDatabase;
     private InteractionService _interactionService;
     private IServiceProvider _services;
 
@@ -21,6 +22,7 @@ public class Program
         .AddSingleton(_client)
         .AddSingleton(_emoteDatabase)
         .AddSingleton(_configService)
+        .AddSingleton(_messageDatabase)
         .AddSingleton(_interactionService)
         .BuildServiceProvider();
 
@@ -41,6 +43,7 @@ public class Program
         await _client.StartAsync();
 
         _interactionService = new InteractionService();
+        _messageDatabase = new MessageDatabase();
         _emoteDatabase = new EmoteDatabase();
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
 

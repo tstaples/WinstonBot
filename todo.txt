@@ -1,11 +1,11 @@
-﻿- handle actions
+﻿- update interaction service to save to file. auto delete messages older than n days.
+- update action context to also store interactions when pming people.
 - split other config commands into subcommands
-- markup any commands missing it.
 - list subcommands in action/subcommand attribute
-- find a way to set command context for action data provider
 
-- how can we add role requirements for specific bosses?
+
 - test multiple people hitting buttons at once
+- harden guild.GetUser against users no longer in the discord
 
 - boss embed color
 - implement actual aod team selection

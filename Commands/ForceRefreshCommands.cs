@@ -7,17 +7,8 @@ using WinstonBot.Attributes;
 namespace WinstonBot.Commands
 {
     [Command("force-refresh-commands", "Delete all applications commands and re-create them", DefaultPermission.AdminOnly)]
-    public class ForceRefreshCommands : ICommand
+    public class ForceRefreshCommands : CommandBase
     {
-        public string Name => "force-refresh-commands";
-        public ulong AppCommandId { get; set; }
-        public IEnumerable<IAction> Actions => new List<IAction>();
-
-        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
-        {
-            return new CommandContext(client, arg, services);
-        }
-
         public async Task HandleCommand(CommandContext context)
         {
             if (context.Channel is SocketGuildChannel channel)
@@ -84,11 +75,6 @@ namespace WinstonBot.Commands
             }
 
             await client.Rest.BatchEditGuildCommandPermissions(guild.Id, permDict);
-        }
-
-        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
-        {
-            return new ActionContext(client, arg, services);
         }
     }
 }

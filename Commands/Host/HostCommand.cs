@@ -19,32 +19,16 @@ namespace WinstonBot.Commands
             typeof(EditCompletedTeamAction)
         }
     )]
-    public class HostPvmSignup : ICommand
+    public class HostPvmSignup : CommandBase
     {
         [CommandOption("boss", "The boss to create an event for.", dataProvider: typeof(BossChoiceDataProvider))]
         public long BossIndex { get; set; }
 
         [CommandOption("message", "An optional message to display.", required: false)]
-        public string Message { get; set; }
-
-        public string Name => "host-pvm-signup";
-        public ulong AppCommandId { get; set; }
-        public IEnumerable<IAction> Actions => _actions;
-
-        private List<IAction> _actions = new List<IAction>()
-        {
-            new SignupAction(),
-            new QuitAction(),
-            new CompleteTeamAction(),
-            new ConfirmTeamAction(),
-            new EditCompletedTeamAction(),
-            new CancelTeamConfirmationAction(),
-            new AddUserToTeamAction(),
-            new RemoveUserFromTeamAction()
-        };
+        public string? Message { get; set; }
 
         // we only have the mention string in the desc.
-        private List<string> testNames = new List<string>()
+        private static readonly List<string> testNames = new List<string>()
         {
             { "<@141439679890325504>" },
             { "<@204793753691619330>" },
@@ -53,37 +37,7 @@ namespace WinstonBot.Commands
             { "<@856679611899576360>" }
         };
 
-        private ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> _originalSignupsForMessage = new();
-        private ConcurrentDictionary<ulong, bool> _messagesBeingEdited = new();
-
-        public CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
-        {
-            return new CommandContext(client, arg, services);
-        }
-
-        //public static SlashCommandBuilder BuildCommand()
-        //{
-        //    var choices = new SlashCommandOptionBuilder()
-        //            .WithName("boss")
-        //            .WithDescription("The boss to host")
-        //            .WithRequired(true)
-        //            .WithType(ApplicationCommandOptionType.Integer);
-
-        //    foreach (var entry in BossData.Entries)
-        //    {
-        //        choices.AddChoice(entry.CommandName, (int)entry.Id);
-        //    }
-
-        //    var hostQueuedCommand = new SlashCommandBuilder()
-        //        .WithName("host-pvm-signup")
-        //        .WithDescription("Create a signup for a pvm event")
-        //        .AddOption(choices)
-        //        .AddOption("message", ApplicationCommandOptionType.String, "Additional info about the event to be added to the message body.", required: false);
-
-        //    return hostQueuedCommand;
-        //}
-
-        public async Task HandleCommand(Commands.CommandContext context)
+        public async override Task HandleCommand(CommandContext context)
         {
             if (!BossData.ValidBossIndex(BossIndex))
             {
@@ -100,12 +54,9 @@ namespace WinstonBot.Commands
             await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);
         }
 
-        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
+        public static new ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services, string owningCommand)
         {
-            return new HostActionContext(client, arg, services, _originalSignupsForMessage, _messagesBeingEdited)
-            {
-                BossIndex = long.Parse(arg.Data.CustomId.Split('_')[1])
-            };
+            return new HostActionContext(client, arg, services, owningCommand);
         }
     }
 }

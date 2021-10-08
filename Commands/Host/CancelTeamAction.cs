@@ -20,7 +20,7 @@ namespace WinstonBot.Commands
             }
 
             var originalMessage = await context.GetOriginalMessage();
-            if (originalMessage == null || context.Channel == null)
+            if (originalMessage == null || context.OriginalChannel == null)
             {
                 // This can happen if the original message is deleted but the edit window is still open.
                 await context.RespondAsync("Failed to find the original message this interaction was created from.", ephemeral: true);
@@ -29,17 +29,17 @@ namespace WinstonBot.Commands
 
             var names = HostHelpers.ParseNamesToList(originalMessage.Embeds.First().Description);
 
-            await context.Channel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
+            await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
                 if (!context.OriginalMessageData.TeamConfirmedBefore)
                 {
-                    msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names);
-                    msgProps.Components = HostHelpers.BuildSignupButtons(context.BossIndex);
+                    msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
+                    msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex);
                 }
                 else
                 {
                     // Don't need to change the embed since it hasn't been modified yet.
-                    msgProps.Components = HostHelpers.BuildEditButton(context.BossIndex, false);
+                    msgProps.Components = HostHelpers.BuildEditButton(BossIndex, false);
                 }
             });
 

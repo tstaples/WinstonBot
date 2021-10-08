@@ -1,5 +1,7 @@
 ﻿using Discord;
+using Discord.WebSocket;
 using WinstonBot.Attributes;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
@@ -7,10 +9,11 @@ namespace WinstonBot.Commands
     internal class CompleteTeamAction : IAction
     {
         public static string ActionName = "pvm-complete-team";
-        public string Name => ActionName;
 
         [ActionParam]
         public long BossIndex { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
@@ -42,28 +45,28 @@ namespace WinstonBot.Commands
             int i = 0;
             foreach (var mention in names)
             {
-                if (i++ < context.BossEntry.MaxPlayersOnTeam) selectedNames.Add(mention);
+                if (i++ < BossEntry.MaxPlayersOnTeam) selectedNames.Add(mention);
                 else unselectedNames.Add(mention);
             }
 
             await context.Message.ModifyAsync(msgProps =>
             {
-                msgProps.Components = HostHelpers.BuildSignupButtons(context.BossIndex, true);
+                msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, true);
                 // footers can't show mentions, so use the username.
-                msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names, context.User.Username);
+                msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names, context.User.Username);
             });
 
             // Footed will say "finalized by X" if it's been completed before.
             bool hasBeenConfirmedBefore = currentEmbed.Footer.HasValue;
-            var guild = context.Channel.Guild;
+            var guild = ((SocketGuildChannel)context.Channel).Guild;
 
             await context.User.SendMessageAsync("Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
                 "\nYou may continue making changes after you confirm the team by hitting confirm again." +
                 "\nOnce you're finished making changes you can dismiss this message.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, context.Channel.Id, context.Message.Id, hasBeenConfirmedBefore, context.BossEntry, selectedNames),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, context.BossIndex, selectedNames, unselectedNames));
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, context.Channel.Id, context.Message.Id, hasBeenConfirmedBefore, BossEntry, selectedNames),
+                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedNames, unselectedNames));
 
             await context.DeferAsync();
         }

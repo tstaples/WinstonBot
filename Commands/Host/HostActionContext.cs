@@ -1,26 +1,21 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WinstonBot.Data;
+using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
     public class HostActionContext : ActionContext
     {
-        public long BossIndex { get; set; }
-        public BossData.Entry BossEntry => BossData.Entries[BossIndex];
         public HostMessageMetadata? OriginalMessageData => _originalMessageData;
         public SocketGuild? Guild => OriginalMessageData != null ? Client.GetGuild(OriginalMessageData.GuildId) : null;
-        public SocketTextChannel? Channel => OriginalMessageData != null ? Guild?.GetTextChannel(OriginalMessageData.ChannelId) : null;
-        public bool IsMessageDataValid => OriginalMessageData != null && Guild != null && Channel != null;
-        public ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> OriginalSignupsForMessage { get; }
-        public ConcurrentDictionary<ulong, bool> MessagesBeingEdited { get; }
+        public SocketTextChannel? OriginalChannel => OriginalMessageData != null ? Guild?.GetTextChannel(OriginalMessageData.ChannelId) : null;
+        public bool IsMessageDataValid => OriginalMessageData != null && Guild != null && OriginalChannel != null;
+        public ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> OriginalSignupsForMessage => ServiceProvider.GetRequiredService<MessageDatabase>().OriginalSignupsForMessage;
+        public ConcurrentDictionary<ulong, bool> MessagesBeingEdited => ServiceProvider.GetRequiredService<MessageDatabase>().MessagesBeingEdited;
 
         private HostMessageMetadata? _originalMessageData;
 
@@ -28,12 +23,9 @@ namespace WinstonBot.Commands
             DiscordSocketClient client,
             SocketMessageComponent arg,
             IServiceProvider services,
-            ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> originalSignups,
-            ConcurrentDictionary<ulong, bool> messagesBeingEdited)
-            : base(client, arg, services)
+            string owningCommand)
+            : base(client, arg, services, owningCommand)
         {
-            OriginalSignupsForMessage = originalSignups;
-            MessagesBeingEdited = messagesBeingEdited;
             _originalMessageData = GetOriginalMessageData();
         }
 
@@ -48,9 +40,9 @@ namespace WinstonBot.Commands
 
         public async Task<IMessage?> GetOriginalMessage()
         {
-            if (OriginalMessageData != null && OriginalMessageData.MessageId != 0 && Channel != null)
+            if (OriginalMessageData != null && OriginalMessageData.MessageId != 0 && OriginalChannel != null)
             {
-                return await Channel.GetMessageAsync(OriginalMessageData.MessageId);
+                return await OriginalChannel.GetMessageAsync(OriginalMessageData.MessageId);
             }
             return null;
         }
