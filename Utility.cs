@@ -34,7 +34,7 @@ namespace WinstonBot
         }
         public static List<string> ConvertUserIdListToMentions(SocketGuild guild, IEnumerable<ulong> ids)
         {
-            return ids.Select(id => guild.GetUser(id).Mention).ToList();
+            return ids.Select(id => guild.GetUser(id)?.Mention).ToList();
         }
 
         public static EmbedBuilder CreateBuilderForEmbed(IEmbed source)

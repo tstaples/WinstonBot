@@ -16,7 +16,9 @@ namespace WinstonBot.Commands
             typeof(CompleteTeamAction),
             typeof(ConfirmTeamAction),
             typeof(CancelTeamConfirmationAction),
-            typeof(EditCompletedTeamAction)
+            typeof(EditCompletedTeamAction),
+            typeof(AddUserToTeamAction),
+            typeof(RemoveUserFromTeamAction),
         }
     )]
     public class HostPvmSignup : CommandBase

@@ -27,10 +27,27 @@ namespace WinstonBot.Commands
                 .ToList();
         }
 
+
+        public static List<ulong> ParseNamesToIdListWithValidation(SocketGuild guild, string text)
+        {
+            return ParseNamesToList(text)
+                .Select(mention => Utility.GetUserIdFromMention(mention))
+                .Where(id => guild.GetUser(id) != null)
+                .ToList();
+        }
+
         public static List<ulong> ParseNamesToIdList(IEnumerable<string> nameList)
         {
             return nameList
                 .Select(mention => Utility.GetUserIdFromMention(mention))
+                .ToList();
+        }
+
+        public static List<ulong> ParseNamesToIdListWithValidation(SocketGuild guild, IEnumerable<string> nameList)
+        {
+            return nameList
+                .Select(mention => Utility.GetUserIdFromMention(mention))
+                .Where(id => guild.GetUser(id) != null)
                 .ToList();
         }
 

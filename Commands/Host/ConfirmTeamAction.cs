@@ -35,7 +35,6 @@ namespace WinstonBot.Commands
 
             // TODO: ping the people that are going.
             // Should that be a separate message or should we just not use an embed for this?
-            // TODO: store the interaction for this.
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
                 msgProps.Embed = new EmbedBuilder()
