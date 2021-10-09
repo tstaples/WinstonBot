@@ -1,4 +1,7 @@
-﻿- experiment with not needing the interaction service before going too far with it.
+﻿// TODO: the sub command parent type doesn't always match command type (eg for /configure action view-roles, view-roles parent is action.
+// need to switch to listing subcommands on the command attribute.
+
+- experiment with not needing the interaction service before going too far with it.
 	- button builder idea
 	- an action could only be used for a single command (would be fine for my use, but if we want to make a lib then maybe not.)
 

@@ -48,5 +48,10 @@ namespace WinstonBot.Data
         {
             return index >= 0 && index < (long)Boss.Count;
         }
+
+        public static bool ValidBossCommandName(string name)
+        {
+            return Entries.Where(entry => entry.CommandName == name).Any();
+        }
     }
 }

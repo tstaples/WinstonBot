@@ -1,10 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WinstonBot.Services;
 using WinstonBot.Attributes;
 
@@ -41,7 +36,7 @@ namespace WinstonBot.Commands.Config
             roles = commandEntry.ActionRoles[actionName];
         }
 
-        [SubCommand(Name = "add-role", ParentCommand = typeof(ConfigureActionSubCommand))]
+        [SubCommand("add-role", "Add a role requirement to an action.", typeof(ConfigureActionSubCommand))]
         private class AddRoleOperation : CommandBase
         {
             [CommandOption("command", "The command to modify", dataProvider:typeof(CommandNameDataProvider))]
@@ -83,7 +78,7 @@ namespace WinstonBot.Commands.Config
             }
         }
 
-        [SubCommand(Name = "remove-role", ParentCommand = typeof(ConfigureActionSubCommand))]
+        [SubCommand("remove-role", "Remove a role requirement from an action.", typeof(ConfigureActionSubCommand))]
         private class RemoveRoleOperation : CommandBase
         {
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
@@ -126,7 +121,7 @@ namespace WinstonBot.Commands.Config
             }
         }
 
-        [SubCommand(Name = "view-roles", ParentCommand = typeof(ConfigureActionSubCommand))]
+        [SubCommand("view-roles", "View the role requirements for an action.", typeof(ConfigureActionSubCommand))]
         private class ViewRolesOperation : CommandBase
         {
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]

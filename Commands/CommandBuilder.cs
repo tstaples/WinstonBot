@@ -68,7 +68,7 @@ namespace WinstonBot.Commands
 
             if (info.ChoiceProviderType != null)
             {
-                Console.WriteLine($"Invoking choice provider: {info.ChoiceProviderType.Name} for option {info.Name}");
+                Console.WriteLine($"Invoking choice provider: {info.ChoiceProviderType.Name} for option {info.Name}, type: {info.Type}");
                 try
                 {
                     // TODO: how can we pass in contextual information when it depends on runtime value?

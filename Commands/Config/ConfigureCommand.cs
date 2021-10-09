@@ -30,7 +30,7 @@ namespace WinstonBot.Commands.Config
             return commandEntries[commandName];
         }
 
-        [SubCommand(Name = "add-role", ParentCommand = typeof(ConfigureCommandSubCommand))]
+        [SubCommand("add-role", "Add a role requirement to a command.", typeof(ConfigureCommandSubCommand))]
         private class AddRoleOperation : CommandBase
         {
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
@@ -69,7 +69,7 @@ namespace WinstonBot.Commands.Config
             }
         }
 
-        [SubCommand(Name = "remove-role", ParentCommand = typeof(ConfigureCommandSubCommand))]
+        [SubCommand("remove-role", "Remove a role requirement from a command.", typeof(ConfigureCommandSubCommand))]
         private class RemoveRoleOperation : CommandBase
         {
             [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
@@ -109,7 +109,7 @@ namespace WinstonBot.Commands.Config
             }
         }
 
-        [SubCommand(Name = "view-roles", ParentCommand = typeof(ConfigureCommandSubCommand))]
+        [SubCommand("view-roles", "View the role requirements for a command.", typeof(ConfigureCommandSubCommand))]
         private class ViewRolesOperation : CommandBase
         {
             [CommandOption("command", "The command to view the roles for", dataProvider: typeof(CommandNameDataProvider))]
