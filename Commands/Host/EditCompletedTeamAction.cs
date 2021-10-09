@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.ObjectModel;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
 using WinstonBot.Services;
@@ -49,7 +50,11 @@ namespace WinstonBot.Commands
             }
             else
             {
-                Console.WriteLine($"[EditCompletedTeamAction] Failed to find message data for {context.Message.Id}. Cannot retrieve original names.");
+                Console.WriteLine($"[EditCompletedTeamAction] Failed to find message data for {context.Message.Id}. Cannot retrieve original names." +
+                    $"Updating list with currently selected names.");
+
+                context.OriginalSignupsForMessage.TryAdd(context.Message.Id, new ReadOnlyCollection<ulong>(selectedNameIds));
+                allIds = selectedNameIds;
             }
 
             List<ulong> unselectedIds = allIds
