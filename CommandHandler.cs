@@ -319,94 +319,109 @@ namespace WinstonBot
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
             // Find the command that started this interaction
-            var interactionService = _services.GetRequiredService<InteractionService>();
-            string? owningCommandName = interactionService.TryGetOwningCommand(component.Message.Id);
-            if (owningCommandName == null)
-            {
-                Console.WriteLine($"No interaction owner found for message {component.Message.Id}");
-                return;
-            }
+            //var interactionService = _services.GetRequiredService<InteractionService>();
+            //string? owningCommandName = interactionService.TryGetOwningCommand(component.Message.Id);
+            //if (owningCommandName == null)
+            //{
+            //    Console.WriteLine($"No interaction owner found for message {component.Message.Id}");
+            //    return;
+            //}
 
-            CommandInfo interactionOwner;
-            if (!_commandEntries.TryGetValue(owningCommandName, out interactionOwner))
-            {
-                Console.WriteLine($"ERROR: failed to get command {owningCommandName}");
-                return;
-            }
+            //if (!_commandEntries.TryGetValue(owningCommandName, out interactionOwner))
+            //{
+            //    Console.WriteLine($"ERROR: failed to get command {owningCommandName}");
+            //    return;
+            //}
 
-            if (interactionOwner.Actions == null)
+            // For now just assume actions are unique per command.
+            // If we want to change this in the future we'll have to implement the interaction service properly.
+            CommandInfo? interactionOwner = null;
+            ActionInfo? action = null;
+            foreach (var pair in _commandEntries)
             {
-                throw new Exception($"Command {owningCommandName} is trying to handle an interaction but has no actions defined!");
-            }
-
-            var configService = _services.GetRequiredService<ConfigService>();
-            foreach (ActionInfo action in interactionOwner.Actions.Values)
-            {
-                if (!component.Data.CustomId.StartsWith(action.Name))
+                if (pair.Value.Actions == null)
                 {
                     continue;
                 }
 
-                // If this was executed in a guild channel check the user has permission to use it.
-                if (component.Channel is SocketGuildChannel guildChannel)
+                foreach ((string name, ActionInfo info) in pair.Value.Actions)
                 {
-                    var user = (SocketGuildUser)component.User;
-                    // How do we know what command this action belongs to if an action can belong to multiple commands?
-                    // should we encode something in the customid?
-                    var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, interactionOwner.Name, action.Name);
-                    if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
+                    if (component.Data.CustomId.StartsWith(name))
                     {
-                        await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral: true);
-                        return;
+                        action = info;
+                        interactionOwner = pair.Value;
+                        break;
                     }
                 }
-
-                IAction actionInstance = Activator.CreateInstance(action.Type) as IAction;
-                if (actionInstance == null)
-                {
-                    throw new Exception($"Failed to construct action {action.Type}");
-                }
-
-                var tokens = component.Data.CustomId.Split('_');
-                if (tokens.Length > 1)
-                {
-                    // Skip the first token which is the action name
-                    tokens = tokens.TakeLast(tokens.Length - 1).ToArray();
-                    if (action.Options?.Count != tokens.Length)
-                    {
-                        throw new Exception($"Action option mismatch. Got {tokens.Length}, expected {action.Options?.Count}");
-                    }
-
-                    for (int i = 0; i < tokens.Length; ++i)
-                    {
-                        ActionOptionInfo optionInfo = action.Options[i];
-                        object value = null;
-                        if (optionInfo.Property.PropertyType == typeof(string))
-                        {
-                            value = tokens[i];
-                        }
-                        else if (optionInfo.Property.PropertyType == typeof(long))
-                        {
-                            value = long.Parse(tokens[i]);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Unsupported action option type: {optionInfo.Property.PropertyType}");
-                        }
-
-                        optionInfo.Property.SetValue(actionInstance, value);
-                    }
-                }
-
-                var createContextFunction = Utility.GetInheritedStaticMethod(interactionOwner.Type, CommandBase.CreateActionContextName);
-                var context = createContextFunction?.Invoke(null, new object[] { _client, component, _services, interactionOwner.Name }) as ActionContext;
-                if (context == null)
-                {
-                    throw new ArgumentNullException($"Failed to create action context for {interactionOwner.Name}:{action.Name}");
-                }
-
-                await actionInstance.HandleAction(context);
             }
+
+            if (interactionOwner == null || action == null)
+            {
+                Console.WriteLine($"No action found for interaction: {component.Data.CustomId}");
+                //Console.WriteLine($"ERROR: failed to get command {owningCommandName}");
+                return;
+            }
+
+            // If this was executed in a guild channel check the user has permission to use it.
+            if (component.Channel is SocketGuildChannel guildChannel)
+            {
+                var user = (SocketGuildUser)component.User;
+                // How do we know what command this action belongs to if an action can belong to multiple commands?
+                // should we encode something in the customid?
+                var configService = _services.GetRequiredService<ConfigService>();
+                var requiredRoleIds = GetRequiredRolesForAction(configService, guildChannel.Guild, interactionOwner.Name, action.Name);
+                if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
+                {
+                    await component.RespondAsync($"You must have one of the following roles to do this action: {Utility.JoinRoleMentions(guildChannel.Guild, requiredRoleIds)}.", ephemeral: true);
+                    return;
+                }
+            }
+
+            IAction actionInstance = Activator.CreateInstance(action.Type) as IAction;
+            if (actionInstance == null)
+            {
+                throw new Exception($"Failed to construct action {action.Type}");
+            }
+
+            var tokens = component.Data.CustomId.Split('_');
+            if (tokens.Length > 1)
+            {
+                // Skip the first token which is the action name
+                tokens = tokens.TakeLast(tokens.Length - 1).ToArray();
+                if (action.Options?.Count != tokens.Length)
+                {
+                    throw new Exception($"Action option mismatch. Got {tokens.Length}, expected {action.Options?.Count}");
+                }
+
+                for (int i = 0; i < tokens.Length; ++i)
+                {
+                    ActionOptionInfo optionInfo = action.Options[i];
+                    object value = null;
+                    if (optionInfo.Property.PropertyType == typeof(string))
+                    {
+                        value = tokens[i];
+                    }
+                    else if (optionInfo.Property.PropertyType == typeof(long))
+                    {
+                        value = long.Parse(tokens[i]);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Unsupported action option type: {optionInfo.Property.PropertyType}");
+                    }
+
+                    optionInfo.Property.SetValue(actionInstance, value);
+                }
+            }
+
+            var createContextFunction = Utility.GetInheritedStaticMethod(interactionOwner.Type, CommandBase.CreateActionContextName);
+            var context = createContextFunction?.Invoke(null, new object[] { _client, component, _services, interactionOwner.Name }) as ActionContext;
+            if (context == null)
+            {
+                throw new ArgumentNullException($"Failed to create action context for {interactionOwner.Name}:{action.Name}");
+            }
+
+            await actionInstance.HandleAction(context);
         }
 
         private IEnumerable<ulong> GetRequiredRolesForCommand(ConfigService configService, SocketGuild guild, string commandName)

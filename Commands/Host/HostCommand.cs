@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using WinstonBot.Attributes;
+using System.Reflection;
 
 namespace WinstonBot.Commands
 {

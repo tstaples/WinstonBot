@@ -37,7 +37,6 @@ public class Program
         });
         _client.Log += this.Log;
 
-        Console.WriteLine("asdf");
         var token = File.ReadAllText(Path.Combine("Config", "token.txt"));
         await _client.LoginAsync(TokenType.Bot, token);
         await _client.StartAsync();

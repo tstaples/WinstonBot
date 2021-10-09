@@ -1,4 +1,8 @@
-﻿- update interaction service to save to file. auto delete messages older than n days.
+﻿- experiment with not needing the interaction service before going too far with it.
+	- button builder idea
+	- an action could only be used for a single command (would be fine for my use, but if we want to make a lib then maybe not.)
+
+- update interaction service to save to file. auto delete messages older than n days.
 - update action context to also store interactions when pming people.
 - split other config commands into subcommands
 - list subcommands in action/subcommand attribute
