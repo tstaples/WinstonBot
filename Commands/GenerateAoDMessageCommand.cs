@@ -7,7 +7,7 @@ namespace WinstonBot.Commands
     [Command("generate-aod-message", "Post the daily aod signup message")]
     public class GenerateAoDMessageCommand : CommandBase
     {
-        public async Task HandleCommand(CommandContext context)
+        public async override Task HandleCommand(CommandContext context)
         {
             var reset = new DateTimeOffset(GetReset().AddDays(1));
             var startTime = new DateTimeOffset(GetReset().AddDays(1).AddMinutes(30));

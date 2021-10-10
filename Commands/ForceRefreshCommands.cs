@@ -9,7 +9,7 @@ namespace WinstonBot.Commands
     [Command("force-refresh-commands", "Delete all applications commands and re-create them", DefaultPermission.AdminOnly)]
     public class ForceRefreshCommands : CommandBase
     {
-        public async Task HandleCommand(CommandContext context)
+        public async override Task HandleCommand(CommandContext context)
         {
             if (context.Channel is SocketGuildChannel channel)
             {
