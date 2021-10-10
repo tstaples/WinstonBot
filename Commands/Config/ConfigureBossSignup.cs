@@ -18,6 +18,8 @@ namespace WinstonBot.Commands.Config
             [CommandOption("role", "The role to add")]
             public SocketRole TargetRole { get; set; }
 
+            private BossData.Entry BossEntry => BossData.Entries[TargetBoss];
+
             public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
@@ -37,15 +39,15 @@ namespace WinstonBot.Commands.Config
 
                 var configService = context.ConfigService;
                 var rolesForBosses = Utility.GetOrAdd(configService.Configuration.GuildEntries, context.Guild.Id).RolesNeededForBoss;
-                var bossEntry = Utility.GetOrAdd(rolesForBosses, BossData.Entries[TargetBoss].CommandName);
+                var bossEntry = Utility.GetOrAdd(rolesForBosses, BossEntry.CommandName);
                 if (Utility.AddUnique(bossEntry, TargetRole.Id))
                 {
                     configService.UpdateConfig(configService.Configuration);
-                    await context.RespondAsync($"Added signup role requirement: {TargetRole.Mention} to boss {TargetBoss}", ephemeral: true);
+                    await context.RespondAsync($"Added signup role requirement: {TargetRole.Mention} to boss {BossEntry.PrettyName}", ephemeral: true);
                 }
                 else
                 {
-                    await context.RespondAsync($"{TargetBoss} already contains role {TargetRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"{BossEntry.PrettyName} already contains role {TargetRole.Mention}", ephemeral: true);
                 }
             }
         }
@@ -58,6 +60,8 @@ namespace WinstonBot.Commands.Config
 
             [CommandOption("role", "The role to remove")]
             public SocketRole TargetRole { get; set; }
+
+            private BossData.Entry BossEntry => BossData.Entries[TargetBoss];
 
             public async override Task HandleCommand(CommandContext commandContext)
             {
@@ -76,7 +80,7 @@ namespace WinstonBot.Commands.Config
                     return;
                 }
 
-                string bossName = BossData.Entries[TargetBoss].CommandName;
+                string bossName = BossEntry.CommandName;
 
                 var configService = context.ConfigService;
                 var rolesForBosses = Utility.GetOrAdd(configService.Configuration.GuildEntries, context.Guild.Id).RolesNeededForBoss;
@@ -84,11 +88,11 @@ namespace WinstonBot.Commands.Config
                 {
                     rolesForBosses[bossName].Remove(TargetRole.Id);
                     configService.UpdateConfig(configService.Configuration);
-                    await context.RespondAsync($"Removed signup role requirement: {TargetRole.Mention} from boss {TargetBoss}", ephemeral: true);
+                    await context.RespondAsync($"Removed signup role requirement: {TargetRole.Mention} from boss {BossEntry.PrettyName}", ephemeral: true);
                 }
                 else
                 {
-                    await context.RespondAsync($"{TargetBoss} doesn't contains role {TargetRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"{BossEntry.PrettyName} doesn't contains role {TargetRole.Mention}", ephemeral: true);
                 }
             }
         }
@@ -98,6 +102,8 @@ namespace WinstonBot.Commands.Config
         {
             [CommandOption("boss", "The boss to view the roles for", dataProvider: typeof(BossChoiceDataProvider))]
             public long TargetBoss { get; set; }
+
+            private BossData.Entry BossEntry => BossData.Entries[TargetBoss];
 
             public async override Task HandleCommand(CommandContext commandContext)
             {
@@ -116,16 +122,16 @@ namespace WinstonBot.Commands.Config
                     return;
                 }
 
-                string bossName = BossData.Entries[TargetBoss].CommandName;
+                string bossName = BossEntry.CommandName;
 
                 List<ulong> roles = new();
                 if (guildEntries[context.Guild.Id].RolesNeededForBoss.TryGetValue(bossName, out roles))
                 {
-                    await context.RespondAsync($"Signup roles for {TargetBoss}: \n{Utility.JoinRoleMentions(context.Guild, roles)}", ephemeral: true);
+                    await context.RespondAsync($"Signup roles for {BossEntry.PrettyName}: \n{Utility.JoinRoleMentions(context.Guild, roles)}", ephemeral: true);
                 }
                 else
                 {
-                    await context.RespondAsync($"Signup roles for {TargetBoss}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
+                    await context.RespondAsync($"Signup roles for {BossEntry.PrettyName}: \n{context.Guild.EveryoneRole.Mention}", ephemeral: true);
                 }
             }
         }

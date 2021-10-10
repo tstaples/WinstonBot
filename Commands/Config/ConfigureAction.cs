@@ -39,7 +39,7 @@ namespace WinstonBot.Commands.Config
         [SubCommand("add-role", "Add a role requirement to an action.", typeof(ConfigureActionSubCommand))]
         private class AddRoleOperation : CommandBase
         {
-            [CommandOption("command", "The command to modify", dataProvider:typeof(CommandNameDataProvider))]
+            [CommandOption("command", "The command to modify", dataProvider:typeof(CommandsWithActionsDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("action", "The action to modify", dataProvider:typeof(ActionDataProvider))]
@@ -81,7 +81,7 @@ namespace WinstonBot.Commands.Config
         [SubCommand("remove-role", "Remove a role requirement from an action.", typeof(ConfigureActionSubCommand))]
         private class RemoveRoleOperation : CommandBase
         {
-            [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
+            [CommandOption("command", "The command to modify", dataProvider: typeof(CommandsWithActionsDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("action", "The action to modify", dataProvider: typeof(ActionDataProvider))]
@@ -124,7 +124,7 @@ namespace WinstonBot.Commands.Config
         [SubCommand("view-roles", "View the role requirements for an action.", typeof(ConfigureActionSubCommand))]
         private class ViewRolesOperation : CommandBase
         {
-            [CommandOption("command", "The command to modify", dataProvider: typeof(CommandNameDataProvider))]
+            [CommandOption("command", "The command to modify", dataProvider: typeof(CommandsWithActionsDataProvider))]
             public string TargetCommand { get; set; }
 
             [CommandOption("action", "The action to modify", dataProvider: typeof(ActionDataProvider))]

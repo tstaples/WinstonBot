@@ -9,7 +9,7 @@
 - update action context to also store interactions when pming people.
 - split other config commands into subcommands
 - list subcommands in action/subcommand attribute
-
+- add view all config settings subcommand
 
 - test multiple people hitting buttons at once
 - harden guild.GetUser against users no longer in the discord

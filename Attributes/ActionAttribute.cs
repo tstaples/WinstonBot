@@ -11,11 +11,6 @@ namespace WinstonBot.Attributes
     {
         public string Name { get; set; }
 
-        public ActionAttribute()
-        {
-            Name = null;
-        }
-
         public ActionAttribute(string name)
         {
             Name = name;

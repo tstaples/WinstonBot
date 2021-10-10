@@ -209,8 +209,6 @@ namespace WinstonBot
 
             var command = _commandEntries[slashCommand.CommandName];
 
-            // TODO: we shouldn't need to do this check as we should be able to update the permissions on the command itself.
-            // Though this is likely much easier than dealing with role limits when batch editing.
             if (arg.Channel is SocketGuildChannel guildChannel)
             {
                 var user = (SocketGuildUser)arg.User;
@@ -224,41 +222,9 @@ namespace WinstonBot
             }
 
             var dataOptions = slashCommand.Data.Options;
-
-            KeyValuePair<SubCommandInfo,IReadOnlyCollection<SocketSlashCommandDataOption>?>? FindDeepestSubCommand(IReadOnlyCollection<SocketSlashCommandDataOption>? options)
-            {
-                if (options == null)
-                {
-                    return null;
-                }
-
-                foreach (var optionData in options)
-                {
-                    if (optionData.Type == Discord.ApplicationCommandOptionType.SubCommandGroup ||
-                        optionData.Type == Discord.ApplicationCommandOptionType.SubCommand)
-                    {
-                        var result = FindDeepestSubCommand(optionData.Options);
-                        if (result != null)
-                        {
-                            return result;
-                        }
-
-                        string subCommandName = optionData.Name;
-                        // TODO: the sub command parent type doesn't always match command type (eg for /configure action view-roles, view-roles parent is action.
-                        // need to switch to listing subcommands on the command attribute.
-                        SubCommandInfo? info = _subCommandEntries.Find(sub => sub.Name == subCommandName && sub.ParentCommandType == command.Type);
-                        if (info != null)
-                        {
-                            return new(info, optionData.Options);
-                        }
-                    }
-                }
-                return null;
-            }
-
             CommandBase? commandInstance = null;
             CommandInfo commandInfo = command;
-            var subCommandResult = FindDeepestSubCommand(dataOptions);
+            var subCommandResult = FindDeepestSubCommand(command, dataOptions);
             if (subCommandResult != null)
             {
                 commandInfo = subCommandResult.Value.Key;
@@ -318,21 +284,6 @@ namespace WinstonBot
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
-            // Find the command that started this interaction
-            //var interactionService = _services.GetRequiredService<InteractionService>();
-            //string? owningCommandName = interactionService.TryGetOwningCommand(component.Message.Id);
-            //if (owningCommandName == null)
-            //{
-            //    Console.WriteLine($"No interaction owner found for message {component.Message.Id}");
-            //    return;
-            //}
-
-            //if (!_commandEntries.TryGetValue(owningCommandName, out interactionOwner))
-            //{
-            //    Console.WriteLine($"ERROR: failed to get command {owningCommandName}");
-            //    return;
-            //}
-
             // For now just assume actions are unique per command.
             // If we want to change this in the future we'll have to implement the interaction service properly.
             CommandInfo? interactionOwner = null;
@@ -358,7 +309,6 @@ namespace WinstonBot
             if (interactionOwner == null || action == null)
             {
                 Console.WriteLine($"No action found for interaction: {component.Data.CustomId}");
-                //Console.WriteLine($"ERROR: failed to get command {owningCommandName}");
                 return;
             }
 
@@ -422,6 +372,37 @@ namespace WinstonBot
             }
 
             await actionInstance.HandleAction(context);
+        }
+
+        KeyValuePair<SubCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>?>? FindDeepestSubCommand(CommandInfo parent,
+            IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+        {
+            if (options == null)
+            {
+                return null;
+            }
+
+            foreach (var optionData in options)
+            {
+                if (optionData.Type == Discord.ApplicationCommandOptionType.SubCommandGroup ||
+                    optionData.Type == Discord.ApplicationCommandOptionType.SubCommand)
+                {
+                    string subCommandName = optionData.Name;
+                    SubCommandInfo? info = _subCommandEntries.Find(sub => sub.Name == subCommandName && sub.ParentCommandType == parent.Type);
+
+                    if (info != null)
+                    {
+                        var result = FindDeepestSubCommand(info, optionData.Options);
+                        if (result != null)
+                        {
+                            return result;
+                        }
+
+                        return new(info, optionData.Options);
+                    }
+                }
+            }
+            return null;
         }
 
         private IEnumerable<ulong> GetRequiredRolesForCommand(ConfigService configService, SocketGuild guild, string commandName)
