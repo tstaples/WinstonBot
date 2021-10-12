@@ -23,6 +23,7 @@
 	- this should also deploy the release token
 
 - winston picture command
+- command to generate timestamps for events.
 
 Done:
 - role requirements for commands

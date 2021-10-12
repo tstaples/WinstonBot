@@ -82,18 +82,25 @@ namespace WinstonBot.Commands
                 return null;
             }
 
-            var guildId = ulong.Parse(footerParts[0]);
-            var channelId = ulong.Parse(footerParts[1]);
-            var originalMessageId = ulong.Parse(footerParts[2]);
-            var confirmedBefore = bool.Parse(footerParts[3]);
-
-            return new HostMessageMetadata()
+            try
             {
-                GuildId = guildId,
-                ChannelId = channelId,
-                MessageId = originalMessageId,
-                TeamConfirmedBefore = confirmedBefore
-            };
+                var guildId = ulong.Parse(footerParts[0]);
+                var channelId = ulong.Parse(footerParts[1]);
+                var originalMessageId = ulong.Parse(footerParts[2]);
+                var confirmedBefore = bool.Parse(footerParts[3]);
+
+                return new HostMessageMetadata()
+                {
+                    GuildId = guildId,
+                    ChannelId = channelId,
+                    MessageId = originalMessageId,
+                    TeamConfirmedBefore = confirmedBefore
+                };
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

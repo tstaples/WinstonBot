@@ -79,7 +79,7 @@ namespace WinstonBot.Commands
         {
             var builder = new EmbedBuilder()
                 .WithTitle($"Pending Team for {bossEntry.PrettyName}")
-                .WithDescription("Suggested Roles based on role weights and attendance.")
+                .WithDescription("Suggested Roles based on fancy math and attendance.")
                 // We use spaces as separators as commas cause it to be treated as a long string that can't be broken.
                 // This causes weird issues where the fields get super squished.
                 .WithFooter($"{guild.Id} {channelId} {messageId} {confirmedBefore}")
@@ -108,8 +108,8 @@ namespace WinstonBot.Commands
         {
             var builder = new EmbedBuilder()
                 .WithTitle($"Selected Team for {bossEntry.PrettyName}")
-                .WithDescription("Suggested Roles based on role weights and attendance.")
-                .WithFooter($"Finalized by {finalizedByMention}")
+                .WithDescription("__Suggested__ Roles based on fancy math and attendance.")
+                .WithFooter($"Team Finalized by {finalizedByMention}")
                 .WithColor(bossEntry.EmbedColor)
                 .WithThumbnailUrl(bossEntry.IconUrl);
 
