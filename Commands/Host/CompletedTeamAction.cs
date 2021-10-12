@@ -50,14 +50,6 @@ namespace WinstonBot.Commands
             Dictionary<string, ulong> roleUserMap = builder.SelectTeam(ids);
             var unselectedids = ids.Where(id => !roleUserMap.ContainsValue(id));
 
-            // TODO: get days to look back from boss entry.
-            // TODO: use the suggested roles returned from this.
-            //var selectedids = SelectUsersForTeam(ids, 5);
-            //
-            //var selectedNames = selectedids.Select((string role, ulong id) => guild.GetUser(id).Mention);
-            //var selectedNames = Utility.ConvertUserIdListToMentions(guild, selectedids);
-            //var unselectedNames = Utility.ConvertUserIdListToMentions(guild, unselectedids);
-
             await context.Message.ModifyAsync(msgProps =>
             {
                 msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, true);
@@ -68,11 +60,11 @@ namespace WinstonBot.Commands
             // Footed will say "finalized by X" if it's been completed before.
             bool hasBeenConfirmedBefore = currentEmbed.Footer.HasValue;
 
-            var message = await context.User.SendMessageAsync("Confirm or edit the team." +
+            var message = await context.User.SendMessageAsync(
+                "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
-                "\nYou may continue making changes after you confirm the team by hitting confirm again." +
-                "\nOnce you're finished making changes you can dismiss this message.",
+                "\nPress cancel to discard this edit.",
                 embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, hasBeenConfirmedBefore, BossEntry, roleUserMap),
                 component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, roleUserMap, unselectedids));
 
@@ -81,9 +73,5 @@ namespace WinstonBot.Commands
 
             await context.DeferAsync();
         }
-
-        //--------------------------------
-
-
     }
 }

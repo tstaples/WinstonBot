@@ -36,7 +36,6 @@ namespace WinstonBot.Commands
 
             var currentEmbed = context.Message.Embeds.First();
             Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
-            //var selectedNameIds = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
             if (selectedIds.Count == 0)
             {
                 await context.RespondAsync("Not enough people signed up.", ephemeral: true);
@@ -62,9 +61,6 @@ namespace WinstonBot.Commands
                 .Where(id => !selectedIds.ContainsValue(id))
                 .ToList();
 
-            //var selectedNames = Utility.ConvertUserIdListToMentions(guild, selectedNameIds);
-            //var unselectedNames = Utility.ConvertUserIdListToMentions(guild, unselectedIds);
-
             await context.Message.ModifyAsync(msgProps =>
             {
                 msgProps.Embed = Utility.CreateBuilderForEmbed(currentEmbed)
@@ -75,11 +71,11 @@ namespace WinstonBot.Commands
                     .Build();
             });
 
-            var message = await context.User.SendMessageAsync("Confirm or edit the team." +
+            var message = await context.User.SendMessageAsync(
+                "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
-                "\nYou may continue making changes after you confirm the team by hitting confirm again." +
-                "\nOnce you're finished making changes you can dismiss this message.",
+                "\nPress cancel to discard this edit.",
                 embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, true, BossEntry, selectedIds),
                 component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedIds));
 

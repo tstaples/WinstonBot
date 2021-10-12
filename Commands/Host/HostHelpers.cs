@@ -83,8 +83,11 @@ namespace WinstonBot.Commands
             Dictionary<string, ulong> selectedNames)
         {
             var builder = new EmbedBuilder()
-                .WithTitle("Pending Team (Suggested Roles)")
-                .WithFooter($"{guild.Id},{channelId},{messageId},{confirmedBefore}")
+                .WithTitle($"Pending Team for {bossEntry.PrettyName}")
+                .WithDescription("Suggested Roles based on role weights and attendance.")
+                // We use spaces as separators as commas cause it to be treated as a long string that can't be broken.
+                // This causes weird issues where the fields get super squished.
+                .WithFooter($"{guild.Id} {channelId} {messageId} {confirmedBefore}")
                 .WithThumbnailUrl(bossEntry.IconUrl)
                 .WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
 
@@ -95,7 +98,7 @@ namespace WinstonBot.Commands
                 var fieldBuilder = new EmbedFieldBuilder()
                     .WithName(role.ToString())
                     .WithValue(mention)
-                    .WithIsInline(false); // TODO: figure out why this squishes everything
+                    .WithIsInline(true);
                 builder.AddField(fieldBuilder);
             }
             return builder.Build();
@@ -108,7 +111,8 @@ namespace WinstonBot.Commands
             Dictionary<string, ulong> selectedNames)
         {
             var builder = new EmbedBuilder()
-                .WithTitle($"Selected Team for {bossEntry.PrettyName} (Suggested Roles)")
+                .WithTitle($"Selected Team for {bossEntry.PrettyName}")
+                .WithDescription("Suggested Roles based on role weights and attendance.")
                 .WithFooter($"Finalized by {finalizedByMention}")
                 .WithThumbnailUrl(bossEntry.IconUrl);
 
@@ -119,7 +123,7 @@ namespace WinstonBot.Commands
                 var fieldBuilder = new EmbedFieldBuilder()
                     .WithName(role.ToString())
                     .WithValue(mention)
-                    .WithIsInline(false); // TODO: figure out why this squishes everything
+                    .WithIsInline(true);
                 builder.AddField(fieldBuilder);
             }
             return builder.Build();
@@ -148,6 +152,10 @@ namespace WinstonBot.Commands
                     .WithStyle(ButtonStyle.Danger));
             }
 
+            // Ensure the add buttons are never on the same row as the remove buttons.
+            int numSelectedNames = selectedNames.Where(pair => pair.Value != 0).Count();
+            int currentRow = (int)Math.Ceiling((float)numSelectedNames / 5);
+
             foreach (var id in unselectedNames)
             {
                 var user = guild.GetUser(id);
@@ -162,18 +170,23 @@ namespace WinstonBot.Commands
                     .WithLabel($"{username}")
                     .WithEmote(new Emoji("➕"))
                     .WithCustomId($"{AddUserToTeamAction.ActionName}_{bossIndex}_{id}")
-                    .WithStyle(ButtonStyle.Success));
+                    .WithStyle(ButtonStyle.Success), row: currentRow);
             }
+
+            // Ensure the confirm/cancel buttons are never on the same row as the other buttons.
+            currentRow += (int)Math.Ceiling((float)unselectedNames.Count() / 5);
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
                     .WithCustomId($"{ConfirmTeamAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Primary));
+                    .WithStyle(ButtonStyle.Primary),
+                    row: currentRow);
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Cancel")
                     .WithCustomId($"{CancelTeamConfirmationAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Danger));
+                    .WithStyle(ButtonStyle.Danger),
+                    row: currentRow);
 
             return builder.Build();
         }
