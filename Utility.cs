@@ -20,6 +20,12 @@ namespace WinstonBot
 
         public static ulong GetUserIdFromMention(string mention)
         {
+            // Special case
+            if (mention == "None")
+            {
+                return 0;
+            }
+
             var resultString = Regex.Match(mention, @"\d+").Value;
             ulong value = 0;
             if (ulong.TryParse(resultString, out value))

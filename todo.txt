@@ -1,5 +1,6 @@
-﻿// TODO: the sub command parent type doesn't always match command type (eg for /configure action view-roles, view-roles parent is action.
-// need to switch to listing subcommands on the command attribute.
+﻿- implement actual aod team selection
+- interaction for setting up who can do what roles at aod.
+	- this will let us avoid needing to add roles to control who can do what.
 
 - experiment with not needing the interaction service before going too far with it.
 	- button builder idea
@@ -11,12 +12,11 @@
 - list subcommands in action/subcommand attribute
 - add view all config settings subcommand
 
+- use dependency injection to inject services for commands
 - test multiple people hitting buttons at once
 - harden guild.GetUser against users no longer in the discord
 
 - boss embed color
-- implement actual aod team selection
-- role requirements for commands
 - notifying people trying to sign up without having read rules
 - regular sign ups for aod/raids/rago?
 - combined raids signup
@@ -24,3 +24,6 @@
 	- this should also deploy the release token
 
 - winston picture command
+
+Done:
+- role requirements for commands

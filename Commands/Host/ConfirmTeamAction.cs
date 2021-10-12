@@ -31,18 +31,13 @@ namespace WinstonBot.Commands
             }
 
             var currentEmbed = context.Message.Embeds.First();
-            var selectedNames = HostHelpers.ParseNamesToList(currentEmbed.Description);
+            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
 
             // TODO: ping the people that are going.
             // Should that be a separate message or should we just not use an embed for this?
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
-                msgProps.Embed = new EmbedBuilder()
-                    .WithTitle($"Selected Team for {BossEntry.PrettyName}")
-                    .WithFooter($"Finalized by {context.User.Username}")
-                    .WithDescription(String.Join(Environment.NewLine, selectedNames))
-                    .WithThumbnailUrl(BossEntry.IconUrl)
-                    .Build();
+                msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds);
                 msgProps.Components = new ComponentBuilder()
                     .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger)
                     .Build();

@@ -21,7 +21,9 @@ namespace WinstonBot.Data
             public string CommandName { get; set; }
             public string PrettyName { get; set; }
             public string IconUrl { get; set; }
+            public bool SupportsSignup { get; set; } // TODO: should we limit signup command to certain bosses? or just have some default behavior
             public uint MaxPlayersOnTeam { get; set; }
+            public Type? BuilderClass { get; set; }
         }
 
         public static readonly Entry[] Entries = new Entry[]
@@ -32,7 +34,9 @@ namespace WinstonBot.Data
                 CommandName = "aod",
                 PrettyName = "AoD",
                 IconUrl = "https://runescape.wiki/images/2/2b/Nex_%28Angel_of_Death%29.png?00050",
-                MaxPlayersOnTeam = 7 // TODO: allow optionally passing this in through the command for different team sizes.
+                SupportsSignup = true,
+                MaxPlayersOnTeam = 7, // TODO: allow optionally passing this in through the command for different team sizes.
+                BuilderClass = typeof(Commands.AoDTeamBuilder)
             },
             new Entry()
             {

@@ -35,8 +35,9 @@ namespace WinstonBot.Commands
             }
 
             var currentEmbed = context.Message.Embeds.First();
-            var selectedNameIds = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
-            if (selectedNameIds.Count == 0)
+            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
+            //var selectedNameIds = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
+            if (selectedIds.Count == 0)
             {
                 await context.RespondAsync("Not enough people signed up.", ephemeral: true);
                 return;
@@ -53,16 +54,16 @@ namespace WinstonBot.Commands
                 Console.WriteLine($"[EditCompletedTeamAction] Failed to find message data for {context.Message.Id}. Cannot retrieve original names." +
                     $"Updating list with currently selected names.");
 
-                context.OriginalSignupsForMessage.TryAdd(context.Message.Id, new ReadOnlyCollection<ulong>(selectedNameIds));
-                allIds = selectedNameIds;
+                context.OriginalSignupsForMessage.TryAdd(context.Message.Id, new ReadOnlyCollection<ulong>(selectedIds.Values.ToArray()));
+                allIds = selectedIds.Values.ToList();
             }
 
             List<ulong> unselectedIds = allIds
-                .Where(id => !selectedNameIds.Contains(id))
+                .Where(id => !selectedIds.ContainsValue(id))
                 .ToList();
 
-            var selectedNames = Utility.ConvertUserIdListToMentions(guild, selectedNameIds);
-            var unselectedNames = Utility.ConvertUserIdListToMentions(guild, unselectedIds);
+            //var selectedNames = Utility.ConvertUserIdListToMentions(guild, selectedNameIds);
+            //var unselectedNames = Utility.ConvertUserIdListToMentions(guild, unselectedIds);
 
             await context.Message.ModifyAsync(msgProps =>
             {
@@ -79,8 +80,8 @@ namespace WinstonBot.Commands
                 "\nOnce you're done click Confirm Team." +
                 "\nYou may continue making changes after you confirm the team by hitting confirm again." +
                 "\nOnce you're finished making changes you can dismiss this message.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, context.Channel.Id, context.Message.Id, true, BossEntry, selectedNames),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedNames, unselectedNames));
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, true, BossEntry, selectedIds),
+                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedIds));
 
             // TODO: do this via context instead?
             context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);

@@ -39,6 +39,9 @@ namespace WinstonBot.Commands
                 else
                 {
                     // Don't need to change the embed since it hasn't been modified yet.
+                    msgProps.Embed = Utility.CreateBuilderForEmbed(originalMessage.Embeds.First())
+                        .WithFooter(new Discord.EmbedFooterBuilder())
+                        .Build();
                     msgProps.Components = HostHelpers.BuildEditButton(BossIndex, false);
                 }
             });

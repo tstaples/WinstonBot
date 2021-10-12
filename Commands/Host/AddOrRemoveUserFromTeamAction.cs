@@ -1,4 +1,5 @@
-﻿using WinstonBot.Attributes;
+﻿using Discord;
+using WinstonBot.Attributes;
 using WinstonBot.Data;
 
 namespace WinstonBot.Commands
@@ -9,7 +10,7 @@ namespace WinstonBot.Commands
         public long BossIndex { get; set; }
 
         [ActionParam]
-        public string MentionToAdd { get; set; }
+        public ulong MentionToAdd { get; set; }
 
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
@@ -23,12 +24,12 @@ namespace WinstonBot.Commands
             }
 
             var currentEmbed = context.Message.Embeds.First();
-            string mention = context.Data.CustomId.Split('_')[2];
 
-            ulong userId = Utility.GetUserIdFromMention(mention);
-            var ids = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
-            if (!CanRunActionForUser(userId, ids))
+            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
+            if (!CanRunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds.Values))
             {
+                // TODO: get reason from function
+                await context.RespondAsync("You cannot do that you dumb motherfuck", ephemeral:true);
                 return;
             }
 
@@ -41,28 +42,26 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            ids = RunActionForUser(userId, mention, ids);
-            var selectedNames = Utility.ConvertUserIdListToMentions(context.Guild, ids);
+            RunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds);
 
             var unselectedUserIds = context.OriginalSignupsForMessage[context.OriginalMessageData.MessageId]
-                .Where(id => !ids.Contains(id));
-            var unselectedNames = Utility.ConvertUserIdListToMentions(context.Guild, unselectedUserIds);
+                .Where(id => !selectedIds.ContainsValue(id));
 
             await context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildTeamSelectionEmbed(
-                    context.OriginalMessageData.GuildId,
+                    context.Guild,
                     context.OriginalMessageData.ChannelId,
                     context.OriginalMessageData.MessageId,
                     context.OriginalMessageData.TeamConfirmedBefore,
                     BossEntry,
-                    selectedNames);
-                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, BossIndex, selectedNames, unselectedNames);
+                    selectedIds);
+                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, BossIndex, selectedIds, unselectedUserIds);
             });
         }
 
-        protected abstract bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users);
-        protected abstract List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users);
+        protected abstract bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users);
+        protected abstract void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users);
     }
 
     [Action("remove-user-from-team")]
@@ -70,16 +69,16 @@ namespace WinstonBot.Commands
     {
         public static string ActionName = "remove-user-from-team";
 
-        protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
+        protected override bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users)
         {
             return users.Contains(userId);
         }
 
-        protected override List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users)
+        protected override void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users)
         {
-            Console.WriteLine($"Removing {mention} to the team");
-            users.Remove(userId);
-            return users;
+            Console.WriteLine($"Removing {userId} from the team");
+            var field = fields.Where(field => Utility.GetUserIdFromMention(field.Value) == userId).First();
+            users[field.Name] = 0;
         }
     }
 
@@ -88,16 +87,18 @@ namespace WinstonBot.Commands
     {
         public static string ActionName = "add-user-to-team";
 
-        protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
+        protected override bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users)
         {
-            return !users.Contains(userId);
+            var emptyFields = fields.Where(field => field.Value == "None");
+
+            return emptyFields.Any() && !users.Contains(userId);
         }
 
-        protected override List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users)
+        protected override void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users)
         {
-            Console.WriteLine($"Adding {mention} to the team");
-            users.Add(userId);
-            return users;
+            Console.WriteLine($"Adding {userId} to the team");
+            var firstEmpty = fields.Where(field => field.Value == "None").First();
+            users[firstEmpty.Name] = userId;
         }
     }
 }

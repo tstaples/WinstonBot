@@ -355,6 +355,10 @@ namespace WinstonBot
                     {
                         value = long.Parse(tokens[i]);
                     }
+                    else if (optionInfo.Property.PropertyType == typeof(ulong))
+                    {
+                        value = ulong.Parse(tokens[i]);
+                    }
                     else
                     {
                         Console.WriteLine($"Unsupported action option type: {optionInfo.Property.PropertyType}");

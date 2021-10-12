@@ -33,11 +33,14 @@ namespace WinstonBot.Commands
         // we only have the mention string in the desc.
         private static readonly List<string> testNames = new List<string>()
         {
+            { "<@517886402466152450>" },
             { "<@141439679890325504>" },
-            { "<@204793753691619330>" },
-            { "<@889961722314637342>" },
-            { "<@879404492922167346>" },
-            { "<@856679611899576360>" }
+            { "<@295027430299795456>" },
+            { "<@668161362249121796>" },
+            { "<@197872300802965504>" },
+            { "<@159691258804174849>" },
+            { "<@172497655992156160>" },
+            { "<@414119139506913280>" },
         };
 
         public async override Task HandleCommand(CommandContext context)
