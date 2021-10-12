@@ -111,16 +111,24 @@ namespace WinstonBot.Commands
                 throw new Exception("Failed to calculate users");
             }
 
-            Dictionary<string, ulong> userForRoleMap = new();
+            // store in order of the role so we add them to the dict in the correct order, allowing them to appear in the embed in the right order.
+            ulong[] userForRole = new ulong[AoDDatabase.NumRoles];
             for (int i = 0; i < users.Count; ++i)
             {
                 if (result[i] < AoDDatabase.NumRoles)
                 {
                     var user = users[i];
                     var role = (AoDDatabase.Roles)result[i];
-                    userForRoleMap.Add(role.ToString(), user.Id);
+                    int roleIndex = result[i];
+                    userForRole[roleIndex] = user.Id;
                     Console.WriteLine($"{user.Name} is doing role: {role}");
                 }
+            }
+
+            Dictionary<string, ulong> userForRoleMap = new();
+            for (int i = 0; i < userForRole.Length; ++i)
+            {
+                userForRoleMap.Add(((AoDDatabase.Roles)i).ToString(), userForRole[i]);
             }
 
             return userForRoleMap;
