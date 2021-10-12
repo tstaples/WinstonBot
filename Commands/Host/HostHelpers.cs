@@ -13,8 +13,11 @@ namespace WinstonBot.Commands
     {
         public static ITeamBuilder GetTeamBuilder(BossData.Entry entry)
         {
-            var builderClass = entry.BuilderClass ?? typeof(TeamBuilderBase);
-            return (ITeamBuilder)Activator.CreateInstance(builderClass);
+            if (entry.BuilderClass == null)
+            {
+                throw new ArgumentNullException($"No builder class set for {entry.CommandName}");
+            }
+            return (ITeamBuilder)Activator.CreateInstance(entry.BuilderClass);
         }
 
         public static List<string> ParseNamesToList(string text)

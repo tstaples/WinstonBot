@@ -24,7 +24,7 @@ namespace WinstonBot.Commands
     )]
     public class HostPvmSignup : CommandBase
     {
-        [CommandOption("boss", "The boss to create an event for.", dataProvider: typeof(BossChoiceDataProvider))]
+        [CommandOption("boss", "The boss to create an event for.", dataProvider: typeof(SignupBossChoiceDataProvider))]
         public long BossIndex { get; set; }
 
         [CommandOption("message", "An optional message to display.", required: false)]
