@@ -53,7 +53,7 @@ namespace WinstonBot.Commands
         public string OwningCommand => _commandName;
 
         private SocketMessageComponent Component { get; set; }
-        private string _commandName; // TODO: set this
+        private string _commandName;
 
         public ActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services, string owningCommand)
         {

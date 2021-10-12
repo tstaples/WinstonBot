@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Discord;
 
 namespace WinstonBot.Data
 {
@@ -21,8 +17,9 @@ namespace WinstonBot.Data
             public string CommandName { get; set; }
             public string PrettyName { get; set; }
             public string IconUrl { get; set; }
-            public bool SupportsSignup { get; set; } // TODO: should we limit signup command to certain bosses? or just have some default behavior
+            public bool SupportsSignup { get; set; }
             public uint MaxPlayersOnTeam { get; set; }
+            public Color EmbedColor { get; set; }
             public Type? BuilderClass { get; set; }
         }
 
@@ -36,6 +33,7 @@ namespace WinstonBot.Data
                 IconUrl = "https://runescape.wiki/images/2/2b/Nex_%28Angel_of_Death%29.png?00050",
                 SupportsSignup = true,
                 MaxPlayersOnTeam = 7, // TODO: allow optionally passing this in through the command for different team sizes.
+                EmbedColor = Color.Red,
                 BuilderClass = typeof(Commands.AoDTeamBuilder)
             },
             new Entry()
@@ -44,7 +42,8 @@ namespace WinstonBot.Data
                 CommandName = "raids",
                 PrettyName = "Liberation of Mazcab",
                 IconUrl = "https://runescape.wiki/images/b/b8/Yakamaru.png?18623",
-                MaxPlayersOnTeam = 10
+                MaxPlayersOnTeam = 10,
+                EmbedColor = Color.Blue,
             },
         };
 

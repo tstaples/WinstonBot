@@ -49,7 +49,6 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            // TODO: handle checking they have the correct role.
             Console.WriteLine($"{context.User.Mention} has signed up!");
             names.Add(context.User.Mention);
 

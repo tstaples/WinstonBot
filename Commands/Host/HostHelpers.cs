@@ -1,10 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WinstonBot.Data;
 
 namespace WinstonBot.Commands
@@ -89,6 +84,7 @@ namespace WinstonBot.Commands
                 // This causes weird issues where the fields get super squished.
                 .WithFooter($"{guild.Id} {channelId} {messageId} {confirmedBefore}")
                 .WithThumbnailUrl(bossEntry.IconUrl)
+                .WithColor(bossEntry.EmbedColor)
                 .WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
 
             foreach ((string role, ulong id) in selectedNames)
@@ -114,6 +110,7 @@ namespace WinstonBot.Commands
                 .WithTitle($"Selected Team for {bossEntry.PrettyName}")
                 .WithDescription("Suggested Roles based on role weights and attendance.")
                 .WithFooter($"Finalized by {finalizedByMention}")
+                .WithColor(bossEntry.EmbedColor)
                 .WithThumbnailUrl(bossEntry.IconUrl);
 
             foreach ((string role, ulong id) in selectedNames)
@@ -222,6 +219,7 @@ namespace WinstonBot.Commands
                 .WithTitle($"{bossEntry.PrettyName}")
                 .WithDescription(String.Join(Environment.NewLine, names))
                 .WithThumbnailUrl(bossEntry.IconUrl)
+                .WithColor(bossEntry.EmbedColor)
                 .WithCurrentTimestamp(); // TODO: include event start timestamp
             if (editedByMention != null)
             {
