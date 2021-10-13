@@ -34,6 +34,7 @@ public class Program
             LargeThreshold = 250,
             GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers,
             LogLevel = LogSeverity.Info,
+            AlwaysDownloadUsers = true
         });
         _client.Log += this.Log;
 
@@ -58,16 +59,6 @@ public class Program
     private async Task ClientReady()
     {
         Console.WriteLine("Client ready");
-
-        // TODO: delete this if the download all players option works
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        Task.Run(() =>
-        {
-            _client.DownloadUsersAsync(_client.Guilds);
-            Console.WriteLine("Finished downloading users");
-            return Task.CompletedTask;
-        });
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
         await _commandHandler.InstallCommandsAsync();
     }

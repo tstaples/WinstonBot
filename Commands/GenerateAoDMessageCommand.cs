@@ -10,7 +10,7 @@ namespace WinstonBot.Commands
         public async override Task HandleCommand(CommandContext context)
         {
             var reset = new DateTimeOffset(GetReset().AddDays(1));
-            var startTime = new DateTimeOffset(GetReset().AddDays(1).AddMinutes(30));
+            var startTime = new DateTimeOffset(GetReset().AddDays(1).AddHours(1).AddMinutes(30));
             
             string startTimestamp = startTime.ToUnixTimeSeconds().ToString();
             string resetTimestamp = reset.ToUnixTimeSeconds().ToString();
