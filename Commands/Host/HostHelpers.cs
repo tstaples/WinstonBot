@@ -1,16 +1,20 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
     internal class HostHelpers
     {
+        public static ITeamBuilder GetTeamBuilder(BossData.Entry entry)
+        {
+            if (entry.BuilderClass == null)
+            {
+                throw new ArgumentNullException($"No builder class set for {entry.CommandName}");
+            }
+            return (ITeamBuilder)Activator.CreateInstance(entry.BuilderClass);
+        }
+
         public static List<string> ParseNamesToList(string text)
         {
             if (text != null)
@@ -27,10 +31,36 @@ namespace WinstonBot.Commands
                 .ToList();
         }
 
+        public static Dictionary<string, ulong> ParseNamesToRoleIdMap(Embed embed)
+        {
+            Dictionary<string, ulong> roleToUsers = new();
+            foreach (EmbedField field in embed.Fields)
+            {
+                roleToUsers.Add(field.Name, Utility.GetUserIdFromMention(field.Value));
+            }
+            return roleToUsers;
+        }
+
+        public static List<ulong> ParseNamesToIdListWithValidation(SocketGuild guild, string text)
+        {
+            return ParseNamesToList(text)
+                .Select(mention => Utility.GetUserIdFromMention(mention))
+                .Where(id => guild.GetUser(id) != null)
+                .ToList();
+        }
+
         public static List<ulong> ParseNamesToIdList(IEnumerable<string> nameList)
         {
             return nameList
                 .Select(mention => Utility.GetUserIdFromMention(mention))
+                .ToList();
+        }
+
+        public static List<ulong> ParseNamesToIdListWithValidation(SocketGuild guild, IEnumerable<string> nameList)
+        {
+            return nameList
+                .Select(mention => Utility.GetUserIdFromMention(mention))
+                .Where(id => guild.GetUser(id) != null)
                 .ToList();
         }
 
@@ -40,58 +70,120 @@ namespace WinstonBot.Commands
         }
 
         public static Embed BuildTeamSelectionEmbed(
-            ulong guildId,
+            SocketGuild guild,
             ulong channelId,
             ulong messageId,
             bool confirmedBefore,
             BossData.Entry bossEntry,
-            List<string> selectedNames)
+            Dictionary<string, ulong> selectedNames)
         {
-            return new EmbedBuilder()
-                .WithTitle("Pending Team")
-                .WithDescription(String.Join(Environment.NewLine, selectedNames))
-                .WithFooter($"{guildId},{channelId},{messageId},{confirmedBefore}")
+            var builder = new EmbedBuilder()
+                .WithTitle($"Pending Team for {bossEntry.PrettyName}")
+                .WithDescription("Suggested Roles based on fancy math and attendance.")
+                // We use spaces as separators as commas cause it to be treated as a long string that can't be broken.
+                // This causes weird issues where the fields get super squished.
+                .WithFooter($"{guild.Id} {channelId} {messageId} {confirmedBefore}")
                 .WithThumbnailUrl(bossEntry.IconUrl)
-                .WithUrl(BuildMessageLink(guildId, channelId, messageId))
-                .Build();
+                .WithColor(bossEntry.EmbedColor)
+                .WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
+
+            foreach ((string role, ulong id) in selectedNames)
+            {
+                var user = guild.GetUser(id);
+                string mention = user != null ? user.Mention : "None";
+                var fieldBuilder = new EmbedFieldBuilder()
+                    .WithName(role.ToString())
+                    .WithValue(mention)
+                    .WithIsInline(true);
+                builder.AddField(fieldBuilder);
+            }
+            return builder.Build();
+        }
+
+        public static Embed BuildFinalTeamEmbed(
+            SocketGuild guild,
+            string finalizedByMention,
+            BossData.Entry bossEntry,
+            Dictionary<string, ulong> selectedNames)
+        {
+            var builder = new EmbedBuilder()
+                .WithTitle($"Selected Team for {bossEntry.PrettyName}")
+                .WithDescription("__Suggested__ Roles based on fancy math and attendance.")
+                .WithFooter($"Team Finalized by {finalizedByMention}")
+                .WithColor(bossEntry.EmbedColor)
+                .WithThumbnailUrl(bossEntry.IconUrl);
+
+            foreach ((string role, ulong id) in selectedNames)
+            {
+                var user = guild.GetUser(id);
+                string mention = user != null ? user.Mention : "None";
+                var fieldBuilder = new EmbedFieldBuilder()
+                    .WithName(role.ToString())
+                    .WithValue(mention)
+                    .WithIsInline(true);
+                builder.AddField(fieldBuilder);
+            }
+            return builder.Build();
         }
 
         public static MessageComponent BuildTeamSelectionComponent(
             SocketGuild guild,
             long bossIndex,
-            List<string> selectedNames,
-            List<string> unselectedNames)
+            Dictionary<string, ulong> selectedNames,
+            IEnumerable<ulong> unselectedNames)
         {
             var builder = new ComponentBuilder();
-            foreach (var mention in selectedNames)
+            foreach ((string role, ulong id) in selectedNames)
             {
-                ulong userid = Utility.GetUserIdFromMention(mention);
-                var username = guild.GetUser(userid).Username;
+                var user = guild.GetUser(id);
+                if (user == null)
+                {
+                    // This user is likely no long in the discord
+                    continue;
+                }
+
+                var username = user.Username;
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"❌ {username}")
-                    .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{bossIndex}_{mention}")
+                    .WithCustomId($"{RemoveUserFromTeamAction.ActionName}_{bossIndex}_{id}")
                     .WithStyle(ButtonStyle.Danger));
             }
 
-            foreach (var mention in unselectedNames)
+            // Ensure the add buttons are never on the same row as the remove buttons.
+            int numSelectedNames = selectedNames.Where(pair => pair.Value != 0).Count();
+            int currentRow = (int)Math.Ceiling((float)numSelectedNames / 5);
+
+            foreach (var id in unselectedNames)
             {
-                var username = guild.GetUser(Utility.GetUserIdFromMention(mention)).Username;
+                var user = guild.GetUser(id);
+                if (user == null)
+                {
+                    // This user is likely no long in the discord
+                    continue;
+                }
+
+                var username = user.Username;
                 builder.WithButton(new ButtonBuilder()
                     .WithLabel($"{username}")
                     .WithEmote(new Emoji("➕"))
-                    .WithCustomId($"{AddUserToTeamAction.ActionName}_{bossIndex}_{mention}")
-                    .WithStyle(ButtonStyle.Success));
+                    .WithCustomId($"{AddUserToTeamAction.ActionName}_{bossIndex}_{id}")
+                    .WithStyle(ButtonStyle.Success), row: currentRow);
             }
+
+            // Ensure the confirm/cancel buttons are never on the same row as the other buttons.
+            currentRow += (int)Math.Ceiling((float)unselectedNames.Count() / 5);
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
                     .WithCustomId($"{ConfirmTeamAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Primary));
+                    .WithStyle(ButtonStyle.Primary),
+                    row: currentRow);
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Cancel")
                     .WithCustomId($"{CancelTeamConfirmationAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Danger));
+                    .WithStyle(ButtonStyle.Danger),
+                    row: currentRow);
 
             return builder.Build();
         }
@@ -127,6 +219,7 @@ namespace WinstonBot.Commands
                 .WithTitle($"{bossEntry.PrettyName}")
                 .WithDescription(String.Join(Environment.NewLine, names))
                 .WithThumbnailUrl(bossEntry.IconUrl)
+                .WithColor(bossEntry.EmbedColor)
                 .WithCurrentTimestamp(); // TODO: include event start timestamp
             if (editedByMention != null)
             {

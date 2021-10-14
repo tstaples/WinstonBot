@@ -1,94 +1,104 @@
-﻿namespace WinstonBot.Commands
+﻿using Discord;
+using WinstonBot.Attributes;
+using WinstonBot.Data;
+
+namespace WinstonBot.Commands
 {
     internal abstract class AddOrRemoveUserFromTeamBase : IAction
     {
-        public abstract string Name { get; }
+        [ActionParam]
+        public long BossIndex { get; set; }
+
+        [ActionParam]
+        public ulong MentionToAdd { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
             if (context.OriginalMessageData == null || !context.IsMessageDataValid)
             {
-                await context.Component.RespondAsync("The original message this interaction was created from could not be found.", ephemeral: true);
+                await context.RespondAsync("The original message this interaction was created from could not be found.", ephemeral: true);
                 return;
             }
 
-            var currentEmbed = context.Component.Message.Embeds.First();
-            string mention = context.Component.Data.CustomId.Split('_')[2];
+            var currentEmbed = context.Message.Embeds.First();
 
-            ulong userId = Utility.GetUserIdFromMention(mention);
-            var ids = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
-            if (!CanRunActionForUser(userId, ids))
+            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
+            if (!CanRunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds.Values))
             {
+                // TODO: get reason from function
+                await context.RespondAsync("You cannot do that you dumb motherfuck", ephemeral:true);
                 return;
             }
 
             if (!context.OriginalSignupsForMessage.ContainsKey(context.OriginalMessageData.MessageId))
             {
-                await context.Component.RespondAsync($"No user data could be found for message {context.OriginalMessageData.MessageId}.\n" +
+                await context.RespondAsync($"No user data could be found for message {context.OriginalMessageData.MessageId}.\n" +
                     $"This may be because the bot restarted while you were editing.\n" +
                     $"Please click 'Confirm Team' on the original message to try again.",
                     ephemeral: true);
                 return;
             }
 
-            ids = RunActionForUser(userId, mention, ids);
-            var selectedNames = Utility.ConvertUserIdListToMentions(context.Guild, ids);
+            RunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds);
 
             var unselectedUserIds = context.OriginalSignupsForMessage[context.OriginalMessageData.MessageId]
-                .Where(id => !ids.Contains(id));
-            var unselectedNames = Utility.ConvertUserIdListToMentions(context.Guild, unselectedUserIds);
+                .Where(id => !selectedIds.ContainsValue(id));
 
-            await context.Component.UpdateAsync(msgProps =>
+            await context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildTeamSelectionEmbed(
-                    context.OriginalMessageData.GuildId,
+                    context.Guild,
                     context.OriginalMessageData.ChannelId,
                     context.OriginalMessageData.MessageId,
                     context.OriginalMessageData.TeamConfirmedBefore,
-                    context.BossEntry,
-                    selectedNames);
-                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, context.BossIndex, selectedNames, unselectedNames);
+                    BossEntry,
+                    selectedIds);
+                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, BossIndex, selectedIds, unselectedUserIds);
             });
         }
 
-        protected abstract bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users);
-        protected abstract List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users);
+        protected abstract bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users);
+        protected abstract void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users);
     }
 
+    [Action("remove-user-from-team")]
     internal class RemoveUserFromTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "remove-user-from-team";
-        public override string Name => ActionName;
 
-        protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
+        protected override bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users)
         {
             return users.Contains(userId);
         }
 
-        protected override List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users)
+        protected override void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users)
         {
-            Console.WriteLine($"Removing {mention} to the team");
-            users.Remove(userId);
-            return users;
+            Console.WriteLine($"Removing {userId} from the team");
+            var field = fields.Where(field => Utility.GetUserIdFromMention(field.Value) == userId).First();
+            users[field.Name] = 0;
         }
     }
 
+    [Action("add-user-to-team")]
     internal class AddUserToTeamAction : AddOrRemoveUserFromTeamBase
     {
         public static string ActionName = "add-user-to-team";
-        public override string Name => ActionName;
 
-        protected override bool CanRunActionForUser(ulong userId, IReadOnlyCollection<ulong> users)
+        protected override bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users)
         {
-            return !users.Contains(userId);
+            var emptyFields = fields.Where(field => field.Value == "None");
+
+            return emptyFields.Any() && !users.Contains(userId);
         }
 
-        protected override List<ulong> RunActionForUser(ulong userId, string mention, List<ulong> users)
+        protected override void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users)
         {
-            Console.WriteLine($"Adding {mention} to the team");
-            users.Add(userId);
-            return users;
+            Console.WriteLine($"Adding {userId} to the team");
+            var firstEmpty = fields.Where(field => field.Value == "None").First();
+            users[firstEmpty.Name] = userId;
         }
     }
 }

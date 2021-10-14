@@ -1,35 +1,39 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WinstonBot.Commands
 {
     public interface IAction
     {
-        public string Name { get; }
-
         public Task HandleAction(ActionContext context);
     }
 
     public interface ICommand
     {
-        public enum Permission
-        { 
-            Everyone,
-            AdminOnly
+        public Task HandleCommand(CommandContext context);
+    }
+
+    public abstract class CommandBase : ICommand
+    {
+        public const string BuildCommandName = "BuildCommand";
+        public const string BuildCommandOptionName = "BuildCommandOption";
+        public const string CreateContextName = "CreateContext";
+        public const string CreateActionContextName = "CreateActionContext";
+
+        public virtual Task HandleCommand(CommandContext context) => Task.CompletedTask;
+
+        public static SlashCommandBuilder BuildCommand() => null;
+        // This is for subcommands. TODO: find a better place to do ths.
+        public static SlashCommandOptionBuilder BuildCommandOption() => null;
+
+        public static CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        {
+            return new CommandContext(client, arg, services);
         }
 
-        public string Name { get; }
-        public Permission DefaultPermission { get; }
-        public ulong AppCommandId { get; set; }
-        public IEnumerable<IAction> Actions { get; }
-
-        public SlashCommandProperties BuildCommand();
-        public Task HandleCommand(Commands.CommandContext context);
-        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services);
+        public static ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services, string owningCommand)
+        {
+            return new ActionContext(client, arg, services, owningCommand);
+        }
     }
 }

@@ -1,35 +1,16 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
-    public class GenerateAoDMessageCommand : ICommand
+    [Command("generate-aod-message", "Post the daily aod signup message")]
+    public class GenerateAoDMessageCommand : CommandBase
     {
-        public string Name => "generate-aod-message";
-
-        public ICommand.Permission DefaultPermission => ICommand.Permission.Everyone;
-
-        public ulong AppCommandId { get; set; }
-
-        public IEnumerable<IAction> Actions => new List<IAction>();
-
-        public SlashCommandProperties BuildCommand()
-        {
-            return new SlashCommandBuilder()
-                .WithName(Name)
-                .WithDescription("Post the daily aod signup message.")
-                .Build();
-        }
-
-        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
-        {
-            return new ActionContext(client, arg, services);
-        }
-
-        public async Task HandleCommand(CommandContext context)
+        public async override Task HandleCommand(CommandContext context)
         {
             var reset = new DateTimeOffset(GetReset().AddDays(1));
-            var startTime = new DateTimeOffset(GetReset().AddDays(1).AddMinutes(30));
+            var startTime = new DateTimeOffset(GetReset().AddDays(1).AddHours(1).AddMinutes(30));
             
             string startTimestamp = startTime.ToUnixTimeSeconds().ToString();
             string resetTimestamp = reset.ToUnixTimeSeconds().ToString();
@@ -37,7 +18,7 @@ namespace WinstonBot.Commands
                 $"People will be selected by the bot based on roles they can do and how often they've come in the last 5 days (people who have come less will be chosen over those who have gone more)\n\n" +
                 $"The team will be announced at<t:{resetTimestamp}>, so you have until then to add a reaction.";
 
-            await context.SlashCommand.RespondAsync(message, allowedMentions:new AllowedMentions(AllowedMentionTypes.Roles));
+            await context.RespondAsync(message, allowedMentions:new AllowedMentions(AllowedMentionTypes.Roles));
         }
 
         private DateTime GetReset()

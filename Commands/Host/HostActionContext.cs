@@ -1,26 +1,21 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WinstonBot.Data;
+using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
     public class HostActionContext : ActionContext
     {
-        public long BossIndex { get; set; }
-        public BossData.Entry BossEntry => BossData.Entries[BossIndex];
         public HostMessageMetadata? OriginalMessageData => _originalMessageData;
         public SocketGuild? Guild => OriginalMessageData != null ? Client.GetGuild(OriginalMessageData.GuildId) : null;
-        public SocketTextChannel? Channel => OriginalMessageData != null ? Guild?.GetTextChannel(OriginalMessageData.ChannelId) : null;
-        public bool IsMessageDataValid => OriginalMessageData != null && Guild != null && Channel != null;
-        public ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> OriginalSignupsForMessage { get; }
-        public ConcurrentDictionary<ulong, bool> MessagesBeingEdited { get; }
+        public SocketTextChannel? OriginalChannel => OriginalMessageData != null ? Guild?.GetTextChannel(OriginalMessageData.ChannelId) : null;
+        public bool IsMessageDataValid => OriginalMessageData != null && Guild != null && OriginalChannel != null;
+        public ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> OriginalSignupsForMessage => ServiceProvider.GetRequiredService<MessageDatabase>().OriginalSignupsForMessage;
+        public ConcurrentDictionary<ulong, bool> MessagesBeingEdited => ServiceProvider.GetRequiredService<MessageDatabase>().MessagesBeingEdited;
 
         private HostMessageMetadata? _originalMessageData;
 
@@ -28,29 +23,26 @@ namespace WinstonBot.Commands
             DiscordSocketClient client,
             SocketMessageComponent arg,
             IServiceProvider services,
-            ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> originalSignups,
-            ConcurrentDictionary<ulong, bool> messagesBeingEdited)
-            : base(client, arg, services)
+            string owningCommand)
+            : base(client, arg, services, owningCommand)
         {
-            OriginalSignupsForMessage = originalSignups;
-            MessagesBeingEdited = messagesBeingEdited;
             _originalMessageData = GetOriginalMessageData();
         }
 
         public HostMessageMetadata? GetOriginalMessageData()
         {
-            if (Component.Message.Embeds.Any() && Component.Message.Embeds.First().Footer.HasValue)
+            if (Message.Embeds.Any() && Message.Embeds.First().Footer.HasValue)
             {
-                return HostMessageMetadata.ParseMetadata(Client, Component.Message.Embeds.First().Footer.Value.Text);
+                return HostMessageMetadata.ParseMetadata(Client, Message.Embeds.First().Footer.Value.Text);
             }
             return null;
         }
 
         public async Task<IMessage?> GetOriginalMessage()
         {
-            if (OriginalMessageData != null && OriginalMessageData.MessageId != 0 && Channel != null)
+            if (OriginalMessageData != null && OriginalMessageData.MessageId != 0 && OriginalChannel != null)
             {
-                return await Channel.GetMessageAsync(OriginalMessageData.MessageId);
+                return await OriginalChannel.GetMessageAsync(OriginalMessageData.MessageId);
             }
             return null;
         }
@@ -84,24 +76,31 @@ namespace WinstonBot.Commands
 
         public static HostMessageMetadata? ParseMetadata(DiscordSocketClient client, string text)
         {
-            var footerParts = text.Split(',');
+            var footerParts = text.Split(' ');
             if (footerParts.Length != 4)
             {
                 return null;
             }
 
-            var guildId = ulong.Parse(footerParts[0]);
-            var channelId = ulong.Parse(footerParts[1]);
-            var originalMessageId = ulong.Parse(footerParts[2]);
-            var confirmedBefore = bool.Parse(footerParts[3]);
-
-            return new HostMessageMetadata()
+            try
             {
-                GuildId = guildId,
-                ChannelId = channelId,
-                MessageId = originalMessageId,
-                TeamConfirmedBefore = confirmedBefore
-            };
+                var guildId = ulong.Parse(footerParts[0]);
+                var channelId = ulong.Parse(footerParts[1]);
+                var originalMessageId = ulong.Parse(footerParts[2]);
+                var confirmedBefore = bool.Parse(footerParts[3]);
+
+                return new HostMessageMetadata()
+                {
+                    GuildId = guildId,
+                    ChannelId = channelId,
+                    MessageId = originalMessageId,
+                    TeamConfirmedBefore = confirmedBefore
+                };
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

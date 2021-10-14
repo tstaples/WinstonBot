@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
+using System.Collections.ObjectModel;
 
 namespace WinstonBot.Services
 {
@@ -9,40 +10,42 @@ namespace WinstonBot.Services
     // This can be serialized to allow the bot to respond to old commands even if it's restarted.
     public class MessageDatabase
     {
-        public enum Version
-        {
-            None,
-            Initial,
-            Count,
-            Current = Count - 1
-        }
+        public ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> OriginalSignupsForMessage { get; } = new();
+        public ConcurrentDictionary<ulong, bool> MessagesBeingEdited { get; } = new();
+        //public enum Version
+        //{
+        //    None,
+        //    Initial,
+        //    Count,
+        //    Current = Count - 1
+        //}
 
-        public static Version CurrentVersion => Version.Current;
+        //public static Version CurrentVersion => Version.Current;
 
-        private class GuildEntry
-        {
-            // message id -> handler
-            //public Dictionary<ulong, IMessageHandler> MessageHandlers { get; set; } = new Dictionary<ulong, IMessageHandler>();
-        }
+        //private class GuildEntry
+        //{
+        //    // message id -> handler
+        //    //public Dictionary<ulong, IMessageHandler> MessageHandlers { get; set; } = new Dictionary<ulong, IMessageHandler>();
+        //}
 
-        private class DBVersion
-        {
-            public Version VersionNumber {  get; set; }
-        }
+        //private class DBVersion
+        //{
+        //    public Version VersionNumber {  get; set; }
+        //}
 
-        private class Database : DBVersion
-        {
-            // guild id -> entry
-            public Dictionary<ulong, GuildEntry> GuildEntries { get; set; } = new Dictionary<ulong, GuildEntry>();
-        }
+        //private class Database : DBVersion
+        //{
+        //    // guild id -> entry
+        //    public Dictionary<ulong, GuildEntry> GuildEntries { get; set; } = new Dictionary<ulong, GuildEntry>();
+        //}
 
-        private string _databasePath;
-        private Database _database;
+        //private string _databasePath;
+        //private Database _database;
 
-        public MessageDatabase(string path)
-        {
-            _databasePath = path;
-        }
+        //public MessageDatabase(string path)
+        //{
+        //    _databasePath = path;
+        //}
 
         //public void AddMessage(ulong guildId, ulong messageId, IMessageHandler handler)
         //{
@@ -84,87 +87,87 @@ namespace WinstonBot.Services
         //    }
         //}
 
-        private GuildEntry GetOrAddGuild(ulong guildId)
-        {
-            if (!_database.GuildEntries.ContainsKey(guildId))
-            {
-                _database.GuildEntries.Add(guildId, new GuildEntry());
-            }
-            return _database.GuildEntries[guildId];
-        }
+        //private GuildEntry GetOrAddGuild(ulong guildId)
+        //{
+        //    if (!_database.GuildEntries.ContainsKey(guildId))
+        //    {
+        //        _database.GuildEntries.Add(guildId, new GuildEntry());
+        //    }
+        //    return _database.GuildEntries[guildId];
+        //}
 
-        public void Load(IServiceProvider services)
-        {
-            //if (File.Exists(_databasePath))
-            //{
-            //    try
-            //    {
-            //        var data = File.ReadAllText(_databasePath);
+        //public void Load(IServiceProvider services)
+        //{
+        //    //if (File.Exists(_databasePath))
+        //    //{
+        //    //    try
+        //    //    {
+        //    //        var data = File.ReadAllText(_databasePath);
 
-            //        DBVersion version = JsonConvert.DeserializeObject<DBVersion>(data);
-            //        if (version != null && version.VersionNumber == CurrentVersion)
-            //        {
-            //            _database = JsonConvert.DeserializeObject<Database>(data, new JsonSerializerSettings()
-            //            {
-            //                TypeNameHandling = TypeNameHandling.Auto
-            //            });
-            //        }
-            //        else
-            //        {
-            //            Console.WriteLine("Database is out of date. Creating a fresh one");
-            //            _database = new Database()
-            //            {
-            //                VersionNumber = CurrentVersion
-            //            };
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        Console.WriteLine($"Failed to database file: {ex.Message}. Creating new database.");
-            //        _database = new Database()
-            //        {
-            //            VersionNumber = CurrentVersion
-            //        };
-            //    }
-            //}
-            //else
-            {
-                _database = new Database()
-                {
-                    VersionNumber = CurrentVersion
-                };
-            }
+        //    //        DBVersion version = JsonConvert.DeserializeObject<DBVersion>(data);
+        //    //        if (version != null && version.VersionNumber == CurrentVersion)
+        //    //        {
+        //    //            _database = JsonConvert.DeserializeObject<Database>(data, new JsonSerializerSettings()
+        //    //            {
+        //    //                TypeNameHandling = TypeNameHandling.Auto
+        //    //            });
+        //    //        }
+        //    //        else
+        //    //        {
+        //    //            Console.WriteLine("Database is out of date. Creating a fresh one");
+        //    //            _database = new Database()
+        //    //            {
+        //    //                VersionNumber = CurrentVersion
+        //    //            };
+        //    //        }
+        //    //    }
+        //    //    catch (Exception ex)
+        //    //    {
+        //    //        Console.WriteLine($"Failed to database file: {ex.Message}. Creating new database.");
+        //    //        _database = new Database()
+        //    //        {
+        //    //            VersionNumber = CurrentVersion
+        //    //        };
+        //    //    }
+        //    //}
+        //    //else
+        //    {
+        //        _database = new Database()
+        //        {
+        //            VersionNumber = CurrentVersion
+        //        };
+        //    }
 
-            // initialize handler data
-            //foreach (var guildEntryPair in _database.GuildEntries)
-            //{
-            //    ulong guildId = guildEntryPair.Key;
-            //    foreach (var messageIdHandlerPair in guildEntryPair.Value.MessageHandlers)
-            //    {
-            //        var handler = messageIdHandlerPair.Value;
-            //        handler.ConstructContext(services);
-            //    }
-            //}
+        //    // initialize handler data
+        //    //foreach (var guildEntryPair in _database.GuildEntries)
+        //    //{
+        //    //    ulong guildId = guildEntryPair.Key;
+        //    //    foreach (var messageIdHandlerPair in guildEntryPair.Value.MessageHandlers)
+        //    //    {
+        //    //        var handler = messageIdHandlerPair.Value;
+        //    //        handler.ConstructContext(services);
+        //    //    }
+        //    //}
 
-            Console.WriteLine("Message Database initialized");
-        }
+        //    Console.WriteLine("Message Database initialized");
+        //}
 
-        private void Save()
-        {
-            string jsonData = JsonConvert.SerializeObject(_database, new JsonSerializerSettings()
-            {
-                TypeNameHandling = TypeNameHandling.Auto
-            });
+        //private void Save()
+        //{
+        //    string jsonData = JsonConvert.SerializeObject(_database, new JsonSerializerSettings()
+        //    {
+        //        TypeNameHandling = TypeNameHandling.Auto
+        //    });
 
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(_databasePath));
-                File.WriteAllText(_databasePath, jsonData);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error writing database: " + ex.Message);
-            }
-        }
+        //    try
+        //    {
+        //        Directory.CreateDirectory(Path.GetDirectoryName(_databasePath));
+        //        File.WriteAllText(_databasePath, jsonData);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error writing database: " + ex.Message);
+        //    }
+        //}
     }
 }

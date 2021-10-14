@@ -1,75 +1,88 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
+using System.Collections.ObjectModel;
+using WinstonBot.Attributes;
+using WinstonBot.Data;
+using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
+    [Action("pvm-edit-team")]
     internal class EditCompletedTeamAction : IAction
     {
         public static string ActionName = "pvm-edit-team";
-        public string Name => ActionName;
+
+        [ActionParam]
+        public long BossIndex { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
 
-            var component = context.Component;
-            if (!component.Message.Embeds.Any())
+            if (!context.Message.Embeds.Any())
             {
-                await component.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
+                await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
                 return;
             }
 
-            if (!context.TryMarkMessageForEdit(component.Message.Id))
+            if (!context.TryMarkMessageForEdit(context.Message.Id))
             {
-                await component.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
+                await context.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
                 return;
             }
 
-            var currentEmbed = component.Message.Embeds.First();
-            var selectedNameIds = HostHelpers.ParseNamesToIdList(currentEmbed.Description);
-            if (selectedNameIds.Count == 0)
+            var currentEmbed = context.Message.Embeds.First();
+            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
+            if (selectedIds.Count == 0)
             {
-                await component.RespondAsync("Not enough people signed up.", ephemeral: true);
+                await context.RespondAsync("Not enough people signed up.", ephemeral: true);
                 return;
             }
 
-            var guild = ((SocketGuildChannel)component.Channel).Guild;
+            var guild = ((SocketGuildChannel)context.Message.Channel).Guild;
             var allIds = new List<ulong>();
-            if (context.OriginalSignupsForMessage.ContainsKey(component.Message.Id))
+            if (context.OriginalSignupsForMessage.ContainsKey(context.Message.Id))
             {
-                allIds = context.OriginalSignupsForMessage[component.Message.Id].ToList();
+                allIds = context.OriginalSignupsForMessage[context.Message.Id].ToList();
             }
             else
             {
-                Console.WriteLine($"[EditCompletedTeamAction] Failed to find message data for {component.Message.Id}. Cannot retrieve original names.");
+                Console.WriteLine($"[EditCompletedTeamAction] Failed to find message data for {context.Message.Id}. Cannot retrieve original names." +
+                    $"Updating list with currently selected names.");
+
+                context.OriginalSignupsForMessage.TryAdd(context.Message.Id, new ReadOnlyCollection<ulong>(selectedIds.Values.ToArray()));
+                allIds = selectedIds.Values.ToList();
             }
 
             List<ulong> unselectedIds = allIds
-                .Where(id => !selectedNameIds.Contains(id))
+                .Where(id => !selectedIds.ContainsValue(id))
                 .ToList();
 
-            var selectedNames = Utility.ConvertUserIdListToMentions(guild, selectedNameIds);
-            var unselectedNames = Utility.ConvertUserIdListToMentions(guild, unselectedIds);
-
-            await component.Message.ModifyAsync(msgProps =>
+            await context.Message.ModifyAsync(msgProps =>
             {
                 msgProps.Embed = Utility.CreateBuilderForEmbed(currentEmbed)
-                .WithFooter($"Being edited by {component.User.Username}")
+                .WithFooter($"Being edited by {context.User.Username}")
                 .Build();
                 msgProps.Components = new ComponentBuilder()
-                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{context.BossIndex}", ButtonStyle.Danger, disabled: true)
+                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger, disabled: true)
                     .Build();
             });
 
-            await component.User.SendMessageAsync("Confirm or edit the team." +
+            var message = await context.User.SendMessageAsync(
+                "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
-                "\nYou may continue making changes after you confirm the team by hitting confirm again." +
-                "\nOnce you're finished making changes you can dismiss this message.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, component.Channel.Id, component.Message.Id, true, context.BossEntry, selectedNames),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, context.BossIndex, selectedNames, unselectedNames));
+                "\nPress cancel to discard this edit.",
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, true, BossEntry, selectedIds),
+                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedIds));
 
-            await component.DeferAsync();
+            // TODO: do this via context instead?
+            context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);
+
+            await context.DeferAsync();
         }
     }
 }

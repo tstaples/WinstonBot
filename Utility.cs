@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -19,6 +20,12 @@ namespace WinstonBot
 
         public static ulong GetUserIdFromMention(string mention)
         {
+            // Special case
+            if (mention == "None")
+            {
+                return 0;
+            }
+
             var resultString = Regex.Match(mention, @"\d+").Value;
             ulong value = 0;
             if (ulong.TryParse(resultString, out value))
@@ -33,7 +40,7 @@ namespace WinstonBot
         }
         public static List<string> ConvertUserIdListToMentions(SocketGuild guild, IEnumerable<ulong> ids)
         {
-            return ids.Select(id => guild.GetUser(id).Mention).ToList();
+            return ids.Select(id => guild.GetUser(id)?.Mention).ToList();
         }
 
         public static EmbedBuilder CreateBuilderForEmbed(IEmbed source)
@@ -93,6 +100,20 @@ namespace WinstonBot
                 return true;
             }
             return false;
+        }
+
+        public static TValue GetOrAdd<TKey, TValue>(Dictionary<TKey, TValue> dict, TKey key) where TValue : new()
+        {
+            if (!dict.ContainsKey(key))
+            {
+                dict.Add(key, new TValue());
+            }
+            return dict[key];
+        }
+
+        public static MethodInfo? GetInheritedStaticMethod(Type type, string methodName)
+        {
+            return type.GetMethod(methodName, BindingFlags.Static | BindingFlags.FlattenHierarchy | BindingFlags.Public);
         }
     }
 }

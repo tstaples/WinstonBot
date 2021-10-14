@@ -11,6 +11,8 @@ public class Program
     private CommandHandler _commandHandler;
     private EmoteDatabase _emoteDatabase;
     private ConfigService _configService;
+    private MessageDatabase _messageDatabase;
+    private InteractionService _interactionService;
     private IServiceProvider _services;
 
     public static void Main(string[] args)
@@ -20,6 +22,8 @@ public class Program
         .AddSingleton(_client)
         .AddSingleton(_emoteDatabase)
         .AddSingleton(_configService)
+        .AddSingleton(_messageDatabase)
+        .AddSingleton(_interactionService)
         .BuildServiceProvider();
 
     public async Task MainAsync()
@@ -29,7 +33,8 @@ public class Program
             MessageCacheSize = 1000,
             LargeThreshold = 250,
             GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers,
-            LogLevel = LogSeverity.Info
+            LogLevel = LogSeverity.Info,
+            AlwaysDownloadUsers = true
         });
         _client.Log += this.Log;
 
@@ -37,6 +42,8 @@ public class Program
         await _client.LoginAsync(TokenType.Bot, token);
         await _client.StartAsync();
 
+        _interactionService = new InteractionService();
+        _messageDatabase = new MessageDatabase();
         _emoteDatabase = new EmoteDatabase();
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
 
@@ -52,14 +59,6 @@ public class Program
     private async Task ClientReady()
     {
         Console.WriteLine("Client ready");
-
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        Task.Run(() => {
-            _client.DownloadUsersAsync(_client.Guilds);
-            Console.WriteLine("Finished downloading users");
-            return Task.CompletedTask;
-        });
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
         await _commandHandler.InstallCommandsAsync();
     }

@@ -1,8 +1,21 @@
-﻿- how can we add role requirements for specific bosses?
-- test multiple people hitting buttons at once
+﻿- implement actual aod team selection
+- interaction for setting up who can do what roles at aod.
+	- this will let us avoid needing to add roles to control who can do what.
 
-- implement actual aod team selection
-- role requirements for commands
+- experiment with not needing the interaction service before going too far with it.
+	- button builder idea
+	- an action could only be used for a single command (would be fine for my use, but if we want to make a lib then maybe not.)
+
+- use dependency injection to inject services for commands
+- split other config commands into subcommands
+- add view all config settings subcommand
+
+- update interaction service to save to file. auto delete messages older than n days.
+- update action context to also store interactions when pming people.
+
+- test multiple people hitting buttons at once
+- harden guild.GetUser against users no longer in the discord
+
 - notifying people trying to sign up without having read rules
 - regular sign ups for aod/raids/rago?
 - combined raids signup
@@ -10,3 +23,9 @@
 	- this should also deploy the release token
 
 - winston picture command
+- command to generate timestamps for events.
+
+Done:
+- role requirements for commands
+- boss embed color
+- ping blav every time he responds with the ping command

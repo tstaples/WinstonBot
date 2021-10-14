@@ -1,68 +1,77 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
+using WinstonBot.Attributes;
+using WinstonBot.Data;
+using WinstonBot.Services;
+using WinstonBot.Helpers;
 
 namespace WinstonBot.Commands
 {
+    [Action("pvm-complete-team")]
     internal class CompleteTeamAction : IAction
     {
         public static string ActionName = "pvm-complete-team";
-        public string Name => ActionName;
+
+        [ActionParam]
+        public long BossIndex { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
 
-            var component = context.Component;
-            if (!component.Message.Embeds.Any())
+            if (!context.Message.Embeds.Any())
             {
-                await component.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
+                await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
+                return;
+            }
+            
+            var guild = ((SocketGuildChannel)context.Channel).Guild;
+
+            var currentEmbed = context.Message.Embeds.First();
+            var ids = HostHelpers.ParseNamesToIdListWithValidation(guild, currentEmbed.Description);
+            if (ids.Count == 0)
+            {
+                await context.RespondAsync("Not enough people signed up.", ephemeral: true);
                 return;
             }
 
-            var currentEmbed = component.Message.Embeds.First();
-            var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
-            if (names.Count == 0)
+            if (!context.TryMarkMessageForEdit(context.Message.Id, ids))
             {
-                await component.RespondAsync("Not enough people signed up.", ephemeral: true);
+                await context.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
                 return;
             }
 
-            if (!context.TryMarkMessageForEdit(component.Message.Id, HostHelpers.ParseNamesToIdList(names)))
-            {
-                await component.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
-                return;
-            }
+            var names = Utility.ConvertUserIdListToMentions(guild, ids);
 
-            // TODO: calculate who should go.
-            List<string> selectedNames = new();
-            List<string> unselectedNames = new();
-            int i = 0;
-            foreach (var mention in names)
-            {
-                if (i++ < context.BossEntry.MaxPlayersOnTeam) selectedNames.Add(mention);
-                else unselectedNames.Add(mention);
-            }
+            ITeamBuilder builder = HostHelpers.GetTeamBuilder(BossEntry);
+            Dictionary<string, ulong> roleUserMap = builder.SelectTeam(ids);
+            var unselectedids = ids.Where(id => !roleUserMap.ContainsValue(id));
 
-            await component.Message.ModifyAsync(msgProps =>
+            await context.Message.ModifyAsync(msgProps =>
             {
-                msgProps.Components = HostHelpers.BuildSignupButtons(context.BossIndex, true);
+                msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, true);
                 // footers can't show mentions, so use the username.
-                msgProps.Embed = HostHelpers.BuildSignupEmbed(context.BossIndex, names, component.User.Username);
+                msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names, context.User.Username);
             });
 
             // Footed will say "finalized by X" if it's been completed before.
             bool hasBeenConfirmedBefore = currentEmbed.Footer.HasValue;
-            var guild = ((SocketGuildChannel)component.Channel).Guild;
 
-            await component.User.SendMessageAsync("Confirm or edit the team." +
+            var message = await context.User.SendMessageAsync(
+                "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
-                "\nYou may continue making changes after you confirm the team by hitting confirm again." +
-                "\nOnce you're finished making changes you can dismiss this message.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild.Id, component.Channel.Id, component.Message.Id, hasBeenConfirmedBefore, context.BossEntry, selectedNames),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, context.BossIndex, selectedNames, unselectedNames));
+                "\nPress cancel to discard this edit.",
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, hasBeenConfirmedBefore, BossEntry, roleUserMap),
+                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, roleUserMap, unselectedids));
 
-            await component.DeferAsync();
+            // TODO: do this via context instead?
+            context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);
+
+            await context.DeferAsync();
         }
     }
 }

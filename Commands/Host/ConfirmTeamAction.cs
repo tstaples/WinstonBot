@@ -1,55 +1,57 @@
 ﻿using Discord;
+using WinstonBot.Attributes;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
+    [Action("pvm-confirm-team")]
     internal class ConfirmTeamAction : IAction
     {
         public static string ActionName = "pvm-confirm-team";
-        public string Name => ActionName;
+
+        [ActionParam]
+        public long BossIndex { get; set; }
+
+        private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
             if (context.OriginalMessageData == null || !context.IsMessageDataValid)
             {
-                throw new NullReferenceException($"Failed to get message metadat for {context.Component.Message.Id}.");
+                throw new NullReferenceException($"Failed to get message metadat for {context.Message.Id}.");
             }
 
             var originalMessage = await context.GetOriginalMessage();
-            if (originalMessage == null || context.Channel == null)
+            if (originalMessage == null || context.OriginalChannel == null)
             {
                 // This can happen if the original message is deleted but the edit window is still open.
-                await context.Component.RespondAsync("Failed to find the original message this interaction was created from.", ephemeral: true);
+                await context.RespondAsync("Failed to find the original message this interaction was created from.", ephemeral: true);
                 return;
             }
 
-            var currentEmbed = context.Component.Message.Embeds.First();
-            var selectedNames = HostHelpers.ParseNamesToList(currentEmbed.Description);
+            var currentEmbed = context.Message.Embeds.First();
+            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
 
             // TODO: ping the people that are going.
             // Should that be a separate message or should we just not use an embed for this?
-            await context.Channel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
+            await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
-                msgProps.Embed = new EmbedBuilder()
-                    .WithTitle($"Selected Team for {context.BossEntry.PrettyName}")
-                    .WithFooter($"Finalized by {context.Component.User.Username}")
-                    .WithDescription(String.Join(Environment.NewLine, selectedNames))
-                    .WithThumbnailUrl(context.BossEntry.IconUrl)
-                    .Build();
+                msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds);
                 msgProps.Components = new ComponentBuilder()
-                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{context.BossIndex}", ButtonStyle.Danger)
+                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger)
                     .Build();
             });
 
-            var builder = ComponentBuilder.FromComponents(context.Component.Message.Components);
+            var builder = ComponentBuilder.FromComponents(context.Message.Components);
 
             context.EditFinishedForMessage(context.OriginalMessageData.MessageId);
 
             // Delete the edit team message from the DM
-            await context.Component.Message.DeleteAsync();
+            await context.Message.DeleteAsync();
 
             // Even though this is a DM, make it ephemeral so they can dismiss it as they can't delete the messages in DM.
-            await context.Component.RespondAsync("Team updated in original message.", ephemeral: true);
+            await context.RespondAsync("Team updated in original message.", ephemeral: true);
         }
     }
 }

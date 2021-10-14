@@ -3,93 +3,66 @@ using WinstonBot.Data;
 using Discord.WebSocket;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using WinstonBot.Attributes;
+using System.Reflection;
 
 namespace WinstonBot.Commands
 {
-    public class HostPvmSignup : ICommand
+    [Command(
+        "host-pvm-signup",
+        "Create a signup for a pvm event",
+        actions: new Type[] {
+            typeof(SignupAction),
+            typeof(QuitAction),
+            typeof(CompleteTeamAction),
+            typeof(ConfirmTeamAction),
+            typeof(CancelTeamConfirmationAction),
+            typeof(EditCompletedTeamAction),
+            typeof(AddUserToTeamAction),
+            typeof(RemoveUserFromTeamAction),
+        }
+    )]
+    public class HostPvmSignup : CommandBase
     {
-        public string Name => "host-pvm-signup";
-        public ICommand.Permission DefaultPermission => ICommand.Permission.Everyone;
-        public ulong AppCommandId { get; set; }
-        public IEnumerable<IAction> Actions => _actions;
+        [CommandOption("boss", "The boss to create an event for.", dataProvider: typeof(SignupBossChoiceDataProvider))]
+        public long BossIndex { get; set; }
 
-        private List<IAction> _actions = new List<IAction>()
-        {
-            new SignupAction(),
-            new QuitAction(),
-            new CompleteTeamAction(),
-            new ConfirmTeamAction(),
-            new EditCompletedTeamAction(),
-            new CancelTeamConfirmationAction(),
-            new AddUserToTeamAction(),
-            new RemoveUserFromTeamAction()
-        };
+        [CommandOption("message", "An optional message to display.", required: false)]
+        public string? Message { get; set; }
 
         // we only have the mention string in the desc.
-        private List<string> testNames = new List<string>()
+        private static readonly List<string> testNames = new List<string>()
         {
+            { "<@517886402466152450>" },
             { "<@141439679890325504>" },
-            { "<@204793753691619330>" },
-            { "<@889961722314637342>" },
-            { "<@879404492922167346>" },
-            { "<@856679611899576360>" }
+            { "<@295027430299795456>" },
+            { "<@668161362249121796>" },
+            { "<@197872300802965504>" },
+            { "<@159691258804174849>" },
+            { "<@172497655992156160>" },
+            { "<@414119139506913280>" },
         };
 
-        private ConcurrentDictionary<ulong, ReadOnlyCollection<ulong>> _originalSignupsForMessage = new();
-        private ConcurrentDictionary<ulong, bool> _messagesBeingEdited = new();
-
-        public SlashCommandProperties BuildCommand()
+        public async override Task HandleCommand(CommandContext context)
         {
-            var choices = new SlashCommandOptionBuilder()
-                    .WithName("boss")
-                    .WithDescription("The boss to host")
-                    .WithRequired(true)
-                    .WithType(ApplicationCommandOptionType.Integer);
-
-            foreach (var entry in BossData.Entries)
+            if (!BossData.ValidBossIndex(BossIndex))
             {
-                choices.AddChoice(entry.CommandName, (int)entry.Id);
-            }
-
-            var hostQueuedCommand = new SlashCommandBuilder()
-                .WithName(Name)
-                .WithDescription("Create a signup for a pvm event")
-                .AddOption(choices)
-                .AddOption("message", ApplicationCommandOptionType.String, "Additional info about the event to be added to the message body.", required: false);
-
-            return hostQueuedCommand.Build();
-        }
-
-        public async Task HandleCommand(Commands.CommandContext context)
-        {
-            var slashCommand = context.SlashCommand;
-
-            var bossIndex = (long)slashCommand.Data.Options.First().Value;
-            if (!BossData.ValidBossIndex(bossIndex))
-            {
-                await slashCommand.RespondAsync($"Invalid boss index {bossIndex}. Max Index is {(long)BossData.Boss.Count - 1}", ephemeral: true);
+                await context.RespondAsync($"Invalid boss index {BossIndex}. Max Index is {(long)BossData.Boss.Count - 1}", ephemeral: true);
                 return;
             }
 
-            var bossPrettyName = BossData.Entries[bossIndex].PrettyName;
-            string message = $"Sign up for {bossPrettyName}"; // default message
-            if (slashCommand.Data.Options.Count > 1)
-            {
-                message = (string)slashCommand.Data.Options.ElementAt(1).Value;
-            }
+            var bossPrettyName = BossData.Entries[BossIndex].PrettyName;
+            string message = Message ?? $"Sign up for {bossPrettyName}"; // default message
 
-            var buttons = HostHelpers.BuildSignupButtons(bossIndex);
-            var embed = HostHelpers.BuildSignupEmbed(bossIndex, testNames);
+            var buttons = HostHelpers.BuildSignupButtons(BossIndex);
+            var embed = HostHelpers.BuildSignupEmbed(BossIndex, testNames);
 
-            await slashCommand.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);
+            await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);
         }
 
-        public ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services)
+        public static new ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services, string owningCommand)
         {
-            return new HostActionContext(client, arg, services, _originalSignupsForMessage, _messagesBeingEdited)
-            {
-                BossIndex = long.Parse(arg.Data.CustomId.Split('_')[1])
-            };
+            return new HostActionContext(client, arg, services, owningCommand);
         }
     }
 }
