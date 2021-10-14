@@ -39,6 +39,7 @@ namespace WinstonBot
         public DefaultPermission DefaultPermission { get; set; }
         public Type Type { get; set; }
         public List<CommandOptionInfo> Options { get; set; }
+        public bool ExcludeFromDataProvider { get; set; }
         public Dictionary<string, ActionInfo>? Actions { get; set; }
     }
 
@@ -144,6 +145,7 @@ namespace WinstonBot
                         DefaultPermission = commandAttribute.DefaultPermission,
                         Type = typeInfo,
                         Options = GetOptions(typeInfo),
+                        ExcludeFromDataProvider = commandAttribute.ExcludeFromCommandProvider,
                         Actions = GetActions(commandAttribute.Actions)
                     };
 
@@ -382,6 +384,8 @@ namespace WinstonBot
                 for (int i = 0; i < tokens.Length; ++i)
                 {
                     ActionOptionInfo optionInfo = action.Options[i];
+
+                    // TODO: add type reader support.
                     object value = null;
                     if (optionInfo.Property.PropertyType == typeof(string))
                     {

@@ -9,8 +9,7 @@ namespace WinstonBot.Commands
         {
             foreach (CommandInfo command in CommandHandler.CommandEntries.Values)
             {
-                // TODO: at least use a constant or something
-                if (command.Name != "configure")
+                if (!command.ExcludeFromDataProvider)
                 {
                     builder.AddChoice(command.Name, command.Name);
                 }
@@ -24,8 +23,7 @@ namespace WinstonBot.Commands
         {
             foreach (CommandInfo command in CommandHandler.CommandEntries.Values)
             {
-                // TODO: at least use a constant or something
-                if (command.Name != "configure" && command.Actions != null)
+                if (!command.ExcludeFromDataProvider && command.Actions != null)
                 {
                     builder.AddChoice(command.Name, command.Name);
                 }
