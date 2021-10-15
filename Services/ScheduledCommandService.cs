@@ -7,8 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
+using System.Threading;
 using WinstonBot.Commands;
 using Newtonsoft.Json;
 
@@ -25,11 +24,42 @@ namespace WinstonBot.Services
             public ulong ChannelId { get; set; }
             public string Command { get; set; }
             public List<CommandDataOption> Args { get; set; }
+
+            // Set when the event is first run
+            public DateTimeOffset LastRun { get; set; }
+        }
+
+        private class TimerCommandData
+        {
+            public Entry Entry { get; set; }
+            public IServiceProvider Services { get; set; }
+            public ulong GuildId { get; set; }
+        }
+
+        private class TimerEntry : IDisposable
+        {
+            public Guid Id { get; private set; }
+            public Timer Timer { get; private set; }
+
+            public TimerEntry(Guid id, Timer timer)
+            {
+                Id = id;
+                Timer = timer;
+            }
+
+            public void Dispose()
+            {
+                if (Timer != null)
+                {
+                    Timer.Change(Timeout.Infinite, Timeout.Infinite);
+                }
+            }
         }
 
         private string _saveFilePath;
         private DiscordSocketClient _client;
         private Dictionary<ulong, List<Entry>> _entries = new();
+        private List<TimerEntry> _timers = new();
 
         public ScheduledCommandService(string savePath, DiscordSocketClient client)
         {
@@ -59,7 +89,8 @@ namespace WinstonBot.Services
                 ScheduledBy = scheduledByUserId,
                 ChannelId = channelId,
                 Command = command,
-                Args = args != null ? args.ToList() : new()
+                Args = args != null ? args.ToList() : new(),
+                LastRun = DateTimeOffset.MinValue
             };
 
             lock (_entries)
@@ -87,6 +118,13 @@ namespace WinstonBot.Services
                         Console.WriteLine($"Removing scheduled event {entry.Command} - {eventId}");
                         _entries[guildId].Remove(entry);
 
+                        var timer = _timers.Find(timer => timer.Id == entry.Guid);
+                        if (timer != null)
+                        {
+                            timer.Dispose();
+                            _timers.Remove(timer);
+                        }
+
                         Save();
                         return true;
                     }
@@ -106,20 +144,82 @@ namespace WinstonBot.Services
             }
         }
 
+        public static TimeSpan GetTimeUntilEventRuns(Entry entry)
+        {
+            var now = DateTimeOffset.Now;
+            if (entry.StartDate > now)
+            {
+                return entry.StartDate - now;
+            }
+
+            if ((entry.LastRun + entry.Frequency) < now)
+            {
+                return TimeSpan.Zero;
+            }
+            else
+            {
+                return (entry.LastRun + entry.Frequency) - now;
+            }
+        }
+
         private async Task StartTimerForEntry(IServiceProvider serviceProvider, ulong guildId, Entry entry)
         {
             Console.WriteLine($"Starting scheduled event {entry.Command} - {entry.Guid}");
 
-            var context = new ScheduledCommandContext(entry, guildId, _client, serviceProvider);
+            var data = new TimerCommandData()
+            {
+                Entry = entry,
+                Services = serviceProvider,
+                GuildId = guildId,
+            };
+
+            var now = DateTimeOffset.Now;
+            if (entry.StartDate > now)
+            {
+                TimeSpan diff = entry.StartDate - now;
+
+                Console.WriteLine($"Start date is in the future, starting in {diff}");
+                var timer = new Timer(Timer_Elapsed, data, diff, entry.Frequency);
+                _timers.Add(new TimerEntry(entry.Guid, timer));
+                return;
+            }
+
+            if (entry.StartDate < now)
+            {
+                if ((entry.LastRun + entry.Frequency) < now)
+                {
+                    Console.WriteLine($"Start date is in the past and it's been more time since the last run than our frequency, running now");
+                    var timer = new Timer(Timer_Elapsed, data, TimeSpan.Zero, entry.Frequency);
+                    _timers.Add(new TimerEntry(entry.Guid, timer));
+                    return;
+                }
+                else
+                {
+                    TimeSpan diff = (entry.LastRun + entry.Frequency) - now;
+                    Console.WriteLine($"Start date is in the past but not enough time has elapsed since we last ran. Starting in {diff}");
+
+                    var timer = new Timer(Timer_Elapsed, data, diff, entry.Frequency);
+                    _timers.Add(new TimerEntry(entry.Guid, timer));
+                }
+            }
+        }
+
+        private void Timer_Elapsed(object state)
+        {
+            var data = (TimerCommandData)state;
+            Console.WriteLine($"Timer elapsed for {data.GuildId}: {data.Entry.Command}");
+
+            var context = new ScheduledCommandContext(data.Entry, data.GuildId, _client, data.Services);
 
             try
             {
-                CommandInfo commandInfo = CommandHandler.CommandEntries[entry.Command];
-                await CommandHandler.ExecuteCommand(commandInfo, context, entry.Args);
+                data.Entry.LastRun = DateTime.Now;
+                CommandInfo commandInfo = CommandHandler.CommandEntries[data.Entry.Command];
+                _ = CommandHandler.ExecuteCommand(commandInfo, context, data.Entry.Args);
             }
             catch (Exception ex)
             {
-                await context.RespondAsync($"error running command: {ex.Message}", ephemeral: true);
+                _ = context.RespondAsync($"error running command: {ex.Message}", ephemeral: true);
             }
         }
 

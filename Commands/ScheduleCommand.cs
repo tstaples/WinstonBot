@@ -99,6 +99,8 @@ namespace WinstonBot.Commands
 
                 await context.ServiceProvider.GetRequiredService<ScheduledCommandService>()
                     .AddRecurringEvent(context.ServiceProvider, context.Guild.Id, context.User.Id, context.Channel.Id, startDate, frequency, commandName, args);
+
+                await context.RespondAsync("Command Scheduled.", ephemeral: true);
             }
         }
 
@@ -122,7 +124,8 @@ namespace WinstonBot.Commands
                     string description = $"**Command**: {entry.Command}\n" +
                         $"**Args**: {ArgsToString(entry.Args)}\n" +
                         $"**Scheduled By**: {context.Guild.GetUser(entry.ScheduledBy).Mention}\n" +
-                        $"**Starts**: {TimestampTag.FromDateTime(entry.StartDate.UtcDateTime)}";
+                        $"**Starts**: {TimestampTag.FromDateTime(entry.StartDate.UtcDateTime)}\n" +
+                        $"**Runs In** {ScheduledCommandService.GetTimeUntilEventRuns(entry)}";
                     var builder = new EmbedBuilder()
                         .WithTitle(entry.Guid.ToString())
                         .WithDescription(description)
