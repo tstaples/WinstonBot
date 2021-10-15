@@ -10,8 +10,6 @@ using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
-    // TODO: sub commands to list scheduled events and command to cancel
-    // TODO: we could custom build this command and create schedule subcommands for each existing command
     [Command("schedule", "Schedule things", DefaultPermission.AdminOnly)]
     internal class ScheduleCommand : CommandBase
     {
@@ -27,10 +25,6 @@ namespace WinstonBot.Commands
                 .WithDescription("The command to schedule")
                 .WithType(ApplicationCommandOptionType.SubCommandGroup);
 
-            
-            // TODO: since we define these as subcommands it doesn't work as we're not actually defining those sub commands
-            // An alternative is to allow commands to optionally handle the parameter handling.
-            // Or we can just make the commands a choice if we can find a way to still show their argument options, but i don't think that's possible.
             foreach (CommandInfo info in CommandHandler.CommandEntries.Values)
             {
                 if (info.Type.GetCustomAttribute<ScheduableCommandAttribute>() == null)
@@ -40,11 +34,11 @@ namespace WinstonBot.Commands
 
                 var subComamnd = new SlashCommandOptionBuilder()
                     .WithName(info.Name)
-                    .WithDescription(info.Description)
+                    .WithDescription($"Schedule {info.Name}")
                     .WithType(ApplicationCommandOptionType.SubCommand);
 
-                subComamnd.AddOption("start-timestamp", ApplicationCommandOptionType.Integer, "When to start");
-                subComamnd.AddOption("frequency", ApplicationCommandOptionType.String, "How often to run the command");
+                subComamnd.AddOption("start-timestamp", ApplicationCommandOptionType.Integer, "The UTC timestamp in seconds of when to start firing this command.");
+                subComamnd.AddOption("frequency", ApplicationCommandOptionType.String, "How often to run the command (eg 1 day, 1 hour, 30 minutes).");
 
                 var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
                 foreach (SubCommandInfo subCommandInfo in subCommands)
@@ -73,21 +67,28 @@ namespace WinstonBot.Commands
         [SubCommand("command", "Schedule a command", typeof(ScheduleCommand))]
         internal class CommandSubCommand : CommandBase
         {
-            [CommandOption("command", "The command to schedule.", required: true, typeof(CommandNameDataProvider))]
-            public string CommandName { get; set; }
+            public override bool WantsToHandleSubCommands => true;
 
-            [CommandOption("start-timestamp", "The UTC timestamp for when the command should first run.", required: true)]
-            public long StartTimestamp { get; set; }
-
-            [CommandOption("frequency", "How often to run the command (eg 1 day, 2 hours, 34 minutes etc).", required: true)]
-            public string FrequencyString { get; set; }
-
-            [CommandOption("args", "The args to pass to the command.", required: false)]
-            public string? Args { get; set; }
-
-            public override async Task HandleCommand(CommandContext context)
+            public override async Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
             {
-                var startDate = DateTimeOffset.FromUnixTimeSeconds(StartTimestamp);
+                if (options == null)
+                {
+                    throw new ArgumentNullException("Expected valid options");
+                }
+
+                string commandName = (string)options.First().Name;
+                var remainingOptions = options.First().Options.ToList();
+                if (remainingOptions == null)
+                {
+                    throw new ArgumentNullException("Expected valid options");
+                }
+
+                long startTimestamp = (long)remainingOptions.Find(opt => opt.Name == "start-timestamp").Value;
+                string frequencyString = (string)remainingOptions.Find(opt => opt.Name == "frequency").Value;
+                var args = remainingOptions.GetRange(2, remainingOptions.Count - 2);
+
+                var startDate = DateTimeOffset.FromUnixTimeSeconds(startTimestamp);
+                // TODO: uncomment when we start testing real timers
                 //if (startDate < DateTimeOffset.UtcNow)
                 //{
                 //    await context.RespondAsync("The provided start date is in the past.", ephemeral: true);
@@ -95,40 +96,26 @@ namespace WinstonBot.Commands
                 //}
 
                 var parser = new TimeParser();
-                TimeSpan frequency = parser.GetSpanFromString(FrequencyString);
+                TimeSpan frequency = parser.GetSpanFromString(frequencyString);
                 if (frequency < TimeSpan.FromSeconds(10)) // TODO: change to 10 minutes when not testing.
                 {
                     await context.RespondAsync($"Minimum allowed frequency is 10 seconds");
                     return;
                 }
 
-                Console.WriteLine($"Starting command {CommandName} with args {Args} on {startDate} and running every {frequency}");
+                Console.WriteLine($"Starting command {commandName} on {startDate} and running every {frequency}");
 
-                if (!CommandHandler.CommandEntries.ContainsKey(CommandName))
+                if (!CommandHandler.CommandEntries.ContainsKey(commandName))
                 {
-                    await context.RespondAsync($"No command '{CommandName}' found", ephemeral: true);
+                    await context.RespondAsync($"No command '{commandName}' found", ephemeral: true);
                     return;
                 }
 
                 var channel = (SocketGuildChannel)context.Channel;
                 var guild = channel.Guild;
 
-                CommandInfo commandInfo = CommandHandler.CommandEntries[CommandName];
-                SocketApplicationCommand appCommand = await guild.GetApplicationCommandAsync(commandInfo.AppCommandId);
-
-                try
-                {
-                    // Verify the args are valid
-                    var propertyValues = ScheduledCommandService.ParseArgs(Args, appCommand.Options);
-                }
-                catch (ScheduledCommandService.CommandParseException ex)
-                {
-                    await context.RespondAsync($"Failed to schedule command: {ex.Message}", ephemeral: true);
-                    return;
-                }
-
                 await context.ServiceProvider.GetRequiredService<ScheduledCommandService>()
-                    .AddRecurringEvent(context.ServiceProvider, guild.Id, context.Channel.Id, startDate, frequency, CommandName, Args);
+                    .AddRecurringEvent(context.ServiceProvider, guild.Id, context.Channel.Id, startDate, frequency, commandName, args);
             }
         }
     }

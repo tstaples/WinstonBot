@@ -20,7 +20,10 @@ namespace WinstonBot.Commands
         public const string CreateContextName = "CreateContext";
         public const string CreateActionContextName = "CreateActionContext";
 
+        public virtual bool WantsToHandleSubCommands => false;
+
         public virtual Task HandleCommand(CommandContext context) => Task.CompletedTask;
+        public virtual Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>? options) => Task.CompletedTask;
 
         public static SlashCommandBuilder BuildCommand() => null;
         // This is for subcommands. TODO: find a better place to do ths.

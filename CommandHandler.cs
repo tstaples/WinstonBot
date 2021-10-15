@@ -21,7 +21,6 @@ namespace WinstonBot
 
     public class ActionOptionInfo
     {
-        //public string Name { get; set; }
         public PropertyInfo Property { get; set; }
     }
 
@@ -259,78 +258,64 @@ namespace WinstonBot
                 }
             }
 
-            var dataOptions = slashCommand.Data.Options;
-            CommandBase? commandInstance = null;
-            CommandInfo commandInfo = command;
-            var subCommandResult = FindDeepestSubCommand(command, dataOptions);
-            if (subCommandResult != null)
-            {
-                commandInfo = subCommandResult.Value.Key;
-                dataOptions = subCommandResult.Value.Value;
-                commandInstance = Activator.CreateInstance(subCommandResult.Value.Key.Type) as CommandBase;
-            }
-            else
-            {
-                commandInstance = Activator.CreateInstance(command.Type) as CommandBase;
-            }
-
-            if (commandInstance == null)
-            {
-                throw new Exception($"Failed to construct command {command.Type}");
-            }
-
-            if (dataOptions != null)
-            {
-                HashSet<string> setProperties = new();
-                foreach (var optionData in dataOptions)
-                {
-                    CommandOptionInfo? optionInfo = commandInfo.Options.Find(op => op.Name == optionData.Name);
-                    if (optionInfo == null)
-                    {
-                        Console.WriteLine($"Could not find option {optionData.Name} for command {commandInfo.Name}");
-                        continue;
-                    }
-
-                    PropertyInfo? property = commandInfo.Type.GetProperty(optionInfo.PropertyName);
-                    if (property == null)
-                    {
-                        throw new Exception($"Failed to get property {optionInfo.PropertyName} from type {commandInfo.Type}");
-                    }
-
-                    setProperties.Add(optionData.Name);
-                    property.SetValue(commandInstance, optionData.Value);
-                }
-
-                var requiredParamsNotSet = commandInfo.Options
-                    .Where(opt => opt.Required && !setProperties.Contains(opt.Name))
-                    .Select(opt => opt.Name);
-                if (requiredParamsNotSet.Any())
-                {
-                    throw new ArgumentException($"Missing required arguments for command {commandInfo.Name}: {String.Join(',', requiredParamsNotSet)}");
-                }
-            }
-
-            Console.WriteLine($"Command {command.Name} handling interaction");
+            // Allow the command to build a custom context if desired.
             var createContextFunction = Utility.GetInheritedStaticMethod(command.Type, CommandBase.CreateContextName);
             var context = createContextFunction?.Invoke(null, new object[] { _client, slashCommand, _services }) as CommandContext;
             if (context == null)
             {
                 throw new ArgumentNullException($"Failed to create context for command {command.Name}");
             }
-            await commandInstance.HandleCommand(context);
+
+            await ExecuteCommand(command, context, slashCommand.Data.Options);
+        }
+
+        private static void InjectCommandPropertyValues(CommandInfo commandInfo, CommandBase commandInstance, IReadOnlyCollection<SocketSlashCommandDataOption>? dataOptions)
+        {
+            if (dataOptions == null)
+            {
+                return;
+            }
+
+            HashSet<string> setProperties = new();
+            foreach (var optionData in dataOptions)
+            {
+                // Find the metadata for this option (defined by the CommandOptionAttribute)
+                CommandOptionInfo? optionInfo = commandInfo.Options.Find(op => op.Name == optionData.Name);
+                if (optionInfo == null)
+                {
+                    Console.WriteLine($"Could not find option {optionData.Name} for command {commandInfo.Name}");
+                    continue;
+                }
+
+                PropertyInfo? property = commandInfo.Type.GetProperty(optionInfo.PropertyName);
+                if (property == null)
+                {
+                    throw new Exception($"Failed to get property {optionInfo.PropertyName} from type {commandInfo.Type}");
+                }
+
+                // Set the value of the property on the command class with the value passed in by the user.
+                setProperties.Add(optionData.Name);
+                property.SetValue(commandInstance, optionData.Value);
+            }
+
+            var requiredParamsNotSet = commandInfo.Options
+                .Where(opt => opt.Required && !setProperties.Contains(opt.Name))
+                .Select(opt => opt.Name);
+            if (requiredParamsNotSet.Any())
+            {
+                throw new ArgumentException($"Missing required arguments for command {commandInfo.Name}: {String.Join(',', requiredParamsNotSet)}");
+            }
         }
 
         public static async Task ExecuteCommand(
-            DiscordSocketClient client,
-            IServiceProvider serviceProvider,
             CommandInfo command,
-            SocketSlashCommand slashCommand,
-            IReadOnlyCollection<SocketSlashCommandDataOption> dataOptions)
+            CommandContext context,
+            IReadOnlyCollection<SocketSlashCommandDataOption>? dataOptions)
         {
-
-            //var dataOptions = slashCommand.Data.Options;
             CommandBase? commandInstance = null;
             CommandInfo commandInfo = command;
+            // Subcommands can be nested within other subcommands, so traverse downwards until we find the lowest level subcommand.
+            // This will give us the info for the actual subcommand we need to run and the options for that subcommand.
             var subCommandResult = FindDeepestSubCommand(command, dataOptions);
             if (subCommandResult != null)
             {
@@ -350,42 +335,26 @@ namespace WinstonBot
 
             if (dataOptions != null)
             {
-                HashSet<string> setProperties = new();
-                foreach (var optionData in dataOptions)
+                // If the first option is a subcommand that means that subcommand isn't defined as a class with the SubCommand attribute.
+                // In these cases we allow the parent to handle this subcommand.
+                if (dataOptions.Count == 1 &&
+                    dataOptions.First().Type == ApplicationCommandOptionType.SubCommand)
                 {
-                    CommandOptionInfo? optionInfo = commandInfo.Options.Find(op => op.Name == optionData.Name);
-                    if (optionInfo == null)
+                    if (!commandInstance.WantsToHandleSubCommands)
                     {
-                        Console.WriteLine($"Could not find option {optionData.Name} for command {commandInfo.Name}");
-                        continue;
+                        throw new Exception($"Unhandled SubCommand: {dataOptions.First().Name}, Parent: {commandInfo.Name}");
                     }
 
-                    PropertyInfo? property = commandInfo.Type.GetProperty(optionInfo.PropertyName);
-                    if (property == null)
-                    {
-                        throw new Exception($"Failed to get property {optionInfo.PropertyName} from type {commandInfo.Type}");
-                    }
-
-                    setProperties.Add(optionData.Name);
-                    property.SetValue(commandInstance, optionData.Value);
+                    Console.WriteLine($"SubCommand {commandInfo.Name} is handling itself.");
+                    await commandInstance.HandleSubCommand(context, commandInfo, dataOptions);
+                    return;
                 }
 
-                var requiredParamsNotSet = commandInfo.Options
-                    .Where(opt => opt.Required && !setProperties.Contains(opt.Name))
-                    .Select(opt => opt.Name);
-                if (requiredParamsNotSet.Any())
-                {
-                    throw new ArgumentException($"Missing required arguments for command {commandInfo.Name}: {String.Join(',', requiredParamsNotSet)}");
-                }
+                InjectCommandPropertyValues(commandInfo, commandInstance, dataOptions);
             }
 
             Console.WriteLine($"Command {command.Name} handling interaction");
-            var createContextFunction = Utility.GetInheritedStaticMethod(command.Type, CommandBase.CreateContextName);
-            var context = createContextFunction?.Invoke(null, new object[] { client, slashCommand, serviceProvider }) as CommandContext;
-            if (context == null)
-            {
-                throw new ArgumentNullException($"Failed to create context for command {command.Name}");
-            }
+
             await commandInstance.HandleCommand(context);
         }
 
