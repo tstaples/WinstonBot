@@ -1,11 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WinstonBot.Commands
 {
@@ -31,7 +25,10 @@ namespace WinstonBot.Commands
         public static SlashCommandOptionBuilder BuildSlashCommandOption(SubCommandInfo info)
         {
             var buildFunc = Utility.GetInheritedStaticMethod(info.Type, CommandBase.BuildCommandOptionName);
-            SlashCommandOptionBuilder builder = buildFunc.Invoke(null, null) as SlashCommandOptionBuilder;
+            if (buildFunc == null)
+                throw new ArgumentNullException("Expected valid builder function. Ensure your command inherits from CommandBase.");
+
+            SlashCommandOptionBuilder? builder = buildFunc.Invoke(null, null) as SlashCommandOptionBuilder;
             if (builder != null)
             {
                 Console.WriteLine($"Using custom BuildCommand for {info.Name}");
@@ -39,7 +36,9 @@ namespace WinstonBot.Commands
             }
 
             var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
-            var type = subCommands.Any() ? ApplicationCommandOptionType.SubCommandGroup : ApplicationCommandOptionType.SubCommand;
+            var type = subCommands.Any() || info.HasDynamicSubCommands
+                ? ApplicationCommandOptionType.SubCommandGroup
+                : ApplicationCommandOptionType.SubCommand;
 
             builder = new SlashCommandOptionBuilder()
                 .WithName(info.Name)
@@ -84,15 +83,7 @@ namespace WinstonBot.Commands
 
         public static SlashCommandBuilder BuildSlashCommand(CommandInfo info)
         {
-            var buildFunc = Utility.GetInheritedStaticMethod(info.Type, CommandBase.BuildCommandName);
-            SlashCommandBuilder builder = buildFunc.Invoke(null, null) as SlashCommandBuilder;
-            if (builder != null)
-            {
-                Console.WriteLine($"Using custom BuildCommand for {info.Name}");
-                return builder;
-            }
-
-            builder = new SlashCommandBuilder()
+            var builder = new SlashCommandBuilder()
                 .WithName(info.Name)
                 .WithDescription(info.Description)
                 .WithDefaultPermission(info.DefaultPermission == DefaultPermission.Everyone);
@@ -106,6 +97,17 @@ namespace WinstonBot.Commands
             foreach (CommandOptionInfo optionInfo in info.Options)
             {
                 builder.AddOption(BuildSlashCommandOption(optionInfo));
+            }
+
+            var buildFunc = Utility.GetInheritedStaticMethod(info.Type, CommandBase.BuildCommandName);
+            if (buildFunc == null)
+                throw new ArgumentNullException("Expected valid builder function. Ensure your command inherits from CommandBase.");
+
+            SlashCommandBuilder? customBuilder = buildFunc.Invoke(null, new object[] { builder }) as SlashCommandBuilder;
+            if (customBuilder != null)
+            {
+                Console.WriteLine($"Using custom BuildCommand for {info.Name}");
+                return customBuilder;
             }
 
             return builder;

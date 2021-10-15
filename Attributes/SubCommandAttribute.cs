@@ -12,6 +12,7 @@ namespace WinstonBot.Attributes
         public string Name { get; set; }
         public string Description { get; set; }
         public Type ParentCommand { get; set; }
+        public bool HasDynamicSubCommands { get; set; }
         public Type[]? Actions { get; set; }
 
         public SubCommandAttribute()
@@ -19,15 +20,17 @@ namespace WinstonBot.Attributes
             Name = null;
             Description = "PLEASE FILL ME OUT";
             ParentCommand = null;
+            HasDynamicSubCommands = false;
             Actions = null;
         }
 
-        public SubCommandAttribute(string name, string description, Type parentCommand, Type[]? actions = null)
+        public SubCommandAttribute(string name, string description, Type parentCommand, Type[]? actions = null, bool dynamicSubcommands = false)
         {
             Name = name;
             Description = description;
             ParentCommand = parentCommand;
             Actions = actions;
+            HasDynamicSubCommands = dynamicSubcommands;
         }
     }
 }

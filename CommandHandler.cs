@@ -46,6 +46,7 @@ namespace WinstonBot
     public class SubCommandInfo : CommandInfo
     {
         public Type ParentCommandType { get; set; }
+        public bool HasDynamicSubCommands { get; set; }
     }
 
     public class CommandHandler
@@ -170,7 +171,8 @@ namespace WinstonBot
                         Type = typeInfo,
                         ParentCommandType = subCommandAttribute.ParentCommand,
                         Options = GetOptions(typeInfo),
-                        Actions = GetActions(subCommandAttribute.Actions)
+                        Actions = GetActions(subCommandAttribute.Actions),
+                        HasDynamicSubCommands = subCommandAttribute.HasDynamicSubCommands
                     };
 
                     _subCommandEntries.Add(subCommandInfo);

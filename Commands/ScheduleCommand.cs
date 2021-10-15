@@ -13,17 +13,11 @@ namespace WinstonBot.Commands
     [Command("schedule", "Schedule things", DefaultPermission.AdminOnly)]
     internal class ScheduleCommand : CommandBase
     {
-        // TODO: would be cool if it could pass in the default built command so we could just append to that.
-        public static new SlashCommandBuilder BuildCommand()
+        public static new SlashCommandBuilder BuildCommand(SlashCommandBuilder defaultBuider)
         {
-            var builder = new SlashCommandBuilder()
-                .WithName("schedule")
-                .WithDescription("Schedule commands");
-
-            var commandSub = new SlashCommandOptionBuilder()
-                .WithName("command")
-                .WithDescription("The command to schedule")
-                .WithType(ApplicationCommandOptionType.SubCommandGroup);
+            var commandSub = defaultBuider.Options.Find(opt => opt.Name == "command");
+            if (commandSub == null)
+                throw new ArgumentNullException("command option is null");
 
             foreach (CommandInfo info in CommandHandler.CommandEntries.Values)
             {
@@ -54,23 +48,10 @@ namespace WinstonBot.Commands
                 commandSub.AddOption(subComamnd);
             }
 
-            builder.AddOption(commandSub);
-
-            builder.AddOption(new SlashCommandOptionBuilder()
-                .WithName("list")
-                .WithDescription("List scheduled events")
-                .WithType(ApplicationCommandOptionType.SubCommand));
-
-            builder.AddOption(new SlashCommandOptionBuilder()
-                .WithName("remove")
-                .WithDescription("Remove a scheduled event")
-                .WithType(ApplicationCommandOptionType.SubCommand))
-                .AddOption("event-id", ApplicationCommandOptionType.String, "Guid of the event to remove", required:true);
-
-            return builder;
+            return defaultBuider;
         }
 
-        [SubCommand("command", "Schedule a command", typeof(ScheduleCommand))]
+        [SubCommand("command", "Schedule a command", typeof(ScheduleCommand), dynamicSubcommands: true)]
         internal class CommandSubCommand : CommandBase
         {
             public override bool WantsToHandleSubCommands => true;
