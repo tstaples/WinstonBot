@@ -37,7 +37,7 @@ namespace WinstonBot.Commands
                     .WithDescription($"Schedule {info.Name}")
                     .WithType(ApplicationCommandOptionType.SubCommand);
 
-                subComamnd.AddOption("start-timestamp", ApplicationCommandOptionType.Integer, "The UTC timestamp in seconds of when to start firing this command.");
+                subComamnd.AddOption("start-timestamp", ApplicationCommandOptionType.Integer, "The UTC timestamp in seconds of when to start firing this command. 0 = now.");
                 subComamnd.AddOption("frequency", ApplicationCommandOptionType.String, "How often to run the command (eg 1 day, 1 hour, 30 minutes).");
 
                 var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
@@ -87,13 +87,12 @@ namespace WinstonBot.Commands
                 string frequencyString = (string)remainingOptions.Find(opt => opt.Name == "frequency").Value;
                 var args = remainingOptions.GetRange(2, remainingOptions.Count - 2);
 
-                var startDate = DateTimeOffset.FromUnixTimeSeconds(startTimestamp);
-                // TODO: uncomment when we start testing real timers
-                //if (startDate < DateTimeOffset.UtcNow)
-                //{
-                //    await context.RespondAsync("The provided start date is in the past.", ephemeral: true);
-                //    return;
-                //}
+                var startDate = startTimestamp <= 0 ? DateTimeOffset.UtcNow : DateTimeOffset.FromUnixTimeSeconds(startTimestamp);
+                if (startTimestamp > 0 && startDate < DateTimeOffset.UtcNow)
+                {
+                    await context.RespondAsync("The provided start date is in the past.", ephemeral: true);
+                    return;
+                }
 
                 var parser = new TimeParser();
                 TimeSpan frequency = parser.GetSpanFromString(frequencyString);
