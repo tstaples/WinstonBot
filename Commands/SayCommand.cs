@@ -4,6 +4,7 @@ using WinstonBot.Attributes;
 namespace WinstonBot.Commands
 {
     [Command("say", "Speak Cat", DefaultPermission.AdminOnly)]
+    [ScheduableCommand]
     public class Say : CommandBase
     {
         [CommandOption("message", "What to say.", required: true)]

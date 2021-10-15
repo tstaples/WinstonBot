@@ -41,6 +41,8 @@ namespace WinstonBot
         public List<CommandOptionInfo> Options { get; set; }
         public bool ExcludeFromDataProvider { get; set; }
         public Dictionary<string, ActionInfo>? Actions { get; set; }
+
+        public ulong AppCommandId { get; set; }
     }
 
     public class SubCommandInfo : CommandInfo
@@ -193,7 +195,7 @@ namespace WinstonBot
             {
                 Console.WriteLine($"Registering commands for guild: {guild.Name}");
 
-                await ForceRefreshCommands.RegisterCommands(_client, guild);
+                Task.Run(async () => ForceRefreshCommands.RegisterCommands(_client, guild));
             }
         }
 
@@ -320,6 +322,75 @@ namespace WinstonBot
             await commandInstance.HandleCommand(context);
         }
 
+        public static async Task ExecuteCommand(
+            DiscordSocketClient client,
+            IServiceProvider serviceProvider,
+            CommandInfo command,
+            SocketSlashCommand slashCommand,
+            IReadOnlyCollection<SocketSlashCommandDataOption> dataOptions)
+        {
+
+            //var dataOptions = slashCommand.Data.Options;
+            CommandBase? commandInstance = null;
+            CommandInfo commandInfo = command;
+            var subCommandResult = FindDeepestSubCommand(command, dataOptions);
+            if (subCommandResult != null)
+            {
+                commandInfo = subCommandResult.Value.Key;
+                dataOptions = subCommandResult.Value.Value;
+                commandInstance = Activator.CreateInstance(subCommandResult.Value.Key.Type) as CommandBase;
+            }
+            else
+            {
+                commandInstance = Activator.CreateInstance(command.Type) as CommandBase;
+            }
+
+            if (commandInstance == null)
+            {
+                throw new Exception($"Failed to construct command {command.Type}");
+            }
+
+            if (dataOptions != null)
+            {
+                HashSet<string> setProperties = new();
+                foreach (var optionData in dataOptions)
+                {
+                    CommandOptionInfo? optionInfo = commandInfo.Options.Find(op => op.Name == optionData.Name);
+                    if (optionInfo == null)
+                    {
+                        Console.WriteLine($"Could not find option {optionData.Name} for command {commandInfo.Name}");
+                        continue;
+                    }
+
+                    PropertyInfo? property = commandInfo.Type.GetProperty(optionInfo.PropertyName);
+                    if (property == null)
+                    {
+                        throw new Exception($"Failed to get property {optionInfo.PropertyName} from type {commandInfo.Type}");
+                    }
+
+                    setProperties.Add(optionData.Name);
+                    property.SetValue(commandInstance, optionData.Value);
+                }
+
+                var requiredParamsNotSet = commandInfo.Options
+                    .Where(opt => opt.Required && !setProperties.Contains(opt.Name))
+                    .Select(opt => opt.Name);
+                if (requiredParamsNotSet.Any())
+                {
+                    throw new ArgumentException($"Missing required arguments for command {commandInfo.Name}: {String.Join(',', requiredParamsNotSet)}");
+                }
+            }
+
+            Console.WriteLine($"Command {command.Name} handling interaction");
+            var createContextFunction = Utility.GetInheritedStaticMethod(command.Type, CommandBase.CreateContextName);
+            var context = createContextFunction?.Invoke(null, new object[] { client, slashCommand, serviceProvider }) as CommandContext;
+            if (context == null)
+            {
+                throw new ArgumentNullException($"Failed to create context for command {command.Name}");
+            }
+            await commandInstance.HandleCommand(context);
+        }
+
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
             // For now just assume actions are unique per command.
@@ -418,7 +489,7 @@ namespace WinstonBot
             await actionInstance.HandleAction(context);
         }
 
-        KeyValuePair<SubCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>?>? FindDeepestSubCommand(CommandInfo parent,
+        static KeyValuePair<SubCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>?>? FindDeepestSubCommand(CommandInfo parent,
             IReadOnlyCollection<SocketSlashCommandDataOption>? options)
         {
             if (options == null)

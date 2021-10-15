@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using WinstonBot.Services;
@@ -10,34 +9,39 @@ namespace WinstonBot.Commands
     {
         public DiscordSocketClient Client { get; set; }
         public IServiceProvider ServiceProvider { get; set; }
-        public ISocketMessageChannel Channel => SlashCommand.Channel;
+        public virtual ISocketMessageChannel Channel => _slashCommand.Channel;
 
-        private SocketSlashCommand SlashCommand { get; set; }
-        private string _commandName;
+        private SocketSlashCommand? _slashCommand;
+        protected string _commandName;
 
-        public CommandContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
+        public CommandContext(DiscordSocketClient client, SocketSlashCommand? arg, IServiceProvider services)
         {
             Client = client;
-            SlashCommand = arg;
+            _slashCommand = arg;
             ServiceProvider = services;
-            _commandName = SlashCommand.CommandName;
+            _commandName = arg != null ? arg.CommandName : String.Empty;
         }
 
         // TODO: need to expose way to delete the message which deletes the interaction
-        public async Task RespondAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)
+        public virtual async Task RespondAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)
         {
+            if (_slashCommand == null)
+            {
+                throw new Exception("_slashCommand is null.");
+            }
+
             // if there's a component then this message could contain an interaction
             if (component != null)
             {
-                await SlashCommand.DeferAsync();
-                var message = await SlashCommand.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
+                await _slashCommand.DeferAsync();
+                var message = await _slashCommand.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
 
                 var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
                 interactionService.AddInteraction(_commandName, message.Id);
             }
             else
             {
-                await SlashCommand.RespondAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
+                await _slashCommand.RespondAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
             }
         }
     }

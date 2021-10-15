@@ -1,4 +1,5 @@
-﻿- implement actual aod team selection
+﻿- add type reader support
+- implement actual aod team selection
 - interaction for setting up who can do what roles at aod.
 	- this will let us avoid needing to add roles to control who can do what.
 
@@ -29,3 +30,4 @@ Done:
 - role requirements for commands
 - boss embed color
 - ping blav every time he responds with the ping command
+- command to lookup things on wiki

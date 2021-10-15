@@ -13,6 +13,7 @@ public class Program
     private ConfigService _configService;
     private MessageDatabase _messageDatabase;
     private InteractionService _interactionService;
+    private ScheduledCommandService _timerService;
     private IServiceProvider _services;
 
     public static void Main(string[] args)
@@ -24,6 +25,7 @@ public class Program
         .AddSingleton(_configService)
         .AddSingleton(_messageDatabase)
         .AddSingleton(_interactionService)
+        .AddSingleton(_timerService)
         .BuildServiceProvider();
 
     public async Task MainAsync()
@@ -46,6 +48,7 @@ public class Program
         _messageDatabase = new MessageDatabase();
         _emoteDatabase = new EmoteDatabase();
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
+        _timerService = new ScheduledCommandService(_client);
 
         _services = BuildServiceProvider();
 
@@ -61,6 +64,8 @@ public class Program
         Console.WriteLine("Client ready");
 
         await _commandHandler.InstallCommandsAsync();
+
+        _timerService.StartEvents(_services);
     }
 
     private Task Log(LogMessage msg)

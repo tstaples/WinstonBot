@@ -102,7 +102,7 @@ namespace WinstonBot
             return false;
         }
 
-        public static TValue GetOrAdd<TKey, TValue>(Dictionary<TKey, TValue> dict, TKey key) where TValue : new()
+        public static TValue GetOrAdd<TKey, TValue>(IDictionary<TKey, TValue> dict, TKey key) where TValue : new()
         {
             if (!dict.ContainsKey(key))
             {
