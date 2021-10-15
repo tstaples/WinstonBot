@@ -40,7 +40,11 @@ public class Program
         });
         _client.Log += this.Log;
 
+#if DEBUG
+        var token = File.ReadAllText(Path.Combine("Config", "test_token.txt"));
+#else
         var token = File.ReadAllText(Path.Combine("Config", "token.txt"));
+#endif
         await _client.LoginAsync(TokenType.Bot, token);
         await _client.StartAsync();
 

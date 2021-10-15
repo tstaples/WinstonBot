@@ -152,7 +152,11 @@ namespace WinstonBot.Services
             {
                 foreach ((ulong guildId, List<Entry> entries) in _entries)
                 {
-                    entries.ForEach(entry => StartTimerForEntry(serviceProvider, guildId, entry));
+                    // Only start timers for guilds that are valid
+                    if (_client.GetGuild(guildId) != null)
+                    {
+                        entries.ForEach(entry => StartTimerForEntry(serviceProvider, guildId, entry));
+                    }
                 }
             }
         }

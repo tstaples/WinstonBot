@@ -29,7 +29,11 @@ namespace WinstonBot.Commands
 
             // TODO: batch update breaks because we pass in more than 10 roles in the dict since there's 17 admin roles.
             //var adminRoles = guild.Roles.Where(role => role.Permissions.Administrator);
+#if DEBUG
+            var adminRoles = guild.Roles.Where(role => role.Id == 893184370444210217); // test server admin role
+#else
             var adminRoles = guild.Roles.Where(role => role.Id == 773757083904114689);
+#endif
 
             Dictionary<string, ulong> appCommandIds = new();
 
