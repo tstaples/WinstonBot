@@ -6,6 +6,7 @@ namespace WinstonBot.Commands
 {
     [Command("generate-aod-message", "Post the daily aod signup message")]
     [ConfigurableCommand]
+    [ScheduableCommand]
     public class GenerateAoDMessageCommand : CommandBase
     {
         public async override Task HandleCommand(CommandContext context)

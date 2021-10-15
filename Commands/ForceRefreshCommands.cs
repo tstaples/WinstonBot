@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Net;
+using Discord.Rest;
 using Discord.WebSocket;
 using Newtonsoft.Json;
 using WinstonBot.Attributes;
@@ -34,13 +35,18 @@ namespace WinstonBot.Commands
 
             try
             {
+                List<ApplicationCommandProperties> commands = new();
                 foreach (CommandInfo commandInfo in CommandHandler.CommandEntries.Values)
                 {
                     Console.WriteLine($"Building command {commandInfo.Name}");
                     var commandBuilder = CommandBuilder.BuildSlashCommand(commandInfo);
-                    SocketApplicationCommand appCommand = await guild.CreateApplicationCommandAsync(commandBuilder.Build());
-                    commandInfo.AppCommandId = appCommand.Id;
-                    appCommandIds.Add(commandInfo.Name, appCommand.Id);
+                    commands.Add(commandBuilder.Build());
+                }
+
+                var registeredCommands = await client.Rest.BulkOverwriteGuildCommands(commands.ToArray(), guild.Id);
+                foreach (RestGuildCommand command in registeredCommands)
+                {
+                    appCommandIds.Add(command.Name, command.Id);
                 }
             }
             catch (ApplicationCommandException ex)
@@ -51,6 +57,7 @@ namespace WinstonBot.Commands
                 // You can send this error somewhere or just print it to the console, for this example we're just going to print it.
                 Console.WriteLine(json);
             }
+
 
             // Setup default command permissions
             var permDict = new Dictionary<ulong, ApplicationCommandPermission[]>();

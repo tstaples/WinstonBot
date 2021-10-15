@@ -203,7 +203,9 @@ namespace WinstonBot
             {
                 Console.WriteLine($"Registering commands for guild: {guild.Name}");
 
-                Task.Run(() => ForceRefreshCommands.RegisterCommands(_client, guild)).Forget();
+                await ForceRefreshCommands.RegisterCommands(_client, guild);
+
+                Console.WriteLine($"Finished Registering commands for guild: {guild.Name}");
             }
         }
 
