@@ -23,7 +23,7 @@ namespace WinstonBot.Commands
         public virtual bool WantsToHandleSubCommands => false;
 
         public virtual Task HandleCommand(CommandContext context) => Task.CompletedTask;
-        public virtual Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>? options) => Task.CompletedTask;
+        public virtual Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IEnumerable<CommandDataOption>? options) => Task.CompletedTask;
 
         public static SlashCommandBuilder BuildCommand(SlashCommandBuilder defaultBuider) => null;
         // This is for subcommands. TODO: find a better place to do ths.

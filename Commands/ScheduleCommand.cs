@@ -56,7 +56,7 @@ namespace WinstonBot.Commands
         {
             public override bool WantsToHandleSubCommands => true;
 
-            public override async Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+            public override async Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IEnumerable<CommandDataOption>? options)
             {
                 if (options == null)
                 {
@@ -162,7 +162,7 @@ namespace WinstonBot.Commands
             }
         }
 
-        private static string ArgsToString(IReadOnlyCollection<SocketSlashCommandDataOption>? args)
+        private static string ArgsToString(IEnumerable<CommandDataOption>? args)
         {
             string result = "None";
             if (args != null)

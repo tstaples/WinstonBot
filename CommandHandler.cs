@@ -49,6 +49,15 @@ namespace WinstonBot
         public bool HasDynamicSubCommands { get; set; }
     }
 
+    // Mirrors SocketSlashCommandDataOption
+    public class CommandDataOption
+    {
+        public string Name { get; set; }
+        public object Value { get; set;  }
+        public ApplicationCommandOptionType Type { get; set; }
+        public List<CommandDataOption>? Options { get;set; }
+    }
+
     public class CommandHandler
     {
         private readonly DiscordSocketClient _client;
@@ -268,10 +277,12 @@ namespace WinstonBot
                 throw new ArgumentNullException($"Failed to create context for command {command.Name}");
             }
 
-            await ExecuteCommand(command, context, slashCommand.Data.Options);
+            // Translate the options to our own serializable version
+            var options = BuildCommandDataOptions(slashCommand.Data.Options);
+            await ExecuteCommand(command, context, options);
         }
 
-        private static void InjectCommandPropertyValues(CommandInfo commandInfo, CommandBase commandInstance, IReadOnlyCollection<SocketSlashCommandDataOption>? dataOptions)
+        private static void InjectCommandPropertyValues(CommandInfo commandInfo, CommandBase commandInstance, IEnumerable<CommandDataOption>? dataOptions)
         {
             if (dataOptions == null)
             {
@@ -312,7 +323,7 @@ namespace WinstonBot
         public static async Task ExecuteCommand(
             CommandInfo command,
             CommandContext context,
-            IReadOnlyCollection<SocketSlashCommandDataOption>? dataOptions)
+            IEnumerable<CommandDataOption>? dataOptions)
         {
             CommandBase? commandInstance = null;
             CommandInfo commandInfo = command;
@@ -339,7 +350,7 @@ namespace WinstonBot
             {
                 // If the first option is a subcommand that means that subcommand isn't defined as a class with the SubCommand attribute.
                 // In these cases we allow the parent to handle this subcommand.
-                if (dataOptions.Count == 1 &&
+                if (dataOptions.Count() == 1 &&
                     dataOptions.First().Type == ApplicationCommandOptionType.SubCommand)
                 {
                     if (!commandInstance.WantsToHandleSubCommands)
@@ -458,8 +469,8 @@ namespace WinstonBot
             await actionInstance.HandleAction(context);
         }
 
-        static KeyValuePair<SubCommandInfo, IReadOnlyCollection<SocketSlashCommandDataOption>?>? FindDeepestSubCommand(CommandInfo parent,
-            IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+        static KeyValuePair<SubCommandInfo, IEnumerable<CommandDataOption>?>? FindDeepestSubCommand(CommandInfo parent,
+            IEnumerable<CommandDataOption>? options)
         {
             if (options == null)
             {
@@ -487,6 +498,22 @@ namespace WinstonBot
                 }
             }
             return null;
+        }
+
+        public static List<CommandDataOption>? BuildCommandDataOptions(IReadOnlyCollection<SocketSlashCommandDataOption>? options)
+        {
+            if (options == null)
+            {
+                return null;
+            }
+
+            return options.Select(opt => new CommandDataOption()
+            {
+                Name = opt.Name,
+                Value = opt.Value,
+                Type = opt.Type,
+                Options = BuildCommandDataOptions(opt.Options)
+            }).ToList();
         }
 
         private IEnumerable<ulong> GetRequiredRolesForCommand(ConfigService configService, SocketGuild guild, string commandName)

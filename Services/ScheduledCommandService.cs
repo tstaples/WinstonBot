@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using WinstonBot.Commands;
+using Newtonsoft.Json;
 
 namespace WinstonBot.Services
 {
@@ -23,15 +24,20 @@ namespace WinstonBot.Services
             public ulong ScheduledBy { get; set; }
             public ulong ChannelId { get; set; }
             public string Command { get; set; }
-            public IReadOnlyCollection<SocketSlashCommandDataOption>? Args { get; set; }
+            public List<CommandDataOption> Args { get; set; }
         }
 
+        private string _saveFilePath;
         private DiscordSocketClient _client;
         private Dictionary<ulong, List<Entry>> _entries = new();
 
-        public ScheduledCommandService(DiscordSocketClient client)
+        public ScheduledCommandService(string savePath, DiscordSocketClient client)
         {
+            _saveFilePath = savePath;
             _client = client;
+
+            // read events
+            Load();
         }
 
         // this will probably need to be specific to schedule-command so it can serialize the args and such.
@@ -43,7 +49,7 @@ namespace WinstonBot.Services
             DateTimeOffset start,
             TimeSpan frequency,
             string command,
-            IReadOnlyCollection<SocketSlashCommandDataOption>? args)
+            IEnumerable<CommandDataOption>? args)
         {
             var entry = new Entry()
             {
@@ -53,14 +59,14 @@ namespace WinstonBot.Services
                 ScheduledBy = scheduledByUserId,
                 ChannelId = channelId,
                 Command = command,
-                Args = args
+                Args = args != null ? args.ToList() : new()
             };
 
             lock (_entries)
             {
                 Utility.GetOrAdd(_entries, guildId).Add(entry);
 
-                // TODO: serialize json to file
+                Save();
             }
 
             await StartTimerForEntry(serviceProvider, guildId, entry);
@@ -81,7 +87,7 @@ namespace WinstonBot.Services
                         Console.WriteLine($"Removing scheduled event {entry.Command} - {eventId}");
                         _entries[guildId].Remove(entry);
 
-                        // TODO: update json file
+                        Save();
                         return true;
                     }
                 }
@@ -115,6 +121,59 @@ namespace WinstonBot.Services
             {
                 await context.RespondAsync($"error running command: {ex.Message}", ephemeral: true);
             }
+        }
+
+        private void Save()
+        {
+            try
+            {
+                string jsonData = String.Empty;
+                lock (_entries)
+                {
+                    jsonData = JsonConvert.SerializeObject(_entries, new JsonSerializerSettings()
+                    {
+                        Formatting = Formatting.Indented
+                    });
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(_saveFilePath));
+                File.WriteAllText(_saveFilePath, jsonData);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to Save schedule command data: {ex}");
+            }
+        }
+
+        private void Load()
+        {
+            if (!File.Exists(_saveFilePath))
+            {
+                return;
+            }
+
+            string data = string.Empty;
+            try
+            {
+                data = File.ReadAllText(_saveFilePath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to read {_saveFilePath}: {ex.Message}");
+                return;
+            }
+
+            var result = JsonConvert.DeserializeObject<Dictionary<ulong, List<Entry>>>(data);
+
+            if (result != null)
+            {
+                lock (_entries)
+                {
+                    _entries = result;
+                }
+            }
+
+            Console.WriteLine($"Scheduled Events - Loaded {_saveFilePath}");
         }
 
         private class ScheduledCommandContext : CommandContext

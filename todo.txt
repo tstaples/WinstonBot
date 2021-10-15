@@ -8,12 +8,12 @@
 	- an action could only be used for a single command (would be fine for my use, but if we want to make a lib then maybe not.)
 
 - use dependency injection to inject services for commands
-- split other config commands into subcommands
 - add view all config settings subcommand
 
 - update interaction service to save to file. auto delete messages older than n days.
 - update action context to also store interactions when pming people.
 
+- improve logging
 - test multiple people hitting buttons at once
 - harden guild.GetUser against users no longer in the discord
 
@@ -31,3 +31,4 @@ Done:
 - boss embed color
 - ping blav every time he responds with the ping command
 - command to lookup things on wiki
+- split other config commands into subcommands

@@ -48,7 +48,7 @@ public class Program
         _messageDatabase = new MessageDatabase();
         _emoteDatabase = new EmoteDatabase();
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
-        _timerService = new ScheduledCommandService(_client);
+        _timerService = new ScheduledCommandService(Path.Combine("Config", "ScheduledEvents.json"), _client);
 
         _services = BuildServiceProvider();
 
