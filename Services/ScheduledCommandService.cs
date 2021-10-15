@@ -20,6 +20,7 @@ namespace WinstonBot.Services
             public Guid Guid {  get; set; }
             public DateTimeOffset StartDate { get; set; }
             public TimeSpan Frequency { get; set; }
+            public ulong ScheduledBy { get; set; }
             public ulong ChannelId { get; set; }
             public string Command { get; set; }
             public IReadOnlyCollection<SocketSlashCommandDataOption>? Args { get; set; }
@@ -37,6 +38,7 @@ namespace WinstonBot.Services
         public async Task AddRecurringEvent(
             IServiceProvider serviceProvider,
             ulong guildId,
+            ulong scheduledByUserId,
             ulong channelId,
             DateTimeOffset start,
             TimeSpan frequency,
@@ -48,6 +50,7 @@ namespace WinstonBot.Services
                 Guid = Guid.NewGuid(),
                 StartDate = start,
                 Frequency = frequency,
+                ScheduledBy = scheduledByUserId,
                 ChannelId = channelId,
                 Command = command,
                 Args = args
@@ -66,7 +69,7 @@ namespace WinstonBot.Services
         public ImmutableArray<Entry> GetEntries(ulong guildId) 
             => _entries[guildId].ToImmutableArray();
 
-        public void RemoveEvent(ulong guildId, Guid eventId)
+        public bool RemoveEvent(ulong guildId, Guid eventId)
         {
             lock (_entries)
             {
@@ -79,9 +82,11 @@ namespace WinstonBot.Services
                         _entries[guildId].Remove(entry);
 
                         // TODO: update json file
+                        return true;
                     }
                 }
             }
+            return false;
         }
 
         public void StartEvents(IServiceProvider serviceProvider)
@@ -115,9 +120,12 @@ namespace WinstonBot.Services
         private class ScheduledCommandContext : CommandContext
         {
             public override ISocketMessageChannel Channel => _channel;
+            public override SocketGuild Guild => _guild;
+            public override IUser User => Guild.GetUser(_entry.ScheduledBy);
 
             private SocketGuild _guild;
             private ISocketMessageChannel _channel;
+            private Entry _entry;
 
             public ScheduledCommandContext(Entry entry, ulong guildId, DiscordSocketClient client, IServiceProvider serviceProvider)
                 : base(client, null, serviceProvider)
@@ -125,6 +133,7 @@ namespace WinstonBot.Services
                 _guild = client.GetGuild(guildId);
                 _channel = _guild.GetTextChannel(entry.ChannelId);
                 _commandName = entry.Command;
+                _entry = entry;
             }
 
             public override async Task RespondAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)

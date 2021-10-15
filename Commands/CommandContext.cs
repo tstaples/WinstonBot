@@ -10,6 +10,8 @@ namespace WinstonBot.Commands
         public DiscordSocketClient Client { get; set; }
         public IServiceProvider ServiceProvider { get; set; }
         public virtual ISocketMessageChannel Channel => _slashCommand.Channel;
+        public virtual SocketGuild Guild => ((SocketGuildChannel)Channel).Guild;
+        public virtual IUser User => _slashCommand.User;
 
         private SocketSlashCommand? _slashCommand;
         protected string _commandName;

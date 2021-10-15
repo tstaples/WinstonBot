@@ -61,6 +61,12 @@ namespace WinstonBot.Commands
                 .WithDescription("List scheduled events")
                 .WithType(ApplicationCommandOptionType.SubCommand));
 
+            builder.AddOption(new SlashCommandOptionBuilder()
+                .WithName("remove")
+                .WithDescription("Remove a scheduled event")
+                .WithType(ApplicationCommandOptionType.SubCommand))
+                .AddOption("event-id", ApplicationCommandOptionType.String, "Guid of the event to remove", required:true);
+
             return builder;
         }
 
@@ -102,7 +108,7 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                Console.WriteLine($"Starting command {commandName} on {startDate} and running every {frequency}");
+                Console.WriteLine($"Starting command {commandName} on {startDate} and running every {frequency}. Args: {ArgsToString(args)}");
 
                 if (!CommandHandler.CommandEntries.ContainsKey(commandName))
                 {
@@ -110,12 +116,76 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                var channel = (SocketGuildChannel)context.Channel;
-                var guild = channel.Guild;
-
                 await context.ServiceProvider.GetRequiredService<ScheduledCommandService>()
-                    .AddRecurringEvent(context.ServiceProvider, guild.Id, context.Channel.Id, startDate, frequency, commandName, args);
+                    .AddRecurringEvent(context.ServiceProvider, context.Guild.Id, context.User.Id, context.Channel.Id, startDate, frequency, commandName, args);
             }
+        }
+
+        [SubCommand("list", "List Scheduled Events", typeof(ScheduleCommand))]
+        internal class ListSubCommand : CommandBase
+        {
+            public override async Task HandleCommand(CommandContext context)
+            {
+                var service = context.ServiceProvider.GetRequiredService<ScheduledCommandService>();
+
+                List<Embed> embeds = new();
+                foreach (ScheduledCommandService.Entry entry in service.GetEntries(context.Guild.Id))
+                {
+                    string description = $"**Command**: {entry.Command}\n" +
+                        $"**Args**: {ArgsToString(entry.Args)}\n" +
+                        $"**Scheduled By**: {context.Guild.GetUser(entry.ScheduledBy).Mention}\n" +
+                        $"**Starts**: {TimestampTag.FromDateTime(entry.StartDate.UtcDateTime)}";
+                    var builder = new EmbedBuilder()
+                        .WithTitle(entry.Guid.ToString())
+                        .WithDescription(description)
+                        .WithFooter($"Occurs every {entry.Frequency}");
+                    embeds.Add(builder.Build());
+                }
+
+                await context.RespondAsync(embeds: embeds.ToArray(), ephemeral:true);
+            }
+        }
+
+        [SubCommand("remove", "Remove a scheduled event", typeof(ScheduleCommand))]
+        internal class RemoveSubCommand : CommandBase
+        {
+            [CommandOption("event-id", "The guid for the event to cancel. Can be found via the list command.")]
+            public string GuidString { get; set; }
+
+            public override async Task HandleCommand(CommandContext context)
+            {
+                Guid guid;
+                if (Guid.TryParse(GuidString, out guid))
+                {
+                    var service = context.ServiceProvider.GetRequiredService<ScheduledCommandService>();
+                    if (service.RemoveEvent(context.Guild.Id, guid))
+                    {
+                        await context.RespondAsync($"Removed event id: {guid}", ephemeral: true);
+                    }
+                    else
+                    {
+                        await context.RespondAsync($"No event found for id: {guid}", ephemeral: true);
+                    }
+                }
+                else
+                {
+                    await context.RespondAsync($"Invalid event id: {guid}", ephemeral: true);
+                }
+            }
+        }
+
+        private static string ArgsToString(IReadOnlyCollection<SocketSlashCommandDataOption>? args)
+        {
+            string result = "None";
+            if (args != null)
+            {
+                result = String.Empty;
+                foreach (var arg in args)
+                {
+                    result += $"{arg.Name}: {arg.Value} ";
+                }
+            }
+            return result;
         }
     }
 }
