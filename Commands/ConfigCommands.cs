@@ -19,7 +19,7 @@ namespace WinstonBot.Commands
         }
     }
 
-    [Command("configure", "Configure the bot.", DefaultPermission.AdminOnly, excludeFromCommandProvider:true)]
+    [Command("configure", "Configure the bot.", DefaultPermission.AdminOnly)]
     public class ConfigCommand : CommandBase
     {
         private CommandHandler _commandHandler;

@@ -12,7 +12,7 @@ namespace WinstonBot.Commands
 {
     // TODO: sub commands to list scheduled events and command to cancel
     // TODO: we could custom build this command and create schedule subcommands for each existing command
-    [Command("schedule", "Schedule things", DefaultPermission.AdminOnly, excludeFromCommandProvider: true)]
+    [Command("schedule", "Schedule things", DefaultPermission.AdminOnly)]
     internal class ScheduleCommand : CommandBase
     {
         // TODO: would be cool if it could pass in the default built command so we could just append to that.

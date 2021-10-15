@@ -1,4 +1,6 @@
 ﻿using Discord;
+using System.Reflection;
+using WinstonBot.Attributes;
 using WinstonBot.Data;
 
 namespace WinstonBot.Commands
@@ -9,7 +11,7 @@ namespace WinstonBot.Commands
         {
             foreach (CommandInfo command in CommandHandler.CommandEntries.Values)
             {
-                if (!command.ExcludeFromDataProvider)
+                if (command.Type.GetCustomAttribute<ConfigurableCommandAttribute>() != null)
                 {
                     builder.AddChoice(command.Name, command.Name);
                 }
@@ -23,7 +25,7 @@ namespace WinstonBot.Commands
         {
             foreach (CommandInfo command in CommandHandler.CommandEntries.Values)
             {
-                if (!command.ExcludeFromDataProvider && command.Actions != null)
+                if (command.Type.GetCustomAttribute<ConfigurableCommandAttribute>() != null)
                 {
                     builder.AddChoice(command.Name, command.Name);
                 }

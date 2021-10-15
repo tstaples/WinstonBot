@@ -39,7 +39,6 @@ namespace WinstonBot
         public DefaultPermission DefaultPermission { get; set; }
         public Type Type { get; set; }
         public List<CommandOptionInfo> Options { get; set; }
-        public bool ExcludeFromDataProvider { get; set; }
         public Dictionary<string, ActionInfo>? Actions { get; set; }
 
         public ulong AppCommandId { get; set; }
@@ -147,7 +146,6 @@ namespace WinstonBot
                         DefaultPermission = commandAttribute.DefaultPermission,
                         Type = typeInfo,
                         Options = GetOptions(typeInfo),
-                        ExcludeFromDataProvider = commandAttribute.ExcludeFromCommandProvider,
                         Actions = GetActions(commandAttribute.Actions)
                     };
 

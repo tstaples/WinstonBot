@@ -23,6 +23,7 @@ namespace WinstonBot.Commands
         }
     )]
     [ScheduableCommand]
+    [ConfigurableCommand]
     public class HostPvmSignup : CommandBase
     {
         [CommandOption("boss", "The boss to create an event for.", dataProvider: typeof(SignupBossChoiceDataProvider))]

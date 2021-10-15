@@ -7,6 +7,7 @@ using WinstonBot.Attributes;
 namespace WinstonBot.Commands
 {
     [Command("force-refresh-commands", "Delete all applications commands and re-create them", DefaultPermission.AdminOnly)]
+    [ConfigurableCommand]
     public class ForceRefreshCommands : CommandBase
     {
         public async override Task HandleCommand(CommandContext context)
