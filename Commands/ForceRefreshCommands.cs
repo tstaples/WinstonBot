@@ -12,16 +12,13 @@ namespace WinstonBot.Commands
     {
         public async override Task HandleCommand(CommandContext context)
         {
-            if (context.Channel is SocketGuildChannel channel)
-            {
-                Console.WriteLine("Clearing all commands for this bot from guild:");
-                await channel.Guild.DeleteApplicationCommandsAsync();
+            Console.WriteLine("Clearing all commands for this bot from guild:");
+            await context.Guild.DeleteApplicationCommandsAsync();
 
-                Console.WriteLine("Registering commands");
-                await RegisterCommands(context.Client, channel.Guild);
+            Console.WriteLine("Registering commands");
+            await RegisterCommands(context.Client, context.Guild);
 
-                await context.RespondAsync("All commands refreshed", ephemeral: true);
-            }
+            await context.RespondAsync("All commands refreshed", ephemeral: true);
         }
 
         public static async Task RegisterCommands(DiscordSocketClient client, SocketGuild guild)

@@ -13,7 +13,7 @@ namespace WinstonBot.Commands
 
         public async override Task HandleCommand(CommandContext context)
         {
-            await context.Channel.SendMessageAsync(Message, allowedMentions: new AllowedMentions(AllowedMentionTypes.Roles | AllowedMentionTypes.Users));
+            await context.SendMessageAsync(Message, allowedMentions: new AllowedMentions(AllowedMentionTypes.Roles | AllowedMentionTypes.Users));
         }
     }
 }

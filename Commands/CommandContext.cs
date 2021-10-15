@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using WinstonBot.Services;
@@ -9,10 +10,11 @@ namespace WinstonBot.Commands
     {
         public DiscordSocketClient Client { get; set; }
         public IServiceProvider ServiceProvider { get; set; }
-        public virtual ISocketMessageChannel Channel => _slashCommand.Channel;
-        public virtual SocketGuild Guild => ((SocketGuildChannel)Channel).Guild;
+        public virtual ulong ChannelId => _slashCommand.Channel.Id;
+        public virtual SocketGuild Guild => ((SocketGuildChannel)_slashCommand.Channel).Guild;
         public virtual IUser User => _slashCommand.User;
 
+        protected virtual ISocketMessageChannel Channel => _slashCommand.Channel;
         private SocketSlashCommand? _slashCommand;
         protected string _commandName;
 
@@ -45,6 +47,16 @@ namespace WinstonBot.Commands
             {
                 await _slashCommand.RespondAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
             }
+        }
+
+        public virtual async Task<RestUserMessage> SendMessageAsync(string text = null, bool isTTS = false, Embed embed = null, RequestOptions options = null, AllowedMentions allowedMentions = null, MessageReference messageReference = null, MessageComponent component = null, ISticker[] stickers = null)
+        {
+            return await Channel.SendMessageAsync(text, isTTS, embed, options, allowedMentions, messageReference, component, stickers);
+        }
+
+        public virtual Task DeleteMessageAsync(ulong messageId, RequestOptions options = null)
+        {
+            return Channel.DeleteMessageAsync(messageId, options);
         }
     }
 

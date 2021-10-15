@@ -65,7 +65,7 @@ public class Program
 
         await _commandHandler.InstallCommandsAsync();
 
-        await _timerService.StartEvents(_services);
+        _timerService.StartEvents(_services);
     }
 
     private Task Log(LogMessage msg)
