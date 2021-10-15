@@ -65,9 +65,6 @@ namespace WinstonBot.Services
         {
             _saveFilePath = savePath;
             _client = client;
-
-            // read events
-            Load();
         }
 
         // this will probably need to be specific to schedule-command so it can serialize the args and such.
@@ -96,11 +93,11 @@ namespace WinstonBot.Services
             lock (_entries)
             {
                 Utility.GetOrAdd(_entries, guildId).Add(entry);
-
-                Save();
             }
 
-            await StartTimerForEntry(serviceProvider, guildId, entry);
+            await Save();
+
+            StartTimerForEntry(serviceProvider, guildId, entry);
         }
 
         public ImmutableArray<Entry> GetEntries(ulong guildId) 
@@ -108,6 +105,7 @@ namespace WinstonBot.Services
 
         public bool RemoveEvent(ulong guildId, Guid eventId)
         {
+            bool result = false;
             lock (_entries)
             {
                 if (_entries.ContainsKey(guildId))
@@ -125,21 +123,28 @@ namespace WinstonBot.Services
                             _timers.Remove(timer);
                         }
 
-                        Save();
-                        return true;
+                        result = true;
                     }
                 }
             }
-            return false;
+
+            if (result)
+            {
+                Save().Forget();
+            }
+            return result;
         }
 
-        public void StartEvents(IServiceProvider serviceProvider)
+        public async Task StartEvents(IServiceProvider serviceProvider)
         {
+            await Load();
+
+            Console.WriteLine("[ScheduledCommandService] Starting loaded events");
             lock (_entries)
             {
                 foreach ((ulong guildId, List<Entry> entries) in _entries)
                 {
-                    entries.ForEach(async entry => await StartTimerForEntry(serviceProvider, guildId, entry));
+                    entries.ForEach(entry => StartTimerForEntry(serviceProvider, guildId, entry));
                 }
             }
         }
@@ -162,7 +167,7 @@ namespace WinstonBot.Services
             }
         }
 
-        private async Task StartTimerForEntry(IServiceProvider serviceProvider, ulong guildId, Entry entry)
+        private void StartTimerForEntry(IServiceProvider serviceProvider, ulong guildId, Entry entry)
         {
             Console.WriteLine($"Starting scheduled event {entry.Command} - {entry.Guid}");
 
@@ -215,15 +220,15 @@ namespace WinstonBot.Services
             {
                 data.Entry.LastRun = DateTime.Now;
                 CommandInfo commandInfo = CommandHandler.CommandEntries[data.Entry.Command];
-                _ = CommandHandler.ExecuteCommand(commandInfo, context, data.Entry.Args);
+                CommandHandler.ExecuteCommand(commandInfo, context, data.Entry.Args).Forget();
             }
             catch (Exception ex)
             {
-                _ = context.RespondAsync($"error running command: {ex.Message}", ephemeral: true);
+                context.RespondAsync($"error running command: {ex.Message}", ephemeral: true).Forget();
             }
         }
 
-        private void Save()
+        private async Task Save()
         {
             try
             {
@@ -237,7 +242,7 @@ namespace WinstonBot.Services
                 }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(_saveFilePath));
-                File.WriteAllText(_saveFilePath, jsonData);
+                await File.WriteAllTextAsync(_saveFilePath, jsonData);
             }
             catch (Exception ex)
             {
@@ -245,7 +250,7 @@ namespace WinstonBot.Services
             }
         }
 
-        private void Load()
+        private async Task Load()
         {
             if (!File.Exists(_saveFilePath))
             {
@@ -255,7 +260,7 @@ namespace WinstonBot.Services
             string data = string.Empty;
             try
             {
-                data = File.ReadAllText(_saveFilePath);
+                data = await File.ReadAllTextAsync(_saveFilePath);
             }
             catch (Exception ex)
             {
@@ -297,6 +302,7 @@ namespace WinstonBot.Services
 
             public override async Task RespondAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)
             {
+                // Since we have no interaction we just send a regular channel message.
                 await _channel.SendMessageAsync(text, isTTS, embed, options, allowedMentions, messageReference:null, component);
             }
         }
