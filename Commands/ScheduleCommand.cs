@@ -109,8 +109,15 @@ namespace WinstonBot.Commands
             {
                 var service = context.ServiceProvider.GetRequiredService<ScheduledCommandService>();
 
+                var entries = service.GetEntries(context.Guild.Id);
+                if (entries.IsEmpty)
+                {
+                    await context.RespondAsync("No events currently scheduled.", ephemeral: true);
+                    return;
+                }
+
                 List<Embed> embeds = new();
-                foreach (ScheduledCommandService.Entry entry in service.GetEntries(context.Guild.Id))
+                foreach (ScheduledCommandService.Entry entry in entries)
                 {
                     string description = $"**Command**: {entry.Command}\n" +
                         $"**Args**: {ArgsToString(entry.Args)}\n" +
