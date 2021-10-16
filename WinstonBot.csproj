@@ -15,6 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Config\google_credentials.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Config\test_token.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

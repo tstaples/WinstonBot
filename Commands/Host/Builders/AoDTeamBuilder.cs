@@ -75,7 +75,7 @@ namespace WinstonBot.Commands
 
         public Dictionary<string, ulong> SelectTeam(List<ulong> inputNames)
         {
-            AoDDatabase db = new(); // todo: get from service
+            //AoDDatabase db = new(); // todo: get from service
             //HashSet<ulong> selectedNames = new();
 
             var bossEntry = BossData.Entries[(int)BossData.Boss.AoD];

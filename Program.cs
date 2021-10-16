@@ -15,6 +15,7 @@ public class Program
     private MessageDatabase _messageDatabase;
     private InteractionService _interactionService;
     private ScheduledCommandService _timerService;
+    private AoDDatabase _aoDDatabase;
     private IServiceProvider _services;
 
     public static void Main(string[] args)
@@ -27,6 +28,7 @@ public class Program
         .AddSingleton(_messageDatabase)
         .AddSingleton(_interactionService)
         .AddSingleton(_timerService)
+        .AddSingleton(_aoDDatabase)
         .BuildServiceProvider();
 
     public async Task MainAsync()
@@ -56,6 +58,8 @@ public class Program
         _emoteDatabase = new EmoteDatabase();
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
         _timerService = new ScheduledCommandService(Path.Combine("Config", "ScheduledEvents.json"), _client);
+        _aoDDatabase = new AoDDatabase(Path.Combine("Config", "google_credentials.json"));
+        _aoDDatabase.Initialize();
 
         _services = BuildServiceProvider();
 
