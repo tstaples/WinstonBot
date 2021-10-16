@@ -73,6 +73,8 @@ public class Program
         await _commandHandler.InstallCommandsAsync();
 
         _timerService.StartEvents(_services);
+
+        await _client.SetGameAsync($"Version {Assembly.GetEntryAssembly().GetName().Version}");
     }
 
     private Task Log(LogMessage msg)
