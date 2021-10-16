@@ -1,4 +1,6 @@
-﻿- add type reader support
+﻿- option for schedule to clear channel first (except pinned)
+
+- add type reader support
 - implement actual aod team selection
 - interaction for setting up who can do what roles at aod.
 	- this will let us avoid needing to add roles to control who can do what.
