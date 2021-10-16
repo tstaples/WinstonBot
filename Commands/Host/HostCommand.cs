@@ -33,6 +33,7 @@ namespace WinstonBot.Commands
         public string? Message { get; set; }
 
         // we only have the mention string in the desc.
+#if DEBUG
         private static readonly List<string> testNames = new List<string>()
         {
             { "<@517886402466152450>" },
@@ -44,6 +45,7 @@ namespace WinstonBot.Commands
             { "<@172497655992156160>" },
             { "<@414119139506913280>" },
         };
+#endif
 
         public async override Task HandleCommand(CommandContext context)
         {
@@ -57,7 +59,11 @@ namespace WinstonBot.Commands
             string message = Message ?? $"Sign up for {bossPrettyName}"; // default message
 
             var buttons = HostHelpers.BuildSignupButtons(BossIndex);
+#if DEBUG
             var embed = HostHelpers.BuildSignupEmbed(BossIndex, testNames);
+#else
+            var embed = HostHelpers.BuildSignupEmbed(BossIndex, new List<string>());
+#endif
 
             await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);
         }

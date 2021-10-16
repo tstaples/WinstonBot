@@ -20,4 +20,16 @@ namespace WinstonBot.Commands
             };
         }
     }
+
+#if DEBUG
+    [Command("delete-commands", "Delete all commands", DefaultPermission.AdminOnly)]
+    internal class DeleteCommands : CommandBase
+    {
+        public override async Task HandleCommand(CommandContext context)
+        {
+            Console.WriteLine("Deleting guild commands");
+            await context.Guild.DeleteApplicationCommandsAsync();
+        }
+    }
+#endif
 }
