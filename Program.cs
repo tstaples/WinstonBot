@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 using WinstonBot;
 using WinstonBot.Services;
 
@@ -30,6 +31,8 @@ public class Program
 
     public async Task MainAsync()
     {
+        Console.WriteLine($"Running WinstonBot Version: {Assembly.GetEntryAssembly().GetName().Version}");
+
         _client = new DiscordSocketClient(new DiscordSocketConfig()
         {
             MessageCacheSize = 1000,
