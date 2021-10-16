@@ -46,7 +46,7 @@ namespace WinstonBot.Commands
 
             var names = Utility.ConvertUserIdListToMentions(guild, ids);
 
-            ITeamBuilder builder = HostHelpers.GetTeamBuilder(BossEntry);
+            ITeamBuilder builder = HostHelpers.GetTeamBuilder(context.ServiceProvider, BossEntry);
             Dictionary<string, ulong> roleUserMap = builder.SelectTeam(ids);
             var unselectedids = ids.Where(id => !roleUserMap.ContainsValue(id));
 

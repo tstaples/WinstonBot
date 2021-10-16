@@ -3,6 +3,7 @@ using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Util.Store;
+using System.Collections.Immutable;
 
 namespace WinstonBot.Services
 {
@@ -44,42 +45,65 @@ namespace WinstonBot.Services
         // - eg adding someone to umbra would make them exp?
         public class User
         {
-            public string Name { get; set; } // Temp
+            public string Name { get; set; }
             public ulong Id { get; set; } = 0;
             // Range: 0-1
             public float[] RoleWeights { get; set; } = new float[NumRoles];
-            public int SessionsAttendedInLastNDays { get; set; } = 0;
-
-            public float GetRoleWeight(Roles role) => RoleWeights[(int)role];
+            public ExperienceType Experience { get; set; }
 
             public User()
             {
                 Array.Fill(RoleWeights, 0.0f);
-            }
-
-            // TODO: could cache this when loaded
-            // TODO: might need to just explicitly set people to learner
-            public ExperienceType GetExperience()
-            {
-                float fumusWeight = GetRoleWeight(Roles.Fumus);
-                float cruorWeight = GetRoleWeight(Roles.Cruor);
-                float learnerWeight = Math.Max(fumusWeight, cruorWeight);
-                foreach (Roles expRole in ExperiencedRoles)
-                {
-                    float roleWeight = GetRoleWeight(expRole);
-                    if (roleWeight > learnerWeight)
-                    {
-                        return ExperienceType.Experienced;
-                    }
-                }
-                return ExperienceType.Learner;
+                // Default to learner
+                RoleWeights[(int)Roles.Fumus] = 0.5f;
+                Experience = ExperienceType.Learner;
             }
         }
 
-        public List<User> UserEntries { get; set; } = new();
+        public class UserQueryEntry
+        {
+            public int[] RoleCounts { get; set; }
+            public int TimesAttended { get; set; } = 0;
+
+            public ulong Id => _user.Id;
+            public string Name => _user.Name;
+            public float[] RoleWeights => _user.RoleWeights;
+            public ExperienceType Experience => _user.Experience;
+
+            private User _user;
+
+            public UserQueryEntry(User user)
+            {
+                _user = user;
+                RoleCounts = new int[NumRoles];
+                Array.Fill(RoleCounts, 0);
+            }
+
+            public float GetRoleWeight(Roles role) => RoleWeights[(int)role];
+        }
+
+        private struct HistoryRow
+        {
+            public DateTime Date;
+            public ulong[] UsersForRoles;
+        }
+
+        private class UserHistoryEntry
+        {
+            public int[] RoleCounts = new int[NumRoles];
+            public int TimesAttended => RoleCounts.Sum();
+
+            public UserHistoryEntry()
+            {
+                Array.Fill(RoleCounts, 0);
+            }
+        }
 
         private string _credentialsPath;
         private SheetsService _sheetsService;
+        private Dictionary<ulong, User> _userEntries = new();
+        private const string spreadsheetId = "1IFhofNHm8R_cPjfEMl0_BQ5ynKaGrajV4uMHM1lmh7A";
+
 
         public AoDDatabase(string credentialPath)
         {
@@ -111,7 +135,6 @@ namespace WinstonBot.Services
                 ApplicationName = appName
             });
 
-            string spreadsheetId = "1IFhofNHm8R_cPjfEMl0_BQ5ynKaGrajV4uMHM1lmh7A";
 
             String range = "Users!A2:I";
             SpreadsheetsResource.ValuesResource.GetRequest request =
@@ -123,10 +146,11 @@ namespace WinstonBot.Services
             {
                 foreach (var row in values)
                 {
+                    ulong id = ulong.Parse((string)row[1]);
                     User user = new User()
                     {
                         Name = (string)row[0],
-                        Id = ulong.Parse((string)row[1]),
+                        Id = id,
                     };
 
                     for (int i = 2; i < row.Count; i++)
@@ -134,18 +158,117 @@ namespace WinstonBot.Services
                         user.RoleWeights[i - 2] = float.Parse((string)row[i]);
                     }
 
-                    UserEntries.Add(user);
+                    user.Experience = CalculateExperience(user.RoleWeights);
+                    _userEntries.Add(id, user);
                 }
             }
             else
             {
                 Console.WriteLine("No data found.");
             }
+        }
 
-            foreach (User user in UserEntries)
+        public ImmutableArray<UserQueryEntry> GetUsers(IEnumerable<ulong> users, int numDaysToConsider)
+        {
+            Dictionary<ulong, UserHistoryEntry> history = GetHistoryForUsers(users, numDaysToConsider);
+
+            List<UserQueryEntry> result = new();
+            foreach (ulong userId in users)
             {
-                Console.WriteLine($"{user.Name}, {user.Id}, weights: {String.Join(',', user.RoleWeights)}");
+                UserQueryEntry entry;
+                if (_userEntries.ContainsKey(userId))
+                {
+                    entry = new UserQueryEntry(_userEntries[userId]);
+                    if (history.ContainsKey(userId))
+                    {
+                        UserHistoryEntry historyEntry = history[userId];
+                        entry.RoleCounts = historyEntry.RoleCounts;
+                        entry.TimesAttended = historyEntry.TimesAttended;
+                    }
+                }
+                else
+                {
+                    // Default user
+                    var user = new User()
+                    {
+                        Id = userId,
+                        Name = "Unknown"
+                    };
+
+                    entry = new UserQueryEntry(user);
+                }
+
+                result.Add(entry);
             }
+
+            return result.ToImmutableArray();
+        }
+
+        private Dictionary<ulong, UserHistoryEntry> GetHistoryForUsers(IEnumerable<ulong> users, int numDays)
+        {
+            Dictionary<ulong, UserHistoryEntry> entries = new();
+
+            var rows = GetHistoryRows(numDays);
+            foreach (HistoryRow row in rows)
+            {
+                for (int i = 0; i < row.UsersForRoles.Length; ++i)
+                {
+                    var id = row.UsersForRoles[i];
+                    var entry = Utility.GetOrAdd(entries, id);
+                    entry.RoleCounts[i]++;
+                }
+            }
+            return entries;
+        }
+
+        private List<HistoryRow> GetHistoryRows(int numRows)
+        {
+            String range = $"History!A2:H{numRows + 1}";
+            SpreadsheetsResource.ValuesResource.GetRequest request =
+                    _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
+
+            List<HistoryRow> rows = new();
+
+            ValueRange response = request.Execute();
+            IList<IList<Object>> values = response.Values;
+            if (values == null || values.Count == 0)
+            {
+                return rows;
+            }
+
+            foreach (var row in values)
+            {
+                var entry = new HistoryRow();
+                entry.Date = DateTime.Parse((string)row[0]);
+                entry.UsersForRoles = new ulong[NumRoles];
+                for (int i = 0; i < NumRoles; i++)
+                {
+                    int columnIndex = i + 1;
+                    if (!ulong.TryParse((string)row[columnIndex], out entry.UsersForRoles[i]))
+                    {
+                        entry.UsersForRoles[i] = 0;
+                    }
+                }
+
+                rows.Add(entry);
+            }
+            return rows;
+        }
+
+        private static ExperienceType CalculateExperience(float[] weights)
+        {
+            float fumusWeight = weights[(int)Roles.Fumus];
+            float cruorWeight = weights[(int)Roles.Cruor];
+            float learnerWeight = Math.Max(fumusWeight, cruorWeight);
+            foreach (Roles expRole in ExperiencedRoles)
+            {
+                float roleWeight = weights[(int)expRole];
+                if (roleWeight > learnerWeight)
+                {
+                    return ExperienceType.Experienced;
+                }
+            }
+            return ExperienceType.Learner;
         }
     }
 }

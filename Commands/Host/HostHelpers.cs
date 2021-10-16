@@ -6,13 +6,21 @@ namespace WinstonBot.Commands
 {
     internal class HostHelpers
     {
-        public static ITeamBuilder GetTeamBuilder(BossData.Entry entry)
+        public static ITeamBuilder GetTeamBuilder(IServiceProvider serviceProvider, BossData.Entry entry)
         {
             if (entry.BuilderClass == null)
             {
                 throw new ArgumentNullException($"No builder class set for {entry.CommandName}");
             }
-            return (ITeamBuilder)Activator.CreateInstance(entry.BuilderClass);
+
+            var builder = Activator.CreateInstance(entry.BuilderClass) as ITeamBuilder;
+            if (builder == null)
+            {
+                throw new ArgumentException($"Failed construct builder for {entry.CommandName}");
+            }
+
+            builder.ServiceProvider = serviceProvider;
+            return builder;
         }
 
         public static List<string> ParseNamesToList(string text)

@@ -11,6 +11,8 @@ namespace WinstonBot.Commands
 {
     internal interface ITeamBuilder
     {
+        public IServiceProvider ServiceProvider { get; set; }
+
         public Dictionary<string, ulong> SelectTeam(List<ulong> inputNames);
     }
 }
