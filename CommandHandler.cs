@@ -71,6 +71,23 @@ namespace WinstonBot
         public static IReadOnlyCollection<SubCommandInfo> SubCommandEntries => new ReadOnlyCollection<SubCommandInfo>(_subCommandEntries);
         public static IReadOnlyDictionary<string, ActionInfo> ActionEntries => new ReadOnlyDictionary<string, ActionInfo>(_actionEntries);
 
+        private static readonly HashSet<Type> ValidOptionTypes = new()
+        {
+            typeof(string),
+            typeof(long),
+            typeof(bool),
+            typeof(double),
+            typeof(SocketGuildUser),
+            typeof(SocketGuildChannel),
+            typeof(SocketRole)
+        };
+
+        private class OptionTypeException : Exception
+        {
+            public OptionTypeException(PropertyInfo info)
+                : base($"Invalid option type {info.PropertyType} on property {info.Name} in {info.DeclaringType}") { }
+        }
+
         public CommandHandler(IServiceProvider services, DiscordSocketClient client)
         {
             _client = client;
@@ -85,6 +102,11 @@ namespace WinstonBot
                     .Where(prop => prop.GetCustomAttribute<CommandOptionAttribute>() != null)
                     .Select(prop =>
                     {
+                        if (!ValidOptionTypes.Contains(prop.PropertyType))
+                        {
+                            throw new OptionTypeException(prop);
+                        }
+
                         var optionInfo = prop.GetCustomAttribute<CommandOptionAttribute>();
                         return new CommandOptionInfo()
                         {
