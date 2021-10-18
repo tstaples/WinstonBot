@@ -1,4 +1,5 @@
 ﻿- option for schedule to clear channel first (except pinned)
+- host subcommand to view stats about users in the DB
 
 - add type reader support
 - implement actual aod team selection

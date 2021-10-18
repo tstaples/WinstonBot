@@ -38,7 +38,7 @@ namespace WinstonBot.Commands
                     }
 
                     var role = (AoDDatabase.Roles)col;
-                    float score = CalculateUserScoreForRole(user, role, numDaysToConsider);
+                    double score = CalculateUserScoreForRole(user, role, numDaysToConsider);
                     costs[row, col] = (int)score;
                 }
             }
@@ -72,16 +72,16 @@ namespace WinstonBot.Commands
             return userForRoleMap;
         }
 
-        private float CalculateUserScoreForRole(AoDDatabase.UserQueryEntry user, AoDDatabase.Roles role, int numDaysToConsider)
+        private double CalculateUserScoreForRole(AoDDatabase.UserQueryEntry user, AoDDatabase.Roles role, int numDaysToConsider)
         {
-            float attendanceScore = (float)user.TimesAttended / (float)numDaysToConsider;
+            double attendanceScore = (double)user.TimesAttended / (double)numDaysToConsider;
             // Ignore attendance score for the base role
-            float biasedAttendanceScore = role == AoDDatabase.Roles.Base ? 0.0f : attendanceScore;
+            double biasedAttendanceScore = role == AoDDatabase.Roles.Base ? 0.0f : attendanceScore;
 
             // Prefer learners for F
-            float learnerScore = role == AoDDatabase.Roles.Fumus && user.Experience == AoDDatabase.ExperienceType.Learner ? -1 : 0f;
-            float roleScore = 1.0f - user.GetRoleWeight(role);
-            float score = (roleScore + biasedAttendanceScore + learnerScore) * 10.0f;
+            double learnerScore = role == AoDDatabase.Roles.Fumus && user.Experience == AoDDatabase.ExperienceType.Learner ? -1 : 0f;
+            double roleScore = 1.0f - user.GetRoleWeight(role);
+            double score = (roleScore + biasedAttendanceScore + learnerScore) * 10.0f;
             return score;
         }
     }

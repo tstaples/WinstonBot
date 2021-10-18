@@ -17,6 +17,7 @@ namespace WinstonBot.Commands
                 { typeof(SocketGuildChannel), ApplicationCommandOptionType.Channel },
                 { typeof(SocketRole), ApplicationCommandOptionType.Role },
                 { typeof(double), ApplicationCommandOptionType.Number },
+                { typeof(float), ApplicationCommandOptionType.Number },
             };
 
             return types[type];
