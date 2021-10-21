@@ -363,4 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # secrets
-Config/
+Config/token.txt
+Config/test_token.txt
+Config/google_credentials.json
