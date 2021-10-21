@@ -5,6 +5,7 @@ namespace WinstonBot.Commands
     [Command("do-emote", "Posts an animated emote for plebs without nitro.")]
     internal class NitroEmote : CommandBase
     {
+        // TODO: can we inject services into providers?
         [CommandOption("emote", "The name of the emote")]
         public string EmoteName { get; set; }
 
