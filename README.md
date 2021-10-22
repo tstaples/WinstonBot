@@ -5,6 +5,7 @@ Vaught Discord bot
 1. In the root project folder, add a folder named Config.
 2. In here add a file called test_token.txt that has your development token. Release token is read from token.txt.
 3. Also add your google credentials file and name it google_credentials.json
+4. In VS, set these files to auto-copy to the output directory.
 
 ## Adding a Command
 1. Under the Commands folder add a new source file for your command.
