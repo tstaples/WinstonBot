@@ -49,3 +49,54 @@ Add the `[Scheduleable]` attribute to your command and it will appear under the 
 ### Making your command configurable
 Add the `[Configurable]` attribute to your command it it will appear under the /configure command.
 /Configure lets you set what roles can use that command.
+
+## Actions
+Actions are used to handle component interactions (eg. a button press).
+
+Currently actions can be defined generically and a command must list in their CommandAttribute which actions they use.
+
+You can define an action similar to how you define a command:
+1. Implement the IAction interface.
+2. Add the `[Action]` attribute.
+
+When building a component you can specify which action should handle it by setting the first part of the custom_id to the action's name.
+You can also pass additional parameters through the custom id to your action by separating them with underscores.
+These parameters must match properties on your action that have the `[ActionParam]` attribute. The order the arguments are passed in the custom id must match the order the properties in your action are defined.
+
+Example:
+
+```cs
+[Action]
+internal class MyButtonAction : IAction
+{
+  public static string ActionName = "MyButton";
+  
+  [ActionParam]
+  public long Value { get; set; }
+  
+  public async Task HandleAction(ActionContext actionContext)
+  {
+    await actionContext.RespondAsync($"You Pressed button {Value}");
+  }
+}
+
+...
+[Command("number-picker", "Pick a number, any number", actions: new Type[] { typeof(MyButtonAction) })]
+public class NumberPickerCommand : CommandBase
+{
+  public async override Task HandleCommand(CommandContext context)
+  {  
+    var componentBuilder = new ComponentBuilder();
+    for (int i = 0; i < 5; ++i)
+    {
+      componentBuilder
+        .WithButton(new ButtonBuilder()
+          .WithLabel($"Button {i}")
+          // the value of i will be injected into the Value property of MyButtonAction.
+          .WithCustomId($"{MyButtonAction.ActionName}_{i}"));
+    }
+    
+    await context.RespondAsync("Pick a number", components:buttonComponent.Build());
+  }
+}
+```
