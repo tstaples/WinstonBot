@@ -1,18 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WinstonBot.Attributes
+﻿namespace WinstonBot.Attributes
 {
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
     public class CommandOptionAttribute : Attribute
     {
+        /// <summary>
+        /// The name (lower case, no special characters) for this option that appears in the slash command.
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// The description for this option.
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// Whether this option is required or optional.
+        /// </summary>
         public bool Required {  get; set; }
-        // Populates the option choices
+
+        /// <summary>
+        /// If your option has choices you can specify the class that populates the choices when building the command.
+        /// This class must have a function with the signature: public static void PopulateChoices(SlashCommandOptionBuilder builder)
+        /// </summary>
         public Type? ChoiceDataProvider { get; set; }
 
         public CommandOptionAttribute()
