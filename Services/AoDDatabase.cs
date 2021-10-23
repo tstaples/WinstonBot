@@ -140,20 +140,9 @@ namespace WinstonBot.Services
             string[] scopes = { SheetsService.Scope.Spreadsheets };
             string appName = "WinstonBot";
 
-            UserCredential credential;
+            GoogleCredential credential = GoogleCredential.FromFile(_credentialsPath).CreateScoped(scopes);
 
-            using (var stream = new FileStream(_credentialsPath, FileMode.Open, FileAccess.Read))
-            {
-                string credPath = "google_token.json";
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.FromStream(stream).Secrets,
-                    scopes,
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore(credPath, true)).Result;
-                Console.WriteLine("Google credentials saved to " + credPath);
-            }
-
+            
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,

@@ -9,9 +9,9 @@
 
   <ItemGroup>
     <PackageReference Include="ChronoExtensions" Version="1.0.0" />
-    <PackageReference Include="Discord.Net.Labs" Version="3.1.1" />
+    <PackageReference Include="Discord.Net.Labs" Version="3.1.7" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.55.0.2371" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-rc.2.21480.5" />
   </ItemGroup>
 
   <ItemGroup>
