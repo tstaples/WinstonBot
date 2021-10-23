@@ -40,8 +40,8 @@ namespace WinstonBot.Commands
                 await _slashCommand.DeferAsync();
                 var message = await _slashCommand.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
 
-                var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
-                interactionService.AddInteraction(_commandName, message.Id);
+                //var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
+                //interactionService.AddInteraction(_commandName, message.Id);
             }
             else
             {
@@ -89,8 +89,8 @@ namespace WinstonBot.Commands
                 await Component.DeferAsync();
                 var message = await Component.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
 
-                var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
-                interactionService.AddInteraction(_commandName, message.Id);
+                //var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
+                //interactionService.AddInteraction(_commandName, message.Id);
             }
             else
             {

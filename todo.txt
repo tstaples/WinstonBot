@@ -1,5 +1,6 @@
 ﻿- option for schedule to clear channel first (except pinned)
 - host subcommand to view stats about users in the DB
+- signup subcommand to add/remove a user to/from the signup (use message id to target)
 
 - add type reader support
 - implement actual aod team selection

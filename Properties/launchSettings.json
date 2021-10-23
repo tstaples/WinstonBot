@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WinstonBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

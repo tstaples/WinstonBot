@@ -6,6 +6,8 @@ using System.Reflection;
 using WinstonBot.Commands;
 using WinstonBot.Services;
 using WinstonBot.Attributes;
+using Discord.Addons.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot
 {
@@ -58,9 +60,8 @@ namespace WinstonBot
         public List<CommandDataOption>? Options { get;set; }
     }
 
-    public class CommandHandler
+    public class CommandHandler : DiscordClientService
     {
-        private readonly DiscordSocketClient _client;
         private IServiceProvider _services;
 
         private static Dictionary<string, CommandInfo> _commandEntries = new();
@@ -88,10 +89,21 @@ namespace WinstonBot
                 : base($"Invalid option type {info.PropertyType} on property {info.Name} in {info.DeclaringType}") { }
         }
 
-        public CommandHandler(IServiceProvider services, DiscordSocketClient client)
+        public CommandHandler(DiscordSocketClient client, ILogger<DiscordClientService> logger, IServiceProvider services)
+            : base(client, logger)
         {
-            _client = client;
             _services = services;
+        }
+
+        protected override Task ExecuteAsync(CancellationToken cancellationToken)
+        {
+            Client.Ready += Client_Ready;
+            return Task.CompletedTask;
+        }
+
+        private async Task Client_Ready()
+        {
+            await InstallCommandsAsync();
         }
 
         private async Task LoadCommands()
@@ -211,21 +223,21 @@ namespace WinstonBot
             }
         }
 
-        public async Task InstallCommandsAsync()
+        private async Task InstallCommandsAsync()
         {
             await LoadCommands();
 
             // Hook the MessageReceived event into our command handler
-            _client.ButtonExecuted += HandleButtonExecuted;
-            _client.InteractionCreated += HandleInteractionCreated;
-            _client.MessageReceived += _client_MessageReceived;
-            _client.ReactionAdded += _client_ReactionAdded;
+            Client.ButtonExecuted += HandleButtonExecuted;
+            Client.InteractionCreated += HandleInteractionCreated;
+            Client.MessageReceived += _client_MessageReceived;
+            Client.ReactionAdded += _client_ReactionAdded;
 
-            foreach (SocketGuild guild in _client.Guilds)
+            foreach (SocketGuild guild in Client.Guilds)
             {
                 Console.WriteLine($"Registering commands for guild: {guild.Name}");
 
-                await ForceRefreshCommands.RegisterCommands(_client, guild);
+                await ForceRefreshCommands.RegisterCommands(Client, guild);
 
                 Console.WriteLine($"Finished Registering commands for guild: {guild.Name}");
             }
@@ -295,7 +307,7 @@ namespace WinstonBot
 
             // Allow the command to build a custom context if desired.
             var createContextFunction = Utility.GetInheritedStaticMethod(command.Type, CommandBase.CreateContextName);
-            var context = createContextFunction?.Invoke(null, new object[] { _client, slashCommand, _services }) as CommandContext;
+            var context = createContextFunction?.Invoke(null, new object[] { Client, slashCommand, _services }) as CommandContext;
             if (context == null)
             {
                 throw new ArgumentNullException($"Failed to create context for command {command.Name}");
@@ -484,7 +496,7 @@ namespace WinstonBot
             }
 
             var createContextFunction = Utility.GetInheritedStaticMethod(interactionOwner.Type, CommandBase.CreateActionContextName);
-            var context = createContextFunction?.Invoke(null, new object[] { _client, component, _services, interactionOwner.Name }) as ActionContext;
+            var context = createContextFunction?.Invoke(null, new object[] { Client, component, _services, interactionOwner.Name }) as ActionContext;
             if (context == null)
             {
                 throw new ArgumentNullException($"Failed to create action context for {interactionOwner.Name}:{action.Name}");

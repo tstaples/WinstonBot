@@ -11,10 +11,13 @@ using System.Threading;
 using WinstonBot.Commands;
 using Newtonsoft.Json;
 using Discord.Rest;
+using Discord.Addons.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace WinstonBot.Services
 {
-    internal class ScheduledCommandService
+    internal class ScheduledCommandService : DiscordClientService
     {
         internal class Entry
         {
@@ -59,16 +62,27 @@ namespace WinstonBot.Services
             }
         }
 
+        private IServiceProvider _services;
         private string _saveFilePath;
-        private DiscordSocketClient _client;
         private Dictionary<ulong, List<Entry>> _entries = new();
         private List<TimerEntry> _timers = new();
         private object _fileLock = new();
 
-        public ScheduledCommandService(string savePath, DiscordSocketClient client)
+        public ScheduledCommandService(DiscordSocketClient client, ILogger<DiscordClientService> logger, IConfiguration configuration, IServiceProvider services)
+            : base(client, logger)
         {
-            _saveFilePath = savePath;
-            _client = client;
+            _services = services;
+            _saveFilePath = configuration["scheduled_events_path"];
+            if (_saveFilePath == null) throw new ArgumentNullException("Failed to get scheduled_events_path from the config");
+        }
+
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            Client.Ready += () =>
+            {
+                return StartEvents();
+            };
+            return Task.CompletedTask;
         }
 
         // this will probably need to be specific to schedule-command so it can serialize the args and such.
@@ -103,7 +117,7 @@ namespace WinstonBot.Services
 
             Save();
 
-            StartTimerForEntry(serviceProvider, guildId, entry);
+            StartTimerForEntry(guildId, entry);
 
             return entry.Guid;
         }
@@ -143,7 +157,7 @@ namespace WinstonBot.Services
             return result;
         }
 
-        public void StartEvents(IServiceProvider serviceProvider)
+        private Task StartEvents()
         {
             Load();
 
@@ -153,12 +167,13 @@ namespace WinstonBot.Services
                 foreach ((ulong guildId, List<Entry> entries) in _entries)
                 {
                     // Only start timers for guilds that are valid
-                    if (_client.GetGuild(guildId) != null)
+                    if (Client.GetGuild(guildId) != null)
                     {
-                        entries.ForEach(entry => StartTimerForEntry(serviceProvider, guildId, entry));
+                        entries.ForEach(entry => StartTimerForEntry(guildId, entry));
                     }
                 }
             }
+            return Task.CompletedTask;
         }
 
         public static TimeSpan GetTimeUntilEventRuns(Entry entry)
@@ -179,14 +194,14 @@ namespace WinstonBot.Services
             }
         }
 
-        private void StartTimerForEntry(IServiceProvider serviceProvider, ulong guildId, Entry entry)
+        private void StartTimerForEntry(ulong guildId, Entry entry)
         {
             Console.WriteLine($"Starting scheduled event {entry.Command} - {entry.Guid}");
 
             var data = new TimerCommandData()
             {
                 Entry = entry,
-                Services = serviceProvider,
+                Services = _services,
                 GuildId = guildId,
             };
 
@@ -226,7 +241,7 @@ namespace WinstonBot.Services
             var data = (TimerCommandData)state;
             Console.WriteLine($"Timer elapsed for {data.GuildId}: {data.Entry.Command}");
 
-            var context = new ScheduledCommandContext(data.Entry, data.GuildId, _client, data.Services);
+            var context = new ScheduledCommandContext(data.Entry, data.GuildId, Client, data.Services);
             if (data.Entry.DeletePreviousMessage && data.Entry.PreviousMessageId != 0)
             {
                 Console.WriteLine($"Deleting previous message {data.Entry.PreviousMessageId}");

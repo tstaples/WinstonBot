@@ -1,13 +1,17 @@
-﻿using Google.Apis.Auth.OAuth2;
+﻿using Discord.Addons.Hosting;
+using Discord.WebSocket;
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Util.Store;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 
 namespace WinstonBot.Services
 {
-    public class AoDDatabase
+    public class AoDDatabase : DiscordClientService
     {
         public enum Roles
         {
@@ -121,28 +125,29 @@ namespace WinstonBot.Services
         private string _credentialsPath;
         private SheetsService _sheetsService;
         private Dictionary<ulong, User> _userEntries = new();
-#if DEBUG
-        private const string spreadsheetId = "1fMJ9aRtAIAFMCFAtq_PpHcW6VDBKY01TtzwP2NSRF-k";
-#else
-        private const string spreadsheetId = "1IFhofNHm8R_cPjfEMl0_BQ5ynKaGrajV4uMHM1lmh7A";
-#endif
+        private string spreadsheetId;
         private const string UserSheetName = "Users";
         private const string UserDBRange = $"{UserSheetName}!A2:I";
 
 
-        public AoDDatabase(string credentialPath)
+        public AoDDatabase(DiscordSocketClient client, ILogger<DiscordClientService> logger, IConfiguration configuration)
+            : base(client, logger)
         {
-            _credentialsPath = credentialPath;
+            spreadsheetId = configuration["aod_db_spreadsheet_id"];
+            _credentialsPath = configuration["google_credentials_path"];
+
+            if (spreadsheetId == null) throw new ArgumentNullException("Failed to get aod_db_spreadsheet_id from the config");
+            if (_credentialsPath == null) throw new ArgumentNullException("Failed to get google_credentials_path from the config");
         }
 
-        public void Initialize()
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             string[] scopes = { SheetsService.Scope.Spreadsheets };
             string appName = "WinstonBot";
 
             GoogleCredential credential = GoogleCredential.FromFile(_credentialsPath).CreateScoped(scopes);
 
-            
+
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
@@ -151,6 +156,7 @@ namespace WinstonBot.Services
 
 
             PopulateDatabase();
+            return Task.CompletedTask;
         }
 
         public bool DoesUserExist(ulong id)
@@ -279,6 +285,7 @@ namespace WinstonBot.Services
 
         /// ///////////////////////////////////////////////////////////////////////////
 
+        // TODO: make this async
         private void PopulateDatabase()
         {
             lock (_userEntries)

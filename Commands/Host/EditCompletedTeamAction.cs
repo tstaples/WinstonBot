@@ -80,7 +80,7 @@ namespace WinstonBot.Commands
                 component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedIds));
 
             // TODO: do this via context instead?
-            context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);
+            //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);
 
             await context.DeferAsync();
         }

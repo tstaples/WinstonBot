@@ -366,3 +366,4 @@ FodyWeavers.xsd
 Config/token.txt
 Config/test_token.txt
 Config/google_credentials.json
+Config/appsettings.*.json
