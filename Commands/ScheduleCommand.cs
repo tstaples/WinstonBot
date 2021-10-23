@@ -31,9 +31,9 @@ namespace WinstonBot.Commands
                     .WithDescription($"Schedule {info.Name}")
                     .WithType(ApplicationCommandOptionType.SubCommand);
 
-                subComamnd.AddOption("start-timestamp", ApplicationCommandOptionType.Integer, "The UTC timestamp in seconds of when to start firing this command. 0 = now.");
-                subComamnd.AddOption("frequency", ApplicationCommandOptionType.String, "How often to run the command (eg 1 day, 1 hour, 30 minutes).");
-                subComamnd.AddOption("delete-previous", ApplicationCommandOptionType.Boolean, "Should the previous message be deleted when the command fires.");
+                subComamnd.AddOption("start-timestamp", ApplicationCommandOptionType.Integer, "The UTC timestamp in seconds of when to start firing this command. 0 = now.", required:true);
+                subComamnd.AddOption("frequency", ApplicationCommandOptionType.String, "How often to run the command (eg 1 day, 1 hour, 30 minutes).", required: true);
+                subComamnd.AddOption("delete-previous", ApplicationCommandOptionType.Boolean, "Should the previous message be deleted when the command fires.", required: true);
 
                 var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
                 foreach (SubCommandInfo subCommandInfo in subCommands)
