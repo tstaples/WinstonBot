@@ -126,6 +126,7 @@ namespace WinstonBot.Commands
                 {
                     string description = $"**Command**: {entry.Command}\n" +
                         $"**Args**: {ArgsToString(entry.Args)}\n" +
+                        $"**Channel**: {context.Guild.GetChannel(entry.ChannelId)?.Name}\n" +
                         $"**Scheduled By**: {context.Guild.GetUser(entry.ScheduledBy).Mention}\n" +
                         $"**Starts**: {TimestampTag.FromDateTime(entry.StartDate.UtcDateTime)}\n" +
                         $"**Runs In** {ScheduledCommandService.GetTimeUntilEventRuns(entry)}";
