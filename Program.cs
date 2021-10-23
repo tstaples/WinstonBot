@@ -59,7 +59,7 @@ public class Program
         _configService = new ConfigService(Path.Combine("Config", "config.json"));
         _timerService = new ScheduledCommandService(Path.Combine("Config", "ScheduledEvents.json"), _client);
         _aoDDatabase = new AoDDatabase(Path.Combine("Config", "google_credentials.json"));
-        //_aoDDatabase.Initialize();
+        _aoDDatabase.Initialize();
 
         _services = BuildServiceProvider();
 
