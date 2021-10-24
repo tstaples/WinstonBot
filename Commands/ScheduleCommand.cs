@@ -100,7 +100,7 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                var id = context.ServiceProvider.GetRequiredService<ScheduledCommandService>()
+                var id = context.ServiceProvider.GetRequiredService<CommandScheduler>()
                     .AddRecurringEvent(context.ServiceProvider, context.Guild.Id, context.User.Id, context.ChannelId, startDate, frequency, deletePreviousMessage, commandName, args);
 
                 await context.RespondAsync($"Command Scheduled. Id: {id}", ephemeral: true);
@@ -112,7 +112,7 @@ namespace WinstonBot.Commands
         {
             public override async Task HandleCommand(CommandContext context)
             {
-                var service = context.ServiceProvider.GetRequiredService<ScheduledCommandService>();
+                var service = context.ServiceProvider.GetRequiredService<CommandScheduler>();
 
                 var entries = service.GetEntries(context.Guild.Id);
                 if (entries.IsEmpty)
@@ -122,14 +122,14 @@ namespace WinstonBot.Commands
                 }
 
                 List<Embed> embeds = new();
-                foreach (ScheduledCommandService.Entry entry in entries)
+                foreach (CommandScheduler.Entry entry in entries)
                 {
                     string description = $"**Command**: {entry.Command}\n" +
                         $"**Args**: {ArgsToString(entry.Args)}\n" +
                         $"**Channel**: {context.Guild.GetChannel(entry.ChannelId)?.Name}\n" +
                         $"**Scheduled By**: {context.Guild.GetUser(entry.ScheduledBy).Mention}\n" +
                         $"**Starts**: {TimestampTag.FromDateTime(entry.StartDate.UtcDateTime)}\n" +
-                        $"**Runs In** {ScheduledCommandService.GetTimeUntilEventRuns(entry)}";
+                        $"**Runs In** {CommandScheduler.GetTimeUntilEventRuns(entry)}";
                     var builder = new EmbedBuilder()
                         .WithTitle(entry.Guid.ToString())
                         .WithDescription(description)
@@ -152,7 +152,7 @@ namespace WinstonBot.Commands
                 Guid guid;
                 if (Guid.TryParse(GuidString, out guid))
                 {
-                    var service = context.ServiceProvider.GetRequiredService<ScheduledCommandService>();
+                    var service = context.ServiceProvider.GetRequiredService<CommandScheduler>();
                     if (service.RemoveEvent(context.Guild.Id, guid))
                     {
                         await context.RespondAsync($"Removed event id: {guid}", ephemeral: true);

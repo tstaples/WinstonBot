@@ -56,7 +56,8 @@ public class Program
                 .AddSingleton<MessageDatabase>()
                 //.AddSingleton<EmoteDatabase>() // Deprecated for now
                 .AddSingleton<ConfigService>()
-                //.AddHostedService<ScheduledCommandService>()
+                .AddSingleton<CommandScheduler>()
+                .AddHostedService<ScheduledCommandService>()
                 //.AddHostedService<AoDDatabase>()
                 .AddHostedService<CommandHandler>();
 
