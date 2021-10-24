@@ -135,7 +135,7 @@ namespace WinstonBot.Services
                     var entry = _entries[guildId].Where(entry => entry.Guid == eventId).FirstOrDefault();
                     if (entry != null)
                     {
-                        Console.WriteLine($"Removing scheduled event {entry.Command} - {eventId}");
+                        Logger.LogInformation($"Removing scheduled event {entry.Command} - {eventId}");
                         _entries[guildId].Remove(entry);
 
                         var timer = _timers.Find(timer => timer.Id == entry.Guid);
@@ -157,25 +157,6 @@ namespace WinstonBot.Services
             return result;
         }
 
-        private Task StartEvents()
-        {
-            Load();
-
-            Console.WriteLine("[ScheduledCommandService] Starting loaded events");
-            lock (_entries)
-            {
-                foreach ((ulong guildId, List<Entry> entries) in _entries)
-                {
-                    // Only start timers for guilds that are valid
-                    if (Client.GetGuild(guildId) != null)
-                    {
-                        entries.ForEach(entry => StartTimerForEntry(guildId, entry));
-                    }
-                }
-            }
-            return Task.CompletedTask;
-        }
-
         public static TimeSpan GetTimeUntilEventRuns(Entry entry)
         {
             var now = DateTimeOffset.Now;
@@ -194,9 +175,28 @@ namespace WinstonBot.Services
             }
         }
 
+        private Task StartEvents()
+        {
+            Load();
+
+            Logger.LogInformation("[ScheduledCommandService] Starting loaded events");
+            lock (_entries)
+            {
+                foreach ((ulong guildId, List<Entry> entries) in _entries)
+                {
+                    // Only start timers for guilds that are valid
+                    if (Client.GetGuild(guildId) != null)
+                    {
+                        entries.ForEach(entry => StartTimerForEntry(guildId, entry));
+                    }
+                }
+            }
+            return Task.CompletedTask;
+        }
+
         private void StartTimerForEntry(ulong guildId, Entry entry)
         {
-            Console.WriteLine($"Starting scheduled event {entry.Command} - {entry.Guid}");
+            Logger.LogInformation($"Starting scheduled event {entry.Command} - {entry.Guid}");
 
             var data = new TimerCommandData()
             {
@@ -210,7 +210,7 @@ namespace WinstonBot.Services
             {
                 TimeSpan diff = entry.StartDate - now;
 
-                Console.WriteLine($"Start date is in the future, starting in {diff}");
+                Logger.LogDebug($"Start date is in the future, starting in {diff}");
                 var timer = new Timer(Timer_Elapsed, data, diff, entry.Frequency);
                 _timers.Add(new TimerEntry(entry.Guid, timer));
                 return;
@@ -220,7 +220,7 @@ namespace WinstonBot.Services
             {
                 if ((entry.LastRun + entry.Frequency) < now)
                 {
-                    Console.WriteLine($"Start date is in the past and it's been more time since the last run than our frequency, running now");
+                    Logger.LogDebug($"Start date is in the past and it's been more time since the last run than our frequency, running now");
                     var timer = new Timer(Timer_Elapsed, data, TimeSpan.Zero, entry.Frequency);
                     _timers.Add(new TimerEntry(entry.Guid, timer));
                     return;
@@ -228,7 +228,7 @@ namespace WinstonBot.Services
                 else
                 {
                     TimeSpan diff = (entry.LastRun + entry.Frequency) - now;
-                    Console.WriteLine($"Start date is in the past but not enough time has elapsed since we last ran. Starting in {diff}");
+                    Logger.LogDebug($"Start date is in the past but not enough time has elapsed since we last ran. Starting in {diff}");
 
                     var timer = new Timer(Timer_Elapsed, data, diff, entry.Frequency);
                     _timers.Add(new TimerEntry(entry.Guid, timer));
@@ -239,12 +239,12 @@ namespace WinstonBot.Services
         private void Timer_Elapsed(object state)
         {
             var data = (TimerCommandData)state;
-            Console.WriteLine($"Timer elapsed for {data.GuildId}: {data.Entry.Command}");
+            Logger.LogDebug($"Timer elapsed for {data.GuildId}: {data.Entry.Command}");
 
             var context = new ScheduledCommandContext(data.Entry, data.GuildId, Client, data.Services);
             if (data.Entry.DeletePreviousMessage && data.Entry.PreviousMessageId != 0)
             {
-                Console.WriteLine($"Deleting previous message {data.Entry.PreviousMessageId}");
+                Logger.LogDebug($"Deleting previous message {data.Entry.PreviousMessageId}");
                 context.DeleteMessageAsync(data.Entry.PreviousMessageId);
             }
 
@@ -279,7 +279,7 @@ namespace WinstonBot.Services
                     });
                 }
 
-                Console.WriteLine($"Saving scheduled command data");
+                Logger.LogInformation($"Saving scheduled command data");
                 lock (_fileLock)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(_saveFilePath));
@@ -288,7 +288,7 @@ namespace WinstonBot.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to Save schedule command data: {ex}");
+                Logger.LogError($"Failed to Save schedule command data: {ex}");
             }
         }
 
@@ -309,7 +309,7 @@ namespace WinstonBot.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to read {_saveFilePath}: {ex.Message}");
+                Logger.LogError($"Failed to read {_saveFilePath}: {ex.Message}");
                 return;
             }
 
@@ -323,7 +323,7 @@ namespace WinstonBot.Services
                 }
             }
 
-            Console.WriteLine($"Scheduled Events - Loaded {_saveFilePath}");
+            Logger.LogInformation($"Scheduled Events - Loaded {_saveFilePath}");
         }
 
         private class ScheduledCommandContext : CommandContext
