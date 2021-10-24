@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord.Addons.Hosting;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -32,14 +33,14 @@ namespace WinstonBot.Services
         public Dictionary<ulong, GuildEntry> GuildEntries { get; set; } = new();
     }
 
-    public class ConfigService : DiscordClientService
+    public class ConfigService
     {
         private Config _config;
         private string _configPath;
 
         public Config Configuration { get => _config; }
 
-        public ConfigService(DiscordSocketClient client, ILogger<DiscordClientService> logger, IConfiguration configuration) : base(client, logger)
+        public ConfigService(ILogger<BackgroundService> logger, IConfiguration configuration)
         {
             _configPath = configuration["guild_config_path"];
             if (_configPath == null) throw new ArgumentNullException("Failed to get guild_config_path from the config");
@@ -62,11 +63,6 @@ namespace WinstonBot.Services
             }
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            return Task.CompletedTask;
-        }
-
         public void UpdateConfig(Config newConfig)
         {
             _config = newConfig;
@@ -74,5 +70,10 @@ namespace WinstonBot.Services
             File.WriteAllText(_configPath, value);
             Console.WriteLine("Updated config file");
         }
+
+        //protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        //{
+        //    return Task.CompletedTask;
+        //}
     }
 }

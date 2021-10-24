@@ -68,7 +68,7 @@ namespace WinstonBot.Services
         private List<TimerEntry> _timers = new();
         private object _fileLock = new();
 
-        public ScheduledCommandService(DiscordSocketClient client, ILogger<DiscordClientService> logger, IConfiguration configuration, IServiceProvider services)
+        public ScheduledCommandService(DiscordSocketClient client, ILogger<ScheduledCommandService> logger, IConfiguration configuration, IServiceProvider services)
             : base(client, logger)
         {
             _services = services;
@@ -256,7 +256,7 @@ namespace WinstonBot.Services
                 CommandInfo commandInfo = CommandHandler.CommandEntries[data.Entry.Command];
                 Task.Run(async () =>
                 {
-                    await CommandHandler.ExecuteCommand(commandInfo, context, data.Entry.Args);
+                    await CommandHandler.ExecuteCommand(commandInfo, context, data.Entry.Args, Logger);
                     Save();
                 });
             }

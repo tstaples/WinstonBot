@@ -8,6 +8,8 @@ using WinstonBot.Services;
 using WinstonBot.Attributes;
 using Discord.Addons.Hosting;
 using Microsoft.Extensions.Logging;
+using Discord.Addons.Hosting.Util;
+using Microsoft.Extensions.Hosting;
 
 namespace WinstonBot
 {
@@ -89,20 +91,17 @@ namespace WinstonBot
                 : base($"Invalid option type {info.PropertyType} on property {info.Name} in {info.DeclaringType}") { }
         }
 
-        public CommandHandler(DiscordSocketClient client, ILogger<DiscordClientService> logger, IServiceProvider services)
+        public CommandHandler(DiscordSocketClient client, ILogger<CommandHandler> logger, IServiceProvider services)
             : base(client, logger)
         {
+            logger.LogInformation($"Running WinstonBot Version: {Assembly.GetEntryAssembly().GetName().Version}");
+
             _services = services;
         }
 
-        protected override Task ExecuteAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            Client.Ready += Client_Ready;
-            return Task.CompletedTask;
-        }
-
-        private async Task Client_Ready()
-        {
+            await Client.WaitForReadyAsync(cancellationToken);
             await InstallCommandsAsync();
         }
 
@@ -235,11 +234,11 @@ namespace WinstonBot
 
             foreach (SocketGuild guild in Client.Guilds)
             {
-                Console.WriteLine($"Registering commands for guild: {guild.Name}");
+                Logger.LogInformation($"Registering commands for guild: {guild.Name}");
 
                 await ForceRefreshCommands.RegisterCommands(Client, guild);
 
-                Console.WriteLine($"Finished Registering commands for guild: {guild.Name}");
+                Logger.LogInformation($"Finished Registering commands for guild: {guild.Name}");
             }
         }
 
@@ -254,7 +253,7 @@ namespace WinstonBot
                 {
                     if (arg3.Emote.Name == "ping" || arg3.Emote.Name == "pepeping")
                     {
-                        Console.WriteLine($"Trolling blaviken in {chan.Name}");
+                        Logger.LogInformation($"Trolling blaviken in {chan.Name}");
                         await arg3.Channel.SendMessageAsync($"<@!{Blaviken}>", allowedMentions: new AllowedMentions(AllowedMentionTypes.Users));
                     }
                 }
@@ -269,7 +268,7 @@ namespace WinstonBot
                 {
                     if (arg.Content.Contains("<:ping:777725364683538463>") || arg.Content.Contains("<:pepeping:777721327137062923>"))
                     {
-                        Console.WriteLine($"Trolling blaviken in {chan.Name}");
+                        Logger.LogInformation($"Trolling blaviken in {chan.Name}");
                         var reference = new MessageReference(arg.Id, arg.Channel.Id, chan.Guild.Id);
                         await arg.Channel.SendMessageAsync($"<@!{Blaviken}>", messageReference: reference, allowedMentions: new AllowedMentions(AllowedMentionTypes.Users));
                     }
@@ -296,7 +295,6 @@ namespace WinstonBot
             if (arg.Channel is SocketGuildChannel guildChannel)
             {
                 var user = (SocketGuildUser)arg.User;
-                // TODO: cache this per guild
                 var requiredRoleIds = GetRequiredRolesForCommand(configService, guildChannel.Guild, command.Name);
                 if (!Utility.DoesUserHaveAnyRequiredRole(user, requiredRoleIds))
                 {
@@ -315,10 +313,14 @@ namespace WinstonBot
 
             // Translate the options to our own serializable version
             var options = BuildCommandDataOptions(slashCommand.Data.Options);
-            await ExecuteCommand(command, context, options);
+            await ExecuteCommand(command, context, options, Logger);
         }
 
-        private static void InjectCommandPropertyValues(CommandInfo commandInfo, CommandBase commandInstance, IEnumerable<CommandDataOption>? dataOptions)
+        private static void InjectCommandPropertyValues(
+            CommandInfo commandInfo,
+            CommandBase commandInstance,
+            IEnumerable<CommandDataOption>? dataOptions,
+            ILogger logger)
         {
             if (dataOptions == null)
             {
@@ -332,7 +334,7 @@ namespace WinstonBot
                 CommandOptionInfo? optionInfo = commandInfo.Options.Find(op => op.Name == optionData.Name);
                 if (optionInfo == null)
                 {
-                    Console.WriteLine($"Could not find option {optionData.Name} for command {commandInfo.Name}");
+                    logger.LogError($"Could not find option {optionData.Name} for command {commandInfo.Name}");
                     continue;
                 }
 
@@ -359,7 +361,8 @@ namespace WinstonBot
         public static async Task ExecuteCommand(
             CommandInfo command,
             CommandContext context,
-            IEnumerable<CommandDataOption>? dataOptions)
+            IEnumerable<CommandDataOption>? dataOptions,
+            ILogger logger)
         {
             CommandBase? commandInstance = null;
             CommandInfo commandInfo = command;
@@ -394,15 +397,15 @@ namespace WinstonBot
                         throw new Exception($"Unhandled SubCommand: {dataOptions.First().Name}, Parent: {commandInfo.Name}");
                     }
 
-                    Console.WriteLine($"SubCommand {commandInfo.Name} is handling itself.");
+                    logger.LogInformation($"SubCommand {commandInfo.Name} is handling itself.");
                     await commandInstance.HandleSubCommand(context, commandInfo, dataOptions);
                     return;
                 }
 
-                InjectCommandPropertyValues(commandInfo, commandInstance, dataOptions);
+                InjectCommandPropertyValues(commandInfo, commandInstance, dataOptions, logger);
             }
 
-            Console.WriteLine($"Command {command.Name} handling interaction");
+            logger.LogInformation($"Command {command.Name} handling interaction");
 
             await commandInstance.HandleCommand(context);
         }
@@ -433,7 +436,7 @@ namespace WinstonBot
 
             if (interactionOwner == null || action == null)
             {
-                Console.WriteLine($"No action found for interaction: {component.Data.CustomId}");
+                Logger.LogError($"No action found for interaction: {component.Data.CustomId}");
                 return;
             }
 
@@ -488,7 +491,7 @@ namespace WinstonBot
                     }
                     else
                     {
-                        Console.WriteLine($"Unsupported action option type: {optionInfo.Property.PropertyType}");
+                        throw new ArgumentException($"Unsupported action option type: {optionInfo.Property.PropertyType}");
                     }
 
                     optionInfo.Property.SetValue(actionInstance, value);
