@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 
 namespace WinstonBot.Services
 {
-    public class AoDDatabase : DiscordClientService
+    public class AoDDatabase
     {
         public enum Roles
         {
@@ -122,6 +122,7 @@ namespace WinstonBot.Services
             public DBOperationFailedException(string message) : base(message) { }
         }
 
+        private ILogger<AoDDatabase> _logger;
         private string _credentialsPath;
         private SheetsService _sheetsService;
         private Dictionary<ulong, User> _userEntries = new();
@@ -130,33 +131,25 @@ namespace WinstonBot.Services
         private const string UserDBRange = $"{UserSheetName}!A2:I";
 
 
-        public AoDDatabase(DiscordSocketClient client, ILogger<DiscordClientService> logger, IConfiguration configuration)
-            : base(client, logger)
+        public AoDDatabase(ILogger<AoDDatabase> logger, IConfiguration configuration)
         {
+            _logger = logger;
             spreadsheetId = configuration["aod_db_spreadsheet_id"];
             _credentialsPath = configuration["google_credentials_path"];
 
             if (spreadsheetId == null) throw new ArgumentNullException("Failed to get aod_db_spreadsheet_id from the config");
             if (_credentialsPath == null) throw new ArgumentNullException("Failed to get google_credentials_path from the config");
-        }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
-        {
             string[] scopes = { SheetsService.Scope.Spreadsheets };
             string appName = "WinstonBot";
 
             GoogleCredential credential = GoogleCredential.FromFile(_credentialsPath).CreateScoped(scopes);
-
 
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
                 ApplicationName = appName
             });
-
-
-            PopulateDatabase();
-            return Task.CompletedTask;
         }
 
         public bool DoesUserExist(ulong id)
@@ -300,7 +293,7 @@ namespace WinstonBot.Services
                 IList<IList<Object>> rows = response.Values;
                 if (rows == null || rows.Count <= 0)
                 {
-                    Console.WriteLine("[AoDDatabase] no user rows found.");
+                    _logger.LogError("[AoDDatabase] no user rows found.");
                     return;
                 }
 

@@ -56,10 +56,11 @@ public class Program
                 .AddSingleton<MessageDatabase>()
                 //.AddSingleton<EmoteDatabase>() // Deprecated for now
                 .AddSingleton<ConfigService>()
+                .AddHostedService<CommandHandler>()
                 .AddSingleton<CommandScheduler>()
                 .AddHostedService<ScheduledCommandService>()
-                //.AddHostedService<AoDDatabase>()
-                .AddHostedService<CommandHandler>();
+                .AddSingleton<AoDDatabase>()
+                .AddHostedService<DBService>();
 
             })
             .UseConsoleLifetime();
