@@ -67,7 +67,7 @@ public class Program
 
         using IHost host = builder.Build();
 
-        var programLog = host.Services.GetService<ILoggerFactory>().CreateLogger<Program>();
+        var programLog = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger<Program>();
 
         programLog.LogInformation("Starting Winston Bot");
 

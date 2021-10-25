@@ -414,7 +414,14 @@ namespace WinstonBot
 
             logger.LogInformation($"Command {command.Name} handling interaction");
 
-            await commandInstance.HandleCommand(context);
+            try
+            {
+                await commandInstance.HandleCommand(context);
+            }
+            catch (Exception ex)
+            {
+                await context.RespondAsync($"A command threw an exception. Tell Catman: ```{ex}```", ephemeral: true);
+            }
         }
 
         private async Task HandleButtonExecuted(SocketMessageComponent component)
@@ -512,7 +519,14 @@ namespace WinstonBot
                 throw new ArgumentNullException($"Failed to create action context for {interactionOwner.Name}:{action.Name}");
             }
 
-            await actionInstance.HandleAction(context);
+            try
+            {
+                await actionInstance.HandleAction(context);
+            }
+            catch (Exception ex)
+            {
+                await context.RespondAsync($"An Action threw an exception. Tell Catman: ```{ex}```", ephemeral: true);
+            }
         }
 
         static KeyValuePair<SubCommandInfo, IEnumerable<CommandDataOption>?>? FindDeepestSubCommand(CommandInfo parent,
