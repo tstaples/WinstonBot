@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Discord.WebSocket;
 using WinstonBot.Attributes;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands
 {
@@ -22,6 +23,8 @@ namespace WinstonBot.Commands
     [Command("configure", "Configure the bot.", DefaultPermission.AdminOnly)]
     public class ConfigCommand : CommandBase
     {
+        public ConfigCommand(ILogger logger) : base(logger) { }
+
         public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {
             return new ConfigCommandContext(client, arg, services);

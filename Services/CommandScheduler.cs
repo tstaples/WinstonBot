@@ -251,7 +251,14 @@ namespace WinstonBot.Services
                 CommandInfo commandInfo = CommandHandler.CommandEntries[data.Entry.Command];
                 Task.Run(async () =>
                 {
-                    await CommandHandler.ExecuteCommand(commandInfo, context, data.Entry.Args, Logger);
+                    try
+                    {
+                        await CommandHandler.ExecuteCommand(commandInfo, context, data.Entry.Args, Logger, _services);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError($"Failed to execute command: {ex}");
+                    }
                     Save();
                 });
             }

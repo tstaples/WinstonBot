@@ -2,6 +2,7 @@
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Reflection;
 using WinstonBot.Attributes;
@@ -13,7 +14,9 @@ namespace WinstonBot.Commands
     [Command("schedule", "Schedule things", DefaultPermission.AdminOnly)]
     internal class ScheduleCommand : CommandBase
     {
-        public static new SlashCommandBuilder BuildCommand(SlashCommandBuilder defaultBuider)
+        public ScheduleCommand(ILogger logger) : base(logger) { }
+
+        public static new SlashCommandBuilder BuildCommand(SlashCommandBuilder defaultBuider, ILogger logger)
         {
             var commandSub = defaultBuider.Options.Find(opt => opt.Name == "command");
             if (commandSub == null)
@@ -38,12 +41,12 @@ namespace WinstonBot.Commands
                 var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
                 foreach (SubCommandInfo subCommandInfo in subCommands)
                 {
-                    subComamnd.AddOption(CommandBuilder.BuildSlashCommandOption(subCommandInfo));
+                    subComamnd.AddOption(CommandBuilder.BuildSlashCommandOption(subCommandInfo, logger));
                 }
 
                 foreach (CommandOptionInfo optionInfo in info.Options)
                 {
-                    subComamnd.AddOption(CommandBuilder.BuildSlashCommandOption(optionInfo));
+                    subComamnd.AddOption(CommandBuilder.BuildSlashCommandOption(optionInfo, logger));
                 }
 
                 commandSub.AddOption(subComamnd);
@@ -56,6 +59,8 @@ namespace WinstonBot.Commands
         internal class CommandSubCommand : CommandBase
         {
             public override bool WantsToHandleSubCommands => true;
+
+            public CommandSubCommand(ILogger logger) : base(logger) { }
 
             public override async Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IEnumerable<CommandDataOption>? options)
             {
@@ -92,7 +97,7 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                Console.WriteLine($"Starting command {commandName} on {startDate} and running every {frequency}. Args: {ArgsToString(args)}");
+                Logger.LogDebug($"Starting command {commandName} on {startDate} and running every {frequency}. Args: {ArgsToString(args)}");
 
                 if (!CommandHandler.CommandEntries.ContainsKey(commandName))
                 {
@@ -110,6 +115,8 @@ namespace WinstonBot.Commands
         [SubCommand("list", "List Scheduled Events", typeof(ScheduleCommand))]
         internal class ListSubCommand : CommandBase
         {
+            public ListSubCommand(ILogger logger) : base(logger) { }
+
             public override async Task HandleCommand(CommandContext context)
             {
                 var service = context.ServiceProvider.GetRequiredService<CommandScheduler>();
@@ -146,6 +153,8 @@ namespace WinstonBot.Commands
         {
             [CommandOption("event-id", "The guid for the event to cancel. Can be found via the list command.")]
             public string GuidString { get; set; }
+
+            public RemoveSubCommand(ILogger logger) : base(logger) { }
 
             public override async Task HandleCommand(CommandContext context)
             {

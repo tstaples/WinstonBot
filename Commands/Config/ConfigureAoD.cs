@@ -4,12 +4,15 @@ using WinstonBot.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Immutable;
 using Discord;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands.Config
 {
     [SubCommand("aod", "Configure aod", typeof(ConfigCommand))]
     internal class ConfigureAoD : CommandBase
     {
+        public ConfigureAoD(ILogger logger) : base(logger) { }
+
         [SubCommand("add-user", "Add a user to the aod database.", typeof(ConfigureAoD))]
         private class AddUser : CommandBase
         {
@@ -30,6 +33,8 @@ namespace WinstonBot.Commands.Config
             public double C { get; set; } = 0f;
             [CommandOption("f", "Weight for the f role (0-1)", required: false)]
             public double F { get; set; } = 0f;
+
+            public AddUser(ILogger logger) : base(logger) { }
 
             public async override Task HandleCommand(CommandContext context)
             {
@@ -80,6 +85,8 @@ namespace WinstonBot.Commands.Config
             [CommandOption("f", "Weight for the f role (0-1)", required: false)]
             public double F { get; set; } = 0f;
 
+            public SetRoleWeights(ILogger logger) : base(logger) { }
+
             public async override Task HandleCommand(CommandContext context)
             {
                 var db = context.ServiceProvider.GetRequiredService<AoDDatabase>();
@@ -121,6 +128,8 @@ namespace WinstonBot.Commands.Config
             [CommandOption("weight", "The value to set this role weight to (0-1)")]
             public double Weight { get; set; }
 
+            public SetRoleWeight(ILogger logger) : base(logger) { }
+
             public async override Task HandleCommand(CommandContext context)
             {
                 var db = context.ServiceProvider.GetRequiredService<AoDDatabase>();
@@ -156,6 +165,8 @@ namespace WinstonBot.Commands.Config
         {
             [CommandOption("user", "The user to view")]
             public SocketGuildUser TargetUser { get; set; }
+
+            public ViewUser(ILogger logger) : base(logger) { }
 
             public async override Task HandleCommand(CommandContext context)
             {
@@ -193,6 +204,8 @@ namespace WinstonBot.Commands.Config
         [SubCommand("refresh-db", "Reload the database into memory. Use after manually editing the DB.", typeof(ConfigureAoD))]
         private class RefreshDB : CommandBase
         {
+            public RefreshDB(ILogger logger) : base(logger) { }
+
             public async override Task HandleCommand(CommandContext context)
             {
                 var db = context.ServiceProvider.GetRequiredService<AoDDatabase>();

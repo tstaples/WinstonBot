@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using WinstonBot.Attributes;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands
 {
@@ -46,6 +47,8 @@ namespace WinstonBot.Commands
             { "<@414119139506913280>" },
         };
 #endif
+
+        public HostPvmSignup(ILogger logger) : base(logger) { }
 
         public async override Task HandleCommand(CommandContext context)
         {

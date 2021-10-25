@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands
 {
@@ -21,13 +22,19 @@ namespace WinstonBot.Commands
         public const string CreateActionContextName = "CreateActionContext";
 
         public virtual bool WantsToHandleSubCommands => false;
+        protected ILogger Logger { get; }
+
+        public CommandBase(ILogger logger)
+        {
+            Logger = logger;
+        }
 
         public virtual Task HandleCommand(CommandContext context) => Task.CompletedTask;
         public virtual Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IEnumerable<CommandDataOption>? options) => Task.CompletedTask;
 
-        public static SlashCommandBuilder BuildCommand(SlashCommandBuilder defaultBuider) => null;
+        public static SlashCommandBuilder BuildCommand(SlashCommandBuilder defaultBuider, ILogger logger) => null;
         // This is for subcommands. TODO: find a better place to do ths.
-        public static SlashCommandOptionBuilder BuildCommandOption() => null;
+        public static SlashCommandOptionBuilder BuildCommandOption(ILogger logger) => null;
 
         public static CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {

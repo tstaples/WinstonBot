@@ -3,12 +3,15 @@ using Discord.WebSocket;
 using WinstonBot.Services;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands.Config
 {
     [SubCommand("boss-signup", "Configure roles for boss signups", typeof(ConfigCommand))]
     internal class ConfigureBossSignup : CommandBase
     {
+        public ConfigureBossSignup(ILogger logger) : base(logger) { }
+
         [SubCommand("add-role", "Add a signup role requirement to this boss.", typeof(ConfigureBossSignup))]
         private class AddRoleOperation : CommandBase
         {
@@ -19,6 +22,8 @@ namespace WinstonBot.Commands.Config
             public SocketRole TargetRole { get; set; }
 
             private BossData.Entry BossEntry => BossData.Entries[TargetBoss];
+
+            public AddRoleOperation(ILogger logger) : base(logger) { }
 
             public async override Task HandleCommand(CommandContext commandContext)
             {
@@ -63,6 +68,8 @@ namespace WinstonBot.Commands.Config
 
             private BossData.Entry BossEntry => BossData.Entries[TargetBoss];
 
+            public RemoveRoleOperation(ILogger logger) : base(logger) { }
+
             public async override Task HandleCommand(CommandContext commandContext)
             {
                 var context = (ConfigCommandContext)commandContext;
@@ -104,6 +111,8 @@ namespace WinstonBot.Commands.Config
             public long TargetBoss { get; set; }
 
             private BossData.Entry BossEntry => BossData.Entries[TargetBoss];
+
+            public ViewRolesOperation(ILogger logger) : base(logger) { }
 
             public async override Task HandleCommand(CommandContext commandContext)
             {

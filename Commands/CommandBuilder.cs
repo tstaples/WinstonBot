@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands
 {
@@ -23,16 +24,16 @@ namespace WinstonBot.Commands
             return types[type];
         }
 
-        public static SlashCommandOptionBuilder BuildSlashCommandOption(SubCommandInfo info)
+        public static SlashCommandOptionBuilder BuildSlashCommandOption(SubCommandInfo info, ILogger logger)
         {
             var buildFunc = Utility.GetInheritedStaticMethod(info.Type, CommandBase.BuildCommandOptionName);
             if (buildFunc == null)
                 throw new ArgumentNullException("Expected valid builder function. Ensure your command inherits from CommandBase.");
 
-            SlashCommandOptionBuilder? builder = buildFunc.Invoke(null, null) as SlashCommandOptionBuilder;
+            SlashCommandOptionBuilder? builder = buildFunc.Invoke(null, new object[] {logger}) as SlashCommandOptionBuilder;
             if (builder != null)
             {
-                Console.WriteLine($"Using custom BuildCommand for {info.Name}");
+                logger.LogDebug($"Using custom BuildCommand for {info.Name}");
                 return builder;
             }
 
@@ -48,17 +49,17 @@ namespace WinstonBot.Commands
 
             foreach (SubCommandInfo subInfo in subCommands)
             {
-                builder.AddOption(BuildSlashCommandOption(subInfo));
+                builder.AddOption(BuildSlashCommandOption(subInfo, logger));
             }
 
             foreach (CommandOptionInfo optionInfo in info.Options)
             {
-                builder.AddOption(BuildSlashCommandOption(optionInfo));
+                builder.AddOption(BuildSlashCommandOption(optionInfo, logger));
             }
             return builder;
         }
 
-        public static SlashCommandOptionBuilder BuildSlashCommandOption(CommandOptionInfo info)
+        public static SlashCommandOptionBuilder BuildSlashCommandOption(CommandOptionInfo info, ILogger logger)
         {
             var builder = new SlashCommandOptionBuilder()
                 .WithName(info.Name)
@@ -68,21 +69,21 @@ namespace WinstonBot.Commands
 
             if (info.ChoiceProviderType != null)
             {
-                Console.WriteLine($"Invoking choice provider: {info.ChoiceProviderType.Name} for option {info.Name}, type: {info.Type}");
+                logger.LogDebug($"Invoking choice provider: {info.ChoiceProviderType.Name} for option {info.Name}, type: {info.Type}");
                 try
                 {
                     info.ChoiceProviderType.GetMethod("PopulateChoices").Invoke(null, new object[] { builder });
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error invoking choice provider: {ex.Message}");
+                    logger.LogError($"Error invoking choice provider: {ex.Message}");
                 }
             }
 
             return builder;
         }
 
-        public static SlashCommandBuilder BuildSlashCommand(CommandInfo info)
+        public static SlashCommandBuilder BuildSlashCommand(CommandInfo info, ILogger logger)
         {
             var builder = new SlashCommandBuilder()
                 .WithName(info.Name)
@@ -92,22 +93,22 @@ namespace WinstonBot.Commands
             var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
             foreach (SubCommandInfo subCommandInfo in subCommands)
             {
-                builder.AddOption(BuildSlashCommandOption(subCommandInfo));
+                builder.AddOption(BuildSlashCommandOption(subCommandInfo, logger));
             }
 
             foreach (CommandOptionInfo optionInfo in info.Options)
             {
-                builder.AddOption(BuildSlashCommandOption(optionInfo));
+                builder.AddOption(BuildSlashCommandOption(optionInfo, logger));
             }
 
             var buildFunc = Utility.GetInheritedStaticMethod(info.Type, CommandBase.BuildCommandName);
             if (buildFunc == null)
                 throw new ArgumentNullException("Expected valid builder function. Ensure your command inherits from CommandBase.");
 
-            SlashCommandBuilder? customBuilder = buildFunc.Invoke(null, new object[] { builder }) as SlashCommandBuilder;
+            SlashCommandBuilder? customBuilder = buildFunc.Invoke(null, new object[] { builder, logger }) as SlashCommandBuilder;
             if (customBuilder != null)
             {
-                Console.WriteLine($"Using custom BuildCommand for {info.Name}");
+                logger.LogDebug($"Using custom BuildCommand for {info.Name}");
                 return customBuilder;
             }
 

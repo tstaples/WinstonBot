@@ -1,4 +1,5 @@
-﻿using WinstonBot.Attributes;
+﻿using Microsoft.Extensions.Logging;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
@@ -8,6 +9,8 @@ namespace WinstonBot.Commands
         // TODO: can we inject services into providers?
         [CommandOption("emote", "The name of the emote")]
         public string EmoteName { get; set; }
+
+        public NitroEmote(ILogger logger) : base(logger) { }
 
         public override async Task HandleCommand(CommandContext context)
         {

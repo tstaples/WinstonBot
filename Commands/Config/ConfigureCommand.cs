@@ -2,12 +2,15 @@
 using Discord.WebSocket;
 using WinstonBot.Services;
 using WinstonBot.Attributes;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands.Config
 {
     [SubCommand("command", "Configure command permissions", typeof(ConfigCommand))]
     internal class ConfigureCommandSubCommand : CommandBase
     {
+        public ConfigureCommandSubCommand(ILogger logger) : base(logger) { }
+
         public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {
             return new ConfigCommandContext(client, arg, services);
@@ -38,6 +41,8 @@ namespace WinstonBot.Commands.Config
 
             [CommandOption("role", "The role to add")]
             public SocketRole TargetRole { get; set; }
+
+            public AddRoleOperation(ILogger logger) : base(logger) { }
 
             public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
@@ -78,6 +83,8 @@ namespace WinstonBot.Commands.Config
             [CommandOption("role", "The role to remove")]
             public SocketRole TargetRole { get; set; }
 
+            public RemoveRoleOperation(ILogger logger) : base(logger) { }
+
             public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {
                 return new ConfigCommandContext(client, arg, services);
@@ -114,6 +121,8 @@ namespace WinstonBot.Commands.Config
         {
             [CommandOption("command", "The command to view the roles for", dataProvider: typeof(CommandNameDataProvider))]
             public string TargetCommand { get; set; }
+
+            public ViewRolesOperation(ILogger logger) : base(logger) { }
 
             public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
             {

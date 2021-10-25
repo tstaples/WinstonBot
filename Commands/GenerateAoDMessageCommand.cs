@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
@@ -9,6 +10,8 @@ namespace WinstonBot.Commands
     [ScheduableCommand]
     public class GenerateAoDMessageCommand : CommandBase
     {
+        public GenerateAoDMessageCommand(ILogger logger) : base(logger) { }
+
         public async override Task HandleCommand(CommandContext context)
         {
             var reset = new DateTimeOffset(GetReset().AddDays(1));

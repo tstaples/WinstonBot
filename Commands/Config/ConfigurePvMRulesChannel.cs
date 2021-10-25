@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using WinstonBot.Services;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands.Config
 {
@@ -12,6 +13,8 @@ namespace WinstonBot.Commands.Config
     {
         [CommandOption("channel", "The channel to set as the pvm rules channel")]
         public SocketGuildChannel TargetChannel { get; set;  }
+
+        public ConfigurePvMRulesChannel(ILogger logger) : base(logger) { }
 
         public static new CommandContext CreateContext(DiscordSocketClient client, SocketSlashCommand arg, IServiceProvider services)
         {

@@ -2,6 +2,7 @@
 using Discord.Net;
 using Discord.Rest;
 using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using WinstonBot.Attributes;
 
@@ -11,18 +12,20 @@ namespace WinstonBot.Commands
     [ConfigurableCommand]
     public class ForceRefreshCommands : CommandBase
     {
+        public ForceRefreshCommands(ILogger logger) : base(logger) { }
+
         public async override Task HandleCommand(CommandContext context)
         {
-            Console.WriteLine("Clearing all commands for this bot from guild:");
+            Logger.LogInformation("Clearing all commands for this bot from guild:");
             await context.Guild.DeleteApplicationCommandsAsync();
 
-            Console.WriteLine("Registering commands");
-            await RegisterCommands(context.Client, context.Guild);
+            Logger.LogInformation("Registering commands");
+            await RegisterCommands(context.Client, context.Guild, Logger);
 
             await context.RespondAsync("All commands refreshed", ephemeral: true);
         }
 
-        public static async Task RegisterCommands(DiscordSocketClient client, SocketGuild guild)
+        public static async Task RegisterCommands(DiscordSocketClient client, SocketGuild guild, ILogger logger)
         {
             // Register the commands in all the guilds
             // NOTE: registering the same command will just update it, so we won't hit the 200 command create rate limit.
@@ -42,8 +45,8 @@ namespace WinstonBot.Commands
                 List<ApplicationCommandProperties> commands = new();
                 foreach (CommandInfo commandInfo in CommandHandler.CommandEntries.Values)
                 {
-                    Console.WriteLine($"Building command {commandInfo.Name}");
-                    var commandBuilder = CommandBuilder.BuildSlashCommand(commandInfo);
+                    logger.LogDebug($"Building command {commandInfo.Name}");
+                    var commandBuilder = CommandBuilder.BuildSlashCommand(commandInfo, logger);
                     commands.Add(commandBuilder.Build());
                 }
 

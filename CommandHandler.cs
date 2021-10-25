@@ -101,12 +101,16 @@ namespace WinstonBot
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
+            await LoadCommands();
+
             await Client.WaitForReadyAsync(cancellationToken);
             await InstallCommandsAsync();
         }
 
         private async Task LoadCommands()
         {
+            Logger.LogInformation("Loading commands...");
+
             List<CommandOptionInfo> GetOptions(TypeInfo info)
             {
                 return info.GetProperties(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance)
@@ -224,8 +228,6 @@ namespace WinstonBot
 
         private async Task InstallCommandsAsync()
         {
-            await LoadCommands();
-
             // Hook the MessageReceived event into our command handler
             Client.ButtonExecuted += HandleButtonExecuted;
             Client.InteractionCreated += HandleInteractionCreated;
@@ -236,7 +238,7 @@ namespace WinstonBot
             {
                 Logger.LogInformation($"Registering commands for guild: {guild.Name}");
 
-                await ForceRefreshCommands.RegisterCommands(Client, guild);
+                await ForceRefreshCommands.RegisterCommands(Client, guild, Logger);
 
                 Logger.LogInformation($"Finished Registering commands for guild: {guild.Name}");
             }
@@ -313,7 +315,7 @@ namespace WinstonBot
 
             // Translate the options to our own serializable version
             var options = BuildCommandDataOptions(slashCommand.Data.Options);
-            await ExecuteCommand(command, context, options, Logger);
+            await ExecuteCommand(command, context, options, Logger, _services);
         }
 
         private static void InjectCommandPropertyValues(
@@ -362,8 +364,10 @@ namespace WinstonBot
             CommandInfo command,
             CommandContext context,
             IEnumerable<CommandDataOption>? dataOptions,
-            ILogger logger)
+            ILogger logger,
+            IServiceProvider services)
         {
+
             CommandBase? commandInstance = null;
             CommandInfo commandInfo = command;
             // Subcommands can be nested within other subcommands, so traverse downwards until we find the lowest level subcommand.
@@ -373,11 +377,14 @@ namespace WinstonBot
             {
                 commandInfo = subCommandResult.Value.Key;
                 dataOptions = subCommandResult.Value.Value;
-                commandInstance = Activator.CreateInstance(subCommandResult.Value.Key.Type) as CommandBase;
+
+                var commandLogger = services.GetService<ILoggerFactory>().CreateLogger(commandInfo.Type);
+                commandInstance = Activator.CreateInstance(commandInfo.Type, new object[] { commandLogger }) as CommandBase;
             }
             else
             {
-                commandInstance = Activator.CreateInstance(command.Type) as CommandBase;
+                var commandLogger = services.GetService<ILoggerFactory>().CreateLogger(command.Type);
+                commandInstance = Activator.CreateInstance(command.Type, new object[] { commandLogger }) as CommandBase;
             }
 
             if (commandInstance == null)
