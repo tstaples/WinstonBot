@@ -23,15 +23,18 @@ namespace WinstonBot.Commands
             // each row is a name, each col is a role
             // For the algorithm to work we need the matrix to be square. The extra columns we just set to 0 and hope they don't affect anything.
             int numCols = Math.Max(AoDDatabase.NumRoles, users.Length);
-            int[,] costs = new int[users.Length, numCols];
-            for (int row = 0; row < users.Length; ++row)
+            int numRows = Math.Max(AoDDatabase.NumRoles, users.Length);
+            int[,] costs = new int[numRows, numCols];
+            for (int row = 0; row < numRows; ++row)
             {
-                var user = users[row];
+                var user = row < users.Length ? users[row] : null;
                 // TODO: we could easily score attendance per role here too with an array.
                 // Though making sure people are logged as the role they did might prove tricky.
                 for (int col = 0; col < numCols; ++col)
                 {
-                    if (col >= AoDDatabase.NumRoles)
+                    // We can have extra columns as we need the matrix to be square for the algorithm to work. So just 0 them out.
+                    // We can also have extra rows if we have less people than the number of roles.
+                    if (col >= AoDDatabase.NumRoles || user == null)
                     {
                         costs[row, col] = 0;
                         continue;
