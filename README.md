@@ -8,6 +8,21 @@ Vaught Discord bot
 4. In VS, set these files to auto-copy to the output directory.
 5. You can run production or release based on the DOTNET_ENVIRONMENT env var which can be set in the VS launch options.
 
+Example launch settings:
+
+```
+{
+  "profiles": {
+    "WinstonBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
 ## Adding a Command
 1. Under the Commands folder add a new source file for your command.
 2. Inherit from CommandBase
