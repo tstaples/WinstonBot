@@ -128,7 +128,12 @@ namespace WinstonBot.Services
         private Dictionary<ulong, User> _userEntries = new();
         private string spreadsheetId;
         private const string UserSheetName = "Users";
+        private const string HistorySheetName = "History";
         private const string UserDBRange = $"{UserSheetName}!A2:I";
+        private const string HistoryRange = $"{HistorySheetName}!A2:H";
+        private const string HistoryInsertRange = $"{HistorySheetName}!A2:H2";
+        private const int UsersSheetId = 0;
+        private const int HistorySheetId = 1447996968;
 
 
         public AoDDatabase(ILogger<AoDDatabase> logger, IConfiguration configuration)
@@ -271,6 +276,88 @@ namespace WinstonBot.Services
             throw new UserNotFoundException(userId);
         }
 
+        public void AddTeamToHistory(Dictionary<string, ulong> team)
+        {
+            List<object> row = new();
+            row.Add(DateTime.UtcNow.ToString("MM/dd/yyyy"));
+            foreach (string roleName in Enum.GetNames(typeof(Roles)))
+            {
+                ulong id = 0;
+                team.TryGetValue(roleName, out id);
+                row.Add(id.ToString());
+            }
+
+            InsertDimensionRequest insertRow = new InsertDimensionRequest();
+            insertRow.Range = new DimensionRange()
+            {
+                SheetId = HistorySheetId,
+                Dimension = "ROWS",
+                StartIndex = 1,
+                EndIndex = 2
+            };
+
+            PasteDataRequest data = new PasteDataRequest
+            {
+                Data = string.Join(",", row),
+                Delimiter = ",",
+                Coordinate = new GridCoordinate
+                {
+                    ColumnIndex = 0,
+                    RowIndex = 1,
+                    SheetId = HistorySheetId
+                },
+            };
+
+            BatchUpdateSpreadsheetRequest r = new BatchUpdateSpreadsheetRequest()
+            {
+                Requests = new List<Request>
+                {
+                    new Request{ InsertDimension = insertRow },
+                    new Request{ PasteData = data }
+                }
+            };
+
+            try
+            {
+                BatchUpdateSpreadsheetResponse response = _sheetsService.Spreadsheets.BatchUpdate(r, spreadsheetId).Execute();
+                _logger.LogDebug($"Added team to history with tag: {response.ETag}");
+            }
+            catch (Exception ex)
+            {
+                throw new DBOperationFailedException(ex.Message);
+            }
+        }
+
+        public void RemoveLastRowFromHistory()
+        {
+            DeleteDimensionRequest deleteRow = new DeleteDimensionRequest();
+            deleteRow.Range = new DimensionRange()
+            {
+                SheetId = HistorySheetId,
+                Dimension = "ROWS",
+                StartIndex = 1,
+                EndIndex = 2
+            };
+
+            BatchUpdateSpreadsheetRequest request = new BatchUpdateSpreadsheetRequest()
+            {
+                Requests = new List<Request>
+                {
+                    new Request{ DeleteDimension = deleteRow },
+                }
+            };
+
+            try
+            {
+                _sheetsService.Spreadsheets.BatchUpdate(request, spreadsheetId).Execute();
+                _logger.LogDebug($"Deleted row");
+            }
+            catch (Exception ex)
+            {
+                throw new DBOperationFailedException(ex.Message);
+            }
+        }
+
         public void RefreshDB()
         {
             PopulateDatabase();
@@ -288,9 +375,18 @@ namespace WinstonBot.Services
                 SpreadsheetsResource.ValuesResource.GetRequest request =
                     _sheetsService.Spreadsheets.Values.Get(spreadsheetId, UserDBRange);
 
-                // TODO: make the parsing safer
-                ValueRange response = request.Execute();
-                IList<IList<Object>> rows = response.Values;
+                IList<IList<Object>>? rows = null;
+                try
+                {
+                    ValueRange response = request.Execute();
+                    rows = response.Values;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Failed to populate database: {ex}");
+                    return;
+                }
+
                 if (rows == null || rows.Count <= 0)
                 {
                     _logger.LogError("[AoDDatabase] no user rows found.");
@@ -301,7 +397,13 @@ namespace WinstonBot.Services
                 {
                     var columns = rows[rowIndex];
 
-                    ulong id = ulong.Parse((string)columns[1]);
+                    ulong id = 0;
+                    if (!ulong.TryParse((string)columns[1], out id))
+                    {
+                        _logger.LogError($"Failed to parse user id in row {rowIndex}");
+                        continue;
+                    }
+
                     User user = new User()
                     {
                         Name = (string)columns[0],

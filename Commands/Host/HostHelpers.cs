@@ -39,7 +39,7 @@ namespace WinstonBot.Commands
                 .ToList();
         }
 
-        public static Dictionary<string, ulong> ParseNamesToRoleIdMap(Embed embed)
+        public static Dictionary<string, ulong> ParseNamesToRoleIdMap(IEmbed embed)
         {
             Dictionary<string, ulong> roleToUsers = new();
             foreach (EmbedField field in embed.Fields)

@@ -79,6 +79,10 @@ namespace WinstonBot.Commands
                 embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, true, BossEntry, selectedIds),
                 component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedIds));
 
+            // TODO: make this general for any boss signup
+            var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
+            aodDb.RemoveLastRowFromHistory();
+
             // TODO: do this via context instead?
             //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);
 

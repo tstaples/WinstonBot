@@ -1,4 +1,6 @@
-﻿using WinstonBot.Attributes;
+﻿using Microsoft.Extensions.DependencyInjection;
+using WinstonBot.Attributes;
+using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
@@ -28,6 +30,15 @@ namespace WinstonBot.Commands
             }
 
             var names = HostHelpers.ParseNamesToList(originalMessage.Embeds.First().Description);
+
+            // re-add the team to the history
+            if (context.OriginalMessageData.TeamConfirmedBefore)
+            {
+                // TODO: make this general for any boss signup
+                Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(originalMessage.Embeds.First());
+                var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
+                aodDb.AddTeamToHistory(selectedIds);
+            }
 
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {

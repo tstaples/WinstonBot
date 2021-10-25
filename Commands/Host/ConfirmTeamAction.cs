@@ -1,6 +1,8 @@
 ﻿using Discord;
+using Microsoft.Extensions.DependencyInjection;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
+using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
@@ -33,6 +35,10 @@ namespace WinstonBot.Commands
             var currentEmbed = context.Message.Embeds.First();
             Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
 
+            // TODO: make this general for any boss signup
+            var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
+            aodDb.AddTeamToHistory(selectedIds);
+
             // TODO: ping the people that are going.
             // Should that be a separate message or should we just not use an embed for this?
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
@@ -42,8 +48,6 @@ namespace WinstonBot.Commands
                     .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger)
                     .Build();
             });
-
-            var builder = ComponentBuilder.FromComponents(context.Message.Components);
 
             context.EditFinishedForMessage(context.OriginalMessageData.MessageId);
 
