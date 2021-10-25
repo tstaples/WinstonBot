@@ -32,7 +32,7 @@ public class Program
             {
                 logging
                 .AddConsole()
-                .AddFile("winstonbot.log")
+                .AddFile("winstonbot.log", append:false)
                 .SetMinimumLevel(LogLevel.Trace);
             })
             .ConfigureDiscordHost((context, config) =>
