@@ -3,9 +3,10 @@ Vaught Discord bot
 
 ## Setup
 1. In the root project folder, add a folder named Config.
-2. In here add a file called test_token.txt that has your development token. Release token is read from token.txt.
+2. In here add a file called appsettings.Development.json that has a key called "token" with the value of your development token. Release token is read appsettings.Production.json.
 3. Also add your google credentials file and name it google_credentials.json
 4. In VS, set these files to auto-copy to the output directory.
+5. You can run production or release based on the DOTNET_ENVIRONMENT env var which can be set in the VS launch options.
 
 ## Adding a Command
 1. Under the Commands folder add a new source file for your command.
