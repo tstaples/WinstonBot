@@ -66,7 +66,19 @@ public class Program
             .UseConsoleLifetime();
 
         using IHost host = builder.Build();
-        await host.RunAsync();
+
+        var programLog = host.Services.GetService<ILoggerFactory>().CreateLogger<Program>();
+
+        programLog.LogInformation("Starting Winston Bot");
+
+        try
+        {
+            await host.RunAsync();
+        }
+        catch (Exception ex)
+        {
+            programLog.LogError($"Program error: {ex}");
+        }
 
         Environment.ExitCode = 1;
     }
