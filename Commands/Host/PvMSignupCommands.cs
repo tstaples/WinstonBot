@@ -7,7 +7,7 @@ using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
-    [Command("pvm-signup", "Utilities for the host-pvm-signup command")]
+    [Command("pvm-signup", "Utilities for the host-pvm-signup command", DefaultPermission.AdminOnly)]
     internal class PvMSignupCommands : CommandBase
     {
         public PvMSignupCommands(ILogger logger) : base(logger)
