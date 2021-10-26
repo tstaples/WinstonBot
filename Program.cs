@@ -62,7 +62,9 @@ public class Program
                 .AddSingleton<AoDDatabase>()
                 .AddHostedService<DBService>()
                 .AddHostedService<StatusService>()
-                .AddHostedService<BlavikenService>();
+                .AddHostedService<BlavikenService>()
+                .AddSingleton<WatchCatDB>()
+                .AddHostedService<WatchCat>();
 
             })
             .UseConsoleLifetime();
