@@ -1,7 +1,9 @@
 ﻿- option for schedule to clear channel first (except pinned)
 - host subcommand to view stats about users in the DB
 
+- only register certain commands that i'm testing when running in debug mode 
 - ping people selected for team
+- add counter for number of people signed up
 
 - add type reader support
 
@@ -9,21 +11,16 @@
 	- button builder idea
 	- an action could only be used for a single command (would be fine for my use, but if we want to make a lib then maybe not.)
 
-- use dependency injection to inject services for commands
 - add view all config settings subcommand
 
 - update interaction service to save to file. auto delete messages older than n days.
 - update action context to also store interactions when pming people.
 
-- improve logging
-- test multiple people hitting buttons at once
 - harden guild.GetUser against users no longer in the discord
 
 - notifying people trying to sign up without having read rules
 - regular sign ups for aod/raids/rago?
 - combined raids signup
-- deploy script so we can have a release instance running while we can run a separate test instance.
-	- this should also deploy the release token
 
 - winston picture command
 - command to generate timestamps for events.
@@ -36,3 +33,6 @@ Done:
 - split other config commands into subcommands
 - signup subcommand to add/remove a user to/from the signup (use message id to target)
 - implement actual aod team selection
+- use dependency injection to inject services for commands
+- improve logging
+- test multiple people hitting buttons at once
