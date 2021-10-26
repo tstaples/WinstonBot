@@ -1,11 +1,9 @@
 ﻿- option for schedule to clear channel first (except pinned)
 - host subcommand to view stats about users in the DB
-- signup subcommand to add/remove a user to/from the signup (use message id to target)
+
+- ping people selected for team
 
 - add type reader support
-- implement actual aod team selection
-- interaction for setting up who can do what roles at aod.
-	- this will let us avoid needing to add roles to control who can do what.
 
 - experiment with not needing the interaction service before going too far with it.
 	- button builder idea
@@ -36,3 +34,5 @@ Done:
 - ping blav every time he responds with the ping command
 - command to lookup things on wiki
 - split other config commands into subcommands
+- signup subcommand to add/remove a user to/from the signup (use message id to target)
+- implement actual aod team selection
