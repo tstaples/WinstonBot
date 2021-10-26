@@ -18,13 +18,15 @@ namespace WinstonBot.Commands
 
         public async Task HandleAction(ActionContext context)
         {
-            if (!context.Message.Embeds.Any())
+            // Re-grab the message as it may have been modified by a concurrent action.
+            var message = await context.Channel.GetMessageAsync(context.Message.Id);
+            if (!message.Embeds.Any())
             {
                 await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
                 return;
             }
 
-            var guild = ((SocketGuildChannel)context.Message.Channel).Guild;
+            var guild = ((SocketGuildChannel)message.Channel).Guild;
             var configService = context.ServiceProvider.GetRequiredService<ConfigService>();
             List<ulong> rolesForBoss = new();
             if (configService.Configuration.GuildEntries[guild.Id].RolesNeededForBoss.TryGetValue(BossEntry.CommandName, out rolesForBoss))
@@ -38,7 +40,7 @@ namespace WinstonBot.Commands
                 }
             }
 
-            var currentEmbed = context.Message.Embeds.First();
+            var currentEmbed = message.Embeds.First();
 
             var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
             var ids = HostHelpers.ParseNamesToIdList(names);
@@ -52,10 +54,10 @@ namespace WinstonBot.Commands
             Console.WriteLine($"{context.User.Mention} has signed up!");
             names.Add(context.User.Mention);
 
-            await context.UpdateAsync(msgProps =>
+            context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
-            });
+            }).Wait();
         }
     }
 }

@@ -22,7 +22,9 @@ namespace WinstonBot.Commands
         {
             var context = (HostActionContext)actionContext;
 
-            if (!context.Message.Embeds.Any())
+            // Re-grab the message as it may have been modified by a concurrent action.
+            var message = await context.Channel.GetMessageAsync(context.Message.Id);
+            if (!message.Embeds.Any())
             {
                 await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
                 return;
@@ -30,7 +32,7 @@ namespace WinstonBot.Commands
             
             var guild = ((SocketGuildChannel)context.Channel).Guild;
 
-            var currentEmbed = context.Message.Embeds.First();
+            var currentEmbed = message.Embeds.First();
             var ids = HostHelpers.ParseNamesToIdListWithValidation(guild, currentEmbed.Description);
             if (ids.Count == 0)
             {
@@ -38,7 +40,7 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            if (!context.TryMarkMessageForEdit(context.Message.Id, ids))
+            if (!context.TryMarkMessageForEdit(message.Id, ids))
             {
                 await context.RespondAsync("This team is already being edited by someone else.", ephemeral: true);
                 return;
@@ -50,17 +52,17 @@ namespace WinstonBot.Commands
             Dictionary<string, ulong> roleUserMap = builder.SelectTeam(ids);
             var unselectedids = ids.Where(id => !roleUserMap.ContainsValue(id));
 
-            await context.Message.ModifyAsync(msgProps =>
+            context.Message.ModifyAsync(msgProps =>
             {
                 msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, true);
                 // footers can't show mentions, so use the username.
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names, context.User.Username);
-            });
+            }).Wait();
 
             // Footed will say "finalized by X" if it's been completed before.
             bool hasBeenConfirmedBefore = currentEmbed.Footer.HasValue;
 
-            var message = await context.User.SendMessageAsync(
+            var replyMessage = await context.User.SendMessageAsync(
                 "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +

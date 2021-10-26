@@ -22,6 +22,8 @@ namespace WinstonBot.Commands
         {
             var context = (HostActionContext)actionContext;
 
+            // Re-grab the message as it may have been modified by a concurrent action.
+            var message = await context.Channel.GetMessageAsync(context.Message.Id);
             if (!context.Message.Embeds.Any())
             {
                 await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
@@ -34,7 +36,7 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            var currentEmbed = context.Message.Embeds.First();
+            var currentEmbed = message.Embeds.First();
             Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
             if (selectedIds.Count == 0)
             {
@@ -71,7 +73,7 @@ namespace WinstonBot.Commands
                     .Build();
             });
 
-            var message = await context.User.SendMessageAsync(
+            var replyMessage = await context.User.SendMessageAsync(
                 "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +

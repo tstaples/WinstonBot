@@ -424,6 +424,8 @@ namespace WinstonBot
             }
         }
 
+        private Dictionary<ulong, Semaphore> _messageSemaphores = new();
+
         private async Task HandleButtonExecuted(SocketMessageComponent component)
         {
             // For now just assume actions are unique per command.
@@ -519,14 +521,36 @@ namespace WinstonBot
                 throw new ArgumentNullException($"Failed to create action context for {interactionOwner.Name}:{action.Name}");
             }
 
-            try
+            Semaphore sem;
+            lock (_messageSemaphores)
             {
-                await actionInstance.HandleAction(context);
+                if (!_messageSemaphores.TryGetValue(component.Message.Id, out sem))
+                {
+                    sem = new Semaphore(1, 1);
+                    _messageSemaphores.Add(component.Message.Id, sem);
+                }
             }
-            catch (Exception ex)
+
+            Task.Run(async () =>
             {
-                await context.RespondAsync($"An Action threw an exception. Tell Catman: ```{ex}```", ephemeral: true);
-            }
+                try
+                {
+                    Logger.LogDebug($"{action.Name} Requesting semaphore");
+                    sem.WaitOne();
+                    Logger.LogDebug($"{action.Name} executing");
+                    await actionInstance.HandleAction(context);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Error running action {action.Name}: {ex}");
+                }
+                finally
+                {
+                    Logger.LogDebug($"{action.Name} Releasing semaphore");
+                    sem.Release();
+                }
+
+            }).Forget();
         }
 
         static KeyValuePair<SubCommandInfo, IEnumerable<CommandDataOption>?>? FindDeepestSubCommand(CommandInfo parent,

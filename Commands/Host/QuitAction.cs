@@ -12,13 +12,15 @@ namespace WinstonBot.Commands
 
         public async Task HandleAction(ActionContext context)
         {
-            if (!context.Message.Embeds.Any())
+            // Re-grab the message as it may have been modified by a concurrent action.
+            var message = await context.Channel.GetMessageAsync(context.Message.Id);
+            if (!message.Embeds.Any())
             {
                 await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
                 return;
             }
 
-            var currentEmbed = context.Message.Embeds.First();
+            var currentEmbed = message.Embeds.First();
             var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
             var ids = HostHelpers.ParseNamesToIdList(names);
             if (!ids.Contains(context.User.Id))
@@ -32,10 +34,10 @@ namespace WinstonBot.Commands
             var index = ids.IndexOf(context.User.Id);
             names.RemoveAt(index);
 
-            await context.UpdateAsync(msgProps =>
+            context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
-            });
+            }).Wait();
         }
     }
 }
