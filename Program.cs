@@ -60,7 +60,8 @@ public class Program
                 .AddSingleton<CommandScheduler>()
                 .AddHostedService<ScheduledCommandService>()
                 .AddSingleton<AoDDatabase>()
-                .AddHostedService<DBService>();
+                .AddHostedService<DBService>()
+                .AddHostedService<StatusService>();
 
             })
             .UseConsoleLifetime();
