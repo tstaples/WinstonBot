@@ -283,7 +283,11 @@ namespace WinstonBot.Services
             foreach (string roleName in Enum.GetNames(typeof(Roles)))
             {
                 ulong id = 0;
-                team.TryGetValue(roleName, out id);
+                if (!team.TryGetValue(roleName, out id))
+                {
+                    // Support lowercase role names for pvm-signup log-team
+                    team.TryGetValue(roleName.ToLower(), out id);
+                }
                 row.Add(id.ToString());
             }
 

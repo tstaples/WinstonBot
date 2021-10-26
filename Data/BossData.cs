@@ -17,10 +17,11 @@ namespace WinstonBot.Data
             public string CommandName { get; set; }
             public string PrettyName { get; set; }
             public string IconUrl { get; set; }
-            public bool SupportsSignup { get; set; }
+            public bool SupportsSignup { get; set; } = false;
             public uint MaxPlayersOnTeam { get; set; }
             public Color EmbedColor { get; set; }
             public Type? BuilderClass { get; set; }
+            public Type? RolesEnumType { get; set; }
         }
 
         public static readonly Entry[] Entries = new Entry[]
@@ -34,7 +35,8 @@ namespace WinstonBot.Data
                 SupportsSignup = true,
                 MaxPlayersOnTeam = 7, // TODO: allow optionally passing this in through the command for different team sizes.
                 EmbedColor = Color.Red,
-                BuilderClass = typeof(Commands.AoDTeamBuilder)
+                BuilderClass = typeof(Commands.AoDTeamBuilder),
+                RolesEnumType = typeof(Services.AoDDatabase.Roles)
             },
             new Entry()
             {

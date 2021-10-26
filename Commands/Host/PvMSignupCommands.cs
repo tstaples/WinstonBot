@@ -1,9 +1,11 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
 using WinstonBot.Services;
+using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
@@ -139,6 +141,66 @@ namespace WinstonBot.Commands
                 });
 
                 await context.RespondAsync($"Removed {User.Mention} from the signup.", ephemeral: true);
+            }
+        }
+
+        [SubCommand("log-team", "Logs a team to the history in the DB", dynamicSubcommands: true, parentCommand: typeof(PvMSignupCommands))]
+        internal class AddTeamToHistory : CommandBase
+        {
+            public override bool WantsToHandleSubCommands => true;
+
+            public AddTeamToHistory(ILogger logger) : base(logger)
+            {
+            }
+
+            public static new SlashCommandOptionBuilder BuildCommandOption(ILogger logger)
+            {
+                var builder = new SlashCommandOptionBuilder()
+                    .WithName("log-team")
+                    .WithDescription("Logs a team to the history in the DB")
+                    .WithType(ApplicationCommandOptionType.SubCommandGroup);
+
+                foreach (BossData.Entry entry in BossData.Entries)
+                {
+                    if (!entry.SupportsSignup || entry.RolesEnumType == null)
+                    {
+                        continue;
+                    }
+
+                    var entryBuilder = new SlashCommandOptionBuilder()
+                        .WithName(entry.CommandName)
+                        .WithDescription(entry.PrettyName)
+                        .WithType(ApplicationCommandOptionType.SubCommand);
+
+                    foreach (var role in Enum.GetNames(entry.RolesEnumType))
+                    {
+                        entryBuilder.AddOption(role.ToLower(), ApplicationCommandOptionType.User, "The user for this role", required: false);
+                    }
+
+                    builder.AddOption(entryBuilder);
+                }
+                return builder;
+            }
+
+            public override async Task HandleSubCommand(CommandContext context, CommandInfo subCommandInfo, IEnumerable<CommandDataOption>? options)
+            {
+                if (options == null)
+                {
+                    throw new ArgumentNullException("Expected valid options");
+                }
+
+                string bossName = options.First().Name;
+                var roleOptions = options.First().Options;
+                if (roleOptions == null)
+                {
+                    throw new ArgumentNullException("Expected valid roles");
+                }
+
+                Dictionary<string, ulong> team = roleOptions.ToDictionary(opt => opt.Name, opt => Utility.SafeGetUserId((SocketGuildUser)opt.Value));
+
+                context.ServiceProvider.GetRequiredService<AoDDatabase>().AddTeamToHistory(team);
+
+                await context.RespondAsync("Added team to history", ephemeral:true);
             }
         }
     }

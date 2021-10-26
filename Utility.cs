@@ -115,5 +115,14 @@ namespace WinstonBot
         {
             return type.GetMethod(methodName, BindingFlags.Static | BindingFlags.FlattenHierarchy | BindingFlags.Public);
         }
+
+        public static ulong SafeGetUserId(IUser? user)
+        {
+            if (user != null)
+            {
+                return user.Id;
+            }
+            return 0;
+        }
     }
 }
