@@ -49,24 +49,46 @@ namespace WinstonBot.Services
             return entry.Username == user.Username && entry.Discriminator == user.Discriminator;
         }
 
-        private async Task HandleUserAction(SocketGuildUser user, WatchCatDB.UserAction action, ulong channelId, ulong pingRoleId)
+        private async Task HandleUserAction(SocketGuildUser user, WatchCatDB.UserAction action, ulong channelId, ulong notifyRoleId)
         {
             switch (action)
             {
                 case WatchCatDB.UserAction.Notify:
                     {
-                        var channel = user.Guild.GetTextChannel(channelId);
-                        if (channel != null)
-                        {
-                            var role = user.Guild.GetRole(pingRoleId);
-                            await channel.SendMessageAsync($"{(role != null ? role.Mention : string.Empty)} WatchCat has detected user {user.Mention} joined.");
-                        }
-                        else
-                        {
-                            Logger.LogWarning($"Failed to send notify to channel as the channel id was not set.");
-                        }
+                        await SendMessageToNotifyChannel(user.Guild, channelId, notifyRoleId, $"WatchCat has detected user {user.Mention} joined.");
                     }
                     break;
+
+                case WatchCatDB.UserAction.Kick:
+                    {
+                        await SendMessageToNotifyChannel(user.Guild, channelId, notifyRoleId, $"WatchCat kicking user {user.Username}${user.Discriminator} from guild {user.Guild.Name}");
+                        await user.KickAsync("You were automatically kicked by WatchCat.");
+                    }
+                    break;
+
+                case WatchCatDB.UserAction.Ban:
+                    {
+                        await SendMessageToNotifyChannel(user.Guild, channelId, notifyRoleId, $"WatchCat banning user {user.Username}${user.Discriminator} from guild {user.Guild.Name}");
+                        await user.Guild.AddBanAsync(user, reason: "You were automatically banned by WatchCat.");
+                    }
+                    break;
+            }
+        }
+
+        private async Task SendMessageToNotifyChannel(SocketGuild guild, ulong channelId, ulong notifyRoleId, string message)
+        {
+            var channel = guild.GetTextChannel(channelId);
+            if (channel != null)
+            {
+                var role = guild.GetRole(notifyRoleId);
+
+                string fullMessage = $"{(role != null ? role.Mention : string.Empty)} {message}";
+                Logger.LogInformation(fullMessage);
+                await channel.SendMessageAsync(fullMessage);
+            }
+            else
+            {
+                Logger.LogWarning($"Failed to send notify to channel as the channel id was not set.");
             }
         }
     }

@@ -31,12 +31,12 @@ namespace WinstonBot.Services
 
         private class Database
         {
-            public Dictionary<ulong, GuildEntry> GuildEntries { get; set; }
+            public Dictionary<ulong, GuildEntry> GuildEntries { get; set; } = new();
         }
 
         ILogger<WatchCatDB> _logger;
         private string _path;
-        private Database _database;
+        private Database _database = new();
 
         public GuildEntry GetEntry(ulong guildId)
         {
