@@ -232,8 +232,6 @@ namespace WinstonBot
             // Hook the MessageReceived event into our command handler
             Client.ButtonExecuted += HandleButtonExecuted;
             Client.InteractionCreated += HandleInteractionCreated;
-            Client.MessageReceived += _client_MessageReceived;
-            Client.ReactionAdded += _client_ReactionAdded;
 
             foreach (SocketGuild guild in Client.Guilds)
             {
@@ -242,40 +240,6 @@ namespace WinstonBot
                 await ForceRefreshCommands.RegisterCommands(Client, guild, Logger);
 
                 Logger.LogInformation($"Finished Registering commands for guild: {guild.Name}");
-            }
-        }
-
-        private static ulong Blaviken = 532015945850421260;
-
-        // TODO: if we want to actually keep this make it less hacky.
-        private async Task _client_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, Cacheable<IMessageChannel, ulong> arg2, SocketReaction arg3)
-        {
-            if (arg3.Channel is SocketGuildChannel chan)
-            {
-                if (arg3.User.IsSpecified && arg3.User.Value.Id == Blaviken)
-                {
-                    if (arg3.Emote.Name == "ping" || arg3.Emote.Name == "pepeping")
-                    {
-                        Logger.LogInformation($"Trolling blaviken in {chan.Name}");
-                        await arg3.Channel.SendMessageAsync($"<@!{Blaviken}>", allowedMentions: new AllowedMentions(AllowedMentionTypes.Users));
-                    }
-                }
-            }
-        }
-
-        private async Task _client_MessageReceived(SocketMessage arg)
-        {
-            if (arg.Channel is SocketGuildChannel chan)
-            {
-                if (arg.Author.Id == Blaviken)
-                {
-                    if (arg.Content.Contains("<:ping:777725364683538463>") || arg.Content.Contains("<:pepeping:777721327137062923>"))
-                    {
-                        Logger.LogInformation($"Trolling blaviken in {chan.Name}");
-                        var reference = new MessageReference(arg.Id, arg.Channel.Id, chan.Guild.Id);
-                        await arg.Channel.SendMessageAsync($"<@!{Blaviken}>", messageReference: reference, allowedMentions: new AllowedMentions(AllowedMentionTypes.Users));
-                    }
-                }
             }
         }
 

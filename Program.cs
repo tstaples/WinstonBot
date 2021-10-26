@@ -61,7 +61,8 @@ public class Program
                 .AddHostedService<ScheduledCommandService>()
                 .AddSingleton<AoDDatabase>()
                 .AddHostedService<DBService>()
-                .AddHostedService<StatusService>();
+                .AddHostedService<StatusService>()
+                .AddHostedService<BlavikenService>();
 
             })
             .UseConsoleLifetime();
