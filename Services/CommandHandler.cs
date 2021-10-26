@@ -181,6 +181,7 @@ namespace WinstonBot
                 }
             }
 
+            // Load commands
             foreach (TypeInfo typeInfo in assembly.DefinedTypes)
             {
                 var commandAttribute = typeInfo.GetCustomAttribute<CommandAttribute>();
@@ -211,6 +212,8 @@ namespace WinstonBot
                         throw new Exception($"ParentCommand for type {typeInfo.Name} must have either a Command or SubCommand attribute");
                     }
 
+                    CommandAttribute parentCommand = GetParentCommand(subCommandAttribute);
+
                     var subCommandInfo = new SubCommandInfo()
                     {
                         Name = subCommandAttribute.Name,
@@ -219,12 +222,25 @@ namespace WinstonBot
                         ParentCommandType = subCommandAttribute.ParentCommand,
                         Options = GetOptions(typeInfo),
                         Actions = GetActions(subCommandAttribute.Actions),
-                        HasDynamicSubCommands = subCommandAttribute.HasDynamicSubCommands
+                        HasDynamicSubCommands = subCommandAttribute.HasDynamicSubCommands,
+                        DefaultPermission = subCommandAttribute.DefaultPermissionOverride != null
+                            ? subCommandAttribute.DefaultPermissionOverride.Value
+                            : parentCommand.DefaultPermission
                     };
 
                     _subCommandEntries.Add(subCommandInfo);
                 }
             }
+        }
+
+        private CommandAttribute GetParentCommand(SubCommandAttribute subCommand)
+        {
+            CommandAttribute? parentCommand = subCommand.ParentCommand.GetCustomAttribute<CommandAttribute>();
+            if (parentCommand == null)
+            {
+                return GetParentCommand(subCommand.ParentCommand.GetCustomAttribute<SubCommandAttribute>());
+            }
+            return parentCommand;
         }
 
         private async Task InstallCommandsAsync()

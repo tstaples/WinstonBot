@@ -1,4 +1,6 @@
-﻿namespace WinstonBot.Attributes
+﻿using WinstonBot.Commands;
+
+namespace WinstonBot.Attributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
     public class SubCommandAttribute : Attribute
@@ -25,6 +27,11 @@
         public bool HasDynamicSubCommands { get; set; }
 
         /// <summary>
+        /// Overrides the inherited default permission.
+        /// </summary>
+        public DefaultPermission? DefaultPermissionOverride { get; set; }
+
+        /// <summary>
         /// The actions your command defines.
         /// Actions are responses to interactions such as a button press.
         /// </summary>
@@ -37,6 +44,7 @@
             ParentCommand = null;
             HasDynamicSubCommands = false;
             Actions = null;
+            DefaultPermissionOverride = null;
         }
 
         public SubCommandAttribute(string name, string description, Type parentCommand, Type[]? actions = null, bool dynamicSubcommands = false)
@@ -47,5 +55,16 @@
             Actions = actions;
             HasDynamicSubCommands = dynamicSubcommands;
         }
+
+        public SubCommandAttribute(string name, string description, Type parentCommand, DefaultPermission defaultPermissionOverride, Type[]? actions = null, bool dynamicSubcommands = false)
+        {
+            Name = name;
+            Description = description;
+            ParentCommand = parentCommand;
+            Actions = actions;
+            HasDynamicSubCommands = dynamicSubcommands;
+            DefaultPermissionOverride = defaultPermissionOverride;
+        }
+
     }
 }

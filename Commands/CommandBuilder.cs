@@ -45,6 +45,7 @@ namespace WinstonBot.Commands
             builder = new SlashCommandOptionBuilder()
                 .WithName(info.Name)
                 .WithDescription(info.Description)
+                .WithDefault(info.DefaultPermission == DefaultPermission.Everyone)
                 .WithType(type);
 
             foreach (SubCommandInfo subInfo in subCommands)
