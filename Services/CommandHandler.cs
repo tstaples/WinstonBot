@@ -10,6 +10,7 @@ using Discord.Addons.Hosting;
 using Microsoft.Extensions.Logging;
 using Discord.Addons.Hosting.Util;
 using Microsoft.Extensions.Hosting;
+using System.Text;
 
 namespace WinstonBot
 {
@@ -315,6 +316,9 @@ namespace WinstonBot
 
             // Translate the options to our own serializable version
             var options = BuildCommandDataOptions(slashCommand.Data.Options);
+
+            Logger.LogDebug($"{arg.User.Username}#{arg.User.Discriminator} initiated command {command.Name} {CommandOptionsToString(options)}");
+
             await ExecuteCommand(command, context, options, Logger, _services);
         }
 
@@ -531,6 +535,8 @@ namespace WinstonBot
                 }
             }
 
+            Logger.LogDebug($"{component.User.Username}#{component.User.Discriminator} initiated action {action.Name}");
+
             Task.Run(async () =>
             {
                 try
@@ -628,6 +634,29 @@ namespace WinstonBot
                 }
             }
             return new List<ulong>();
+        }
+
+        private string CommandOptionsToString(IEnumerable<CommandDataOption> options)
+        {
+            void OptionsToStringInternal(IEnumerable<CommandDataOption> opts, StringBuilder builder)
+            {
+                foreach (CommandDataOption op in opts)
+                {
+                    if (op.Type != ApplicationCommandOptionType.SubCommand && op.Type != ApplicationCommandOptionType.SubCommandGroup)
+                    {
+                        builder.Append($"{op.Name}:{op.Value} ");
+                    }
+                    else if (op.Options != null)
+                    {
+                        builder.Append($"{op.Name} ");
+                        OptionsToStringInternal(op.Options, builder);
+                    }
+                }
+            }
+
+            StringBuilder builder = new();
+            OptionsToStringInternal(options, builder);
+            return builder.ToString();
         }
     }
 }
