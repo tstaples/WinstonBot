@@ -34,6 +34,8 @@ namespace WinstonBot.Commands
 
             public override async Task HandleCommand(CommandContext context)
             {
+                // TODO: use semaphore
+                // TODO: don't allow running this on a completed team.
                 ulong messageId = 0;
                 if (!ulong.TryParse(TargetSignupMessageId, out messageId))
                 {
@@ -106,6 +108,8 @@ namespace WinstonBot.Commands
 
             public override async Task HandleCommand(CommandContext context)
             {
+                // TODO: use semaphore
+                // TODO: don't allow running this on a completed team.
                 ulong messageId = 0;
                 if (!ulong.TryParse(TargetSignupMessageId, out messageId))
                 {
@@ -201,6 +205,93 @@ namespace WinstonBot.Commands
                 context.ServiceProvider.GetRequiredService<AoDDatabase>().AddTeamToHistory(team);
 
                 await context.RespondAsync("Added team to history", ephemeral:true);
+            }
+        }
+
+        [SubCommand("set-role", "Sets a user as the selected role on a completed team..", typeof(PvMSignupCommands))]
+        internal class SetRole : CommandBase
+        {
+            [CommandOption("signup-message-id", "The id of the signup message to target")]
+            public string TargetSignupMessageId { get; set; }
+
+            [CommandOption("role", "The name of the role to set (case-insensitive)")]
+            public string RoleName { get; set; }
+
+            [CommandOption("user", "The user to set as this role. If empty we just clear the role.", required: false)]
+            public SocketGuildUser? UserToAdd { get; set; }
+
+            public SetRole(ILogger logger) : base(logger)
+            {
+            }
+
+            public override async Task HandleCommand(CommandContext context)
+            {
+                ulong messageId = 0;
+                if (!ulong.TryParse(TargetSignupMessageId, out messageId))
+                {
+                    throw new ArgumentNullException("Invalid message id");
+                }
+
+                // TODO: use semaphore
+                var channel = context.Guild.GetTextChannel(context.ChannelId);
+                var message = await channel.GetMessageAsync(messageId);
+                if (message == null)
+                {
+                    throw new ArgumentNullException($"Signup message doesn't exist: id = {messageId}");
+                }
+
+                bool success = false;
+                IEmbed embed = message.Embeds.First();
+                if (embed == null)
+                {
+                    throw new ArgumentNullException("$Target message is missing an embed.");
+                }
+
+                var builder = Utility.CreateBuilderForEmbed(embed);
+
+                Dictionary<string, ulong> team = builder.Fields.ToDictionary(ks => ks.Name, vs => Utility.GetUserIdFromMention((string)vs.Value));
+
+                string userToAddMention = UserToAdd != null ? UserToAdd.Mention : "None";
+                foreach (var field in builder.Fields)
+                {
+                    if (field.Name.ToLower() == RoleName.ToLower())
+                    {
+                        if (UserToAdd != null && team.ContainsValue(UserToAdd.Id))
+                        {
+                            await context.RespondAsync($"{UserToAdd.Mention} is already on the team.", ephemeral:true);
+                            return;
+                        }
+                        else
+                        {
+                            success = true;
+                            field.Value = userToAddMention;
+                            team[field.Name] = UserToAdd != null ? UserToAdd.Id : 0;
+                        }
+                        break;
+                    }
+                }
+
+                if (success)
+                {
+                    // TODO: we should store the DB row in the message or validate the team names so 
+                    var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
+                    aodDb.RemoveLastRowFromHistory();
+
+                    aodDb.AddTeamToHistory(team);
+
+                    await channel.ModifyMessageAsync(messageId, props =>
+                    {
+                        props.Embed = builder.Build();
+                    });
+
+                    Logger.LogInformation($"Set role {RoleName} with {userToAddMention}.");
+                    await context.RespondAsync($"Set role {RoleName} with {userToAddMention}.", ephemeral: true);
+                }
+                else
+                {
+                    Logger.LogInformation($"Didn't find role {RoleName} in any team.");
+                    await context.RespondAsync($"Didn't find role {RoleName} in any team.", ephemeral: true);
+                }
             }
         }
     }
