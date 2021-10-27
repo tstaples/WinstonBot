@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Discord.Addons.Hosting.Util;
 using Microsoft.Extensions.Hosting;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace WinstonBot
 {
@@ -70,6 +71,7 @@ namespace WinstonBot
         private static Dictionary<string, CommandInfo> _commandEntries = new();
         private static List<SubCommandInfo> _subCommandEntries = new();
         private static Dictionary<string, ActionInfo> _actionEntries = new();
+        private static HashSet<string> _allowedCommands = new();
 
         public static IReadOnlyDictionary<string, CommandInfo> CommandEntries => new ReadOnlyDictionary<string, CommandInfo>(_commandEntries);
         public static IReadOnlyCollection<SubCommandInfo> SubCommandEntries => new ReadOnlyCollection<SubCommandInfo>(_subCommandEntries);
@@ -92,12 +94,23 @@ namespace WinstonBot
                 : base($"Invalid option type {info.PropertyType} on property {info.Name} in {info.DeclaringType}") { }
         }
 
-        public CommandHandler(DiscordSocketClient client, ILogger<CommandHandler> logger, IServiceProvider services)
+        public CommandHandler(DiscordSocketClient client, ILogger<CommandHandler> logger, IServiceProvider services, IConfiguration configuration)
             : base(client, logger)
         {
             logger.LogInformation($"Running WinstonBot Version: {Assembly.GetEntryAssembly().GetName().Version}");
 
             _services = services;
+
+            // Optional config option to only register certain commands. This avoid polluting the slash command table
+            // with all commands when we're only testing certain ones.
+            var allowedCommands = configuration.GetSection("allowed_commands");
+            if (allowedCommands != null)
+            {
+                foreach (var command in allowedCommands.GetChildren())
+                {
+                    _allowedCommands.Add(command.Value);
+                }
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -185,7 +198,7 @@ namespace WinstonBot
             foreach (TypeInfo typeInfo in assembly.DefinedTypes)
             {
                 var commandAttribute = typeInfo.GetCustomAttribute<CommandAttribute>();
-                if (commandAttribute != null)
+                if (commandAttribute != null && ShouldLoadCommand(commandAttribute.Name))
                 {
                     var commandInfo = new CommandInfo()
                     {
@@ -231,6 +244,11 @@ namespace WinstonBot
                     _subCommandEntries.Add(subCommandInfo);
                 }
             }
+        }
+
+        private bool ShouldLoadCommand(string name)
+        {
+            return !_allowedCommands.Any() || _allowedCommands.Contains(name);
         }
 
         private CommandAttribute GetParentCommand(SubCommandAttribute subCommand)

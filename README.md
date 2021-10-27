@@ -23,6 +23,13 @@ Example launch settings:
 }
 ```
 
+If you're only testing a particular command you can add it to the allow list in your appsettings.Development.json so only it gets registered. This is suggested to avoid polluting the slash command table with test versions of all the commands.
+```
+  "allowed_commands": [
+    "host-pvm-signup"
+  ]
+  ```
+
 ## Adding a Command
 1. Under the Commands folder add a new source file for your command.
 2. Inherit from CommandBase
