@@ -53,7 +53,7 @@ namespace WinstonBot.Commands
                     msgProps.Embed = Utility.CreateBuilderForEmbed(originalMessage.Embeds.First())
                         .WithFooter(new Discord.EmbedFooterBuilder())
                         .Build();
-                    msgProps.Components = HostHelpers.BuildEditButton(BossIndex, false);
+                    msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, false);
                 }
             });
 

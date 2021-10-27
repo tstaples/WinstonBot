@@ -14,6 +14,9 @@ namespace WinstonBot.Commands
         [ActionParam]
         public long BossIndex { get; set; }
 
+        // TODO: have buttons for 1,2 etc teams.
+        public long NumberOfTeams { get; set; } = 1;
+
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public async Task HandleAction(ActionContext actionContext)
@@ -44,9 +47,7 @@ namespace WinstonBot.Commands
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds);
-                msgProps.Components = new ComponentBuilder()
-                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger)
-                    .Build();
+                msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex);
             });
 
             context.EditFinishedForMessage(context.OriginalMessageData.MessageId);

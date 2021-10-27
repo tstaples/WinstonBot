@@ -213,10 +213,11 @@ namespace WinstonBot.Commands
             return builder.Build();
         }
 
-        public static MessageComponent BuildEditButton(long bossIndex, bool disabled = false)
+        public static MessageComponent BuildFinalTeamComponents(long bossIndex, bool disabled = false)
         {
             return new ComponentBuilder()
                 .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{bossIndex}", ButtonStyle.Danger, disabled: disabled)
+                .WithButton("Revert To Signup", $"{RevertToSignupAction.ActionName}_{bossIndex}", ButtonStyle.Danger, disabled: disabled)
                 .Build();
         }
 
