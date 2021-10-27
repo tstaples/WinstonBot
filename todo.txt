@@ -1,4 +1,6 @@
-﻿Multi-team;
+﻿- add logging support to actions.
+
+Multi-team;
 - read dates when looking at history so we can support multiple teams
 - store a guid for each history row (and store it in the message) so we can delete more accurately.
 - each team should be a separate message so the pvm-signup commands still work.

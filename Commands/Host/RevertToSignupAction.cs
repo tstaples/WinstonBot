@@ -17,11 +17,19 @@ namespace WinstonBot.Commands
         public async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
+
+            var currentEmbed = context.Message.Embeds.First();
+            if (currentEmbed == null)
+            {
+                throw new ArgumentNullException("Message is missing the embed");
+            }
+
             ReadOnlyCollection<ulong> ids;
             if (!context.OriginalSignupsForMessage.TryGetValue(context.Message.Id, out ids))
             {
-                await context.RespondAsync($"Failed to get original signups for message.");
-                return;
+                // TODO: log
+                ids = new ReadOnlyCollection<ulong>(HostHelpers.ParseNamesToRoleIdMap(currentEmbed).Values.ToList());
+                await context.Channel.SendMessageAsync($"{context.User.Mention} Couldn't retrieve original signups for {context.Message.Id}: just using who was selected.");
             }
 
             var guild = ((SocketGuildChannel)context.Channel).Guild;
