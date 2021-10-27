@@ -35,7 +35,6 @@ namespace WinstonBot.Commands
             public override async Task HandleCommand(CommandContext context)
             {
                 // TODO: use semaphore
-                // TODO: don't allow running this on a completed team.
                 ulong messageId = 0;
                 if (!ulong.TryParse(TargetSignupMessageId, out messageId))
                 {
@@ -49,6 +48,13 @@ namespace WinstonBot.Commands
                 if (!message.Embeds.Any())
                 {
                     await context.RespondAsync("Message is missing the embed. Please re-create the host message (and don't delete the embed this time)", ephemeral: true);
+                    return;
+                }
+
+                var currentEmbed = message.Embeds.First();
+                if (currentEmbed.Fields.Any())
+                {
+                    await context.RespondAsync($"Cannot add a user to a completed team. User pvm-signup set-role to modify after a team has been completed.", ephemeral: true);
                     return;
                 }
 
@@ -66,8 +72,6 @@ namespace WinstonBot.Commands
                         return;
                     }
                 }
-
-                var currentEmbed = message.Embeds.First();
 
                 var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
                 var ids = HostHelpers.ParseNamesToIdList(names);
@@ -126,6 +130,12 @@ namespace WinstonBot.Commands
                 }
 
                 var currentEmbed = message.Embeds.First();
+                if (currentEmbed.Fields.Any())
+                {
+                    await context.RespondAsync($"Cannot add a user to a completed team. User pvm-signup set-role to modify after a team has been completed.", ephemeral: true);
+                    return;
+                }
+
                 var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
                 var ids = HostHelpers.ParseNamesToIdList(names);
                 if (!ids.Contains(User.Id))
