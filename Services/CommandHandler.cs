@@ -58,9 +58,9 @@ namespace WinstonBot
     public class CommandDataOption
     {
         public string Name { get; set; }
-        public object Value { get; set;  }
+        public object Value { get; set; }
         public ApplicationCommandOptionType Type { get; set; }
-        public List<CommandDataOption>? Options { get;set; }
+        public List<CommandDataOption>? Options { get; set; }
     }
 
     public class CommandHandler : DiscordClientService
@@ -404,7 +404,13 @@ namespace WinstonBot
             }
             catch (Exception ex)
             {
-                await context.RespondAsync($"A command threw an exception. Tell Catman: ```{ex}```", ephemeral: true);
+                EmbedBuilder builder = new();
+                builder.WithTitle("A command threw an exception. Tell Catman: ")
+                    .WithDescription($"```{ex}```")
+                    .WithImageUrl("https://images-ext-2.discordapp.net/external/I0FROsQesBipYVjLKEyGYrwVJgeTnqR5_yr3jT2Z0Fw/https/media.discordapp.net/attachments/892631133219590174/902676707088146523/2e7175697eab40b392acf06d02002004cat-with-loading-sign-on-head.jpg");
+                Embed embed = builder.Build();
+
+                await context.RespondAsync(embed: embed, ephemeral: true);
             }
         }
 
