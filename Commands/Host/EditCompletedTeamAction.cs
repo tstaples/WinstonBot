@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
@@ -9,7 +10,7 @@ using WinstonBot.Services;
 namespace WinstonBot.Commands
 {
     [Action("pvm-edit-team")]
-    internal class EditCompletedTeamAction : IAction
+    internal class EditCompletedTeamAction : ActionBase
     {
         public static string ActionName = "pvm-edit-team";
 
@@ -18,7 +19,11 @@ namespace WinstonBot.Commands
 
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
-        public async Task HandleAction(ActionContext actionContext)
+        public EditCompletedTeamAction(ILogger logger) : base(logger)
+        {
+        }
+
+        public override async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
 
@@ -52,7 +57,7 @@ namespace WinstonBot.Commands
             }
             else
             {
-                Console.WriteLine($"[EditCompletedTeamAction] Failed to find message data for {context.Message.Id}. Cannot retrieve original names." +
+                Logger.LogWarning($"[EditCompletedTeamAction] Failed to find message data for {context.Message.Id}. Cannot retrieve original names." +
                     $"Updating list with currently selected names.");
 
                 context.OriginalSignupsForMessage.TryAdd(context.Message.Id, new ReadOnlyCollection<ulong>(selectedIds.Values.ToArray()));

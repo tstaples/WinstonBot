@@ -1,10 +1,11 @@
 ﻿using Discord;
+using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
-    internal abstract class AddOrRemoveUserFromTeamBase : IAction
+    internal abstract class AddOrRemoveUserFromTeamBase : ActionBase
     {
         [ActionParam]
         public long BossIndex { get; set; }
@@ -14,7 +15,11 @@ namespace WinstonBot.Commands
 
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
-        public async Task HandleAction(ActionContext actionContext)
+        public AddOrRemoveUserFromTeamBase(ILogger logger) : base(logger)
+        {
+        }
+
+        public override async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
             if (context.OriginalMessageData == null || !context.IsMessageDataValid)
@@ -29,7 +34,7 @@ namespace WinstonBot.Commands
             if (!CanRunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds.Values))
             {
                 // TODO: get reason from function
-                await context.RespondAsync("You cannot do that you dumb motherfuck", ephemeral:true);
+                await context.RespondAsync("You cannot do that.", ephemeral:true);
                 return;
             }
 
@@ -69,6 +74,10 @@ namespace WinstonBot.Commands
     {
         public static string ActionName = "remove-user-from-team";
 
+        public RemoveUserFromTeamAction(ILogger logger) : base(logger)
+        {
+        }
+
         protected override bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users)
         {
             return users.Contains(userId);
@@ -76,7 +85,7 @@ namespace WinstonBot.Commands
 
         protected override void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users)
         {
-            Console.WriteLine($"Removing {userId} from the team");
+            Logger.LogDebug($"Removing {userId} from the team");
             var field = fields.Where(field => Utility.GetUserIdFromMention(field.Value) == userId).First();
             users[field.Name] = 0;
         }
@@ -87,6 +96,10 @@ namespace WinstonBot.Commands
     {
         public static string ActionName = "add-user-to-team";
 
+        public AddUserToTeamAction(ILogger logger) : base(logger)
+        {
+        }
+
         protected override bool CanRunActionForUser(ulong userId, IEnumerable<EmbedField> fields, IEnumerable<ulong> users)
         {
             var emptyFields = fields.Where(field => field.Value == "None");
@@ -96,7 +109,7 @@ namespace WinstonBot.Commands
 
         protected override void RunActionForUser(ulong userId, IEnumerable<EmbedField> fields, Dictionary<string, ulong> users)
         {
-            Console.WriteLine($"Adding {userId} to the team");
+            Logger.LogDebug($"Adding {userId} to the team");
             var firstEmpty = fields.Where(field => field.Value == "None").First();
             users[firstEmpty.Name] = userId;
         }

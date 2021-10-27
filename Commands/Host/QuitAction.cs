@@ -1,16 +1,21 @@
-﻿using WinstonBot.Attributes;
+﻿using Microsoft.Extensions.Logging;
+using WinstonBot.Attributes;
 
 namespace WinstonBot.Commands
 {
     [Action("pvm-quit-signup")]
-    internal class QuitAction : IAction
+    internal class QuitAction : ActionBase
     {
         public static string ActionName = "pvm-quit-signup";
 
         [ActionParam]
         public long BossIndex { get; set; }
 
-        public async Task HandleAction(ActionContext context)
+        public QuitAction(ILogger logger) : base(logger)
+        {
+        }
+
+        public override async Task HandleAction(ActionContext context)
         {
             // Re-grab the message as it may have been modified by a concurrent action.
             var message = await context.Channel.GetMessageAsync(context.Message.Id);
@@ -25,12 +30,12 @@ namespace WinstonBot.Commands
             var ids = HostHelpers.ParseNamesToIdList(names);
             if (!ids.Contains(context.User.Id))
             {
-                Console.WriteLine($"{context.User.Mention} isn't signed up: ignoring.");
+                Logger.LogDebug($"{context.User.Mention} {context.Message.Id} isn't signed up: ignoring.");
                 await context.RespondAsync("You're not signed up.", ephemeral: true);
                 return;
             }
 
-            Console.WriteLine($"{context.User.Mention} has quit!");
+            Logger.LogInformation($"{context.User.Mention} has quit {context.Message.Id}!");
             var index = ids.IndexOf(context.User.Id);
             names.RemoveAt(index);
 

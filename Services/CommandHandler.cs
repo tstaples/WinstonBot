@@ -380,12 +380,12 @@ namespace WinstonBot
                 commandInfo = subCommandResult.Value.Key;
                 dataOptions = subCommandResult.Value.Value;
 
-                var commandLogger = services.GetService<ILoggerFactory>().CreateLogger(commandInfo.Type);
+                var commandLogger = services.GetRequiredService<ILoggerFactory>().CreateLogger(commandInfo.Type);
                 commandInstance = Activator.CreateInstance(commandInfo.Type, new object[] { commandLogger }) as CommandBase;
             }
             else
             {
-                var commandLogger = services.GetService<ILoggerFactory>().CreateLogger(command.Type);
+                var commandLogger = services.GetRequiredService<ILoggerFactory>().CreateLogger(command.Type);
                 commandInstance = Activator.CreateInstance(command.Type, new object[] { commandLogger }) as CommandBase;
             }
 
@@ -478,8 +478,10 @@ namespace WinstonBot
                     return;
                 }
             }
+            
+            var actionLogger = _services.GetRequiredService<ILoggerFactory>().CreateLogger(action.Type);
 
-            IAction actionInstance = Activator.CreateInstance(action.Type) as IAction;
+            ActionBase? actionInstance = Activator.CreateInstance(action.Type, new object[] { actionLogger }) as ActionBase;
             if (actionInstance == null)
             {
                 throw new Exception($"Failed to construct action {action.Type}");

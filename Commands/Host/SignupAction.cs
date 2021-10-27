@@ -3,11 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using WinstonBot.Services;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands
 {
     [Action("pvm-team-signup")]
-    internal class SignupAction : IAction
+    internal class SignupAction : ActionBase
     {
         public static string ActionName = "pvm-team-signup";
 
@@ -16,7 +17,11 @@ namespace WinstonBot.Commands
 
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
-        public async Task HandleAction(ActionContext context)
+        public SignupAction(ILogger logger) : base(logger)
+        {
+        }
+
+        public override async Task HandleAction(ActionContext context)
         {
             // Re-grab the message as it may have been modified by a concurrent action.
             var message = await context.Channel.GetMessageAsync(context.Message.Id);
@@ -46,12 +51,12 @@ namespace WinstonBot.Commands
             var ids = HostHelpers.ParseNamesToIdList(names);
             if (ids.Contains(context.User.Id))
             {
-                Console.WriteLine($"{context.User.Mention} is already signed up: ignoring.");
+                Logger.LogDebug($"{context.User.Mention} {context.Message.Id} is already signed up: ignoring.");
                 await context.RespondAsync("You're already signed up.", ephemeral: true);
                 return;
             }
 
-            Console.WriteLine($"{context.User.Mention} has signed up!");
+            Logger.LogInformation($"{context.User.Mention} has signed up for {context.Message.Id}!");
             names.Add(context.User.Mention);
 
             context.UpdateAsync(msgProps =>

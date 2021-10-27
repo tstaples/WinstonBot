@@ -62,7 +62,6 @@ namespace WinstonBot.Commands
                     var role = (AoDDatabase.Roles)result[i];
                     int roleIndex = result[i];
                     userForRole[roleIndex] = user.Id;
-                    Console.WriteLine($"{user.Name} is doing role: {role}");
                 }
             }
 

@@ -37,11 +37,13 @@ namespace WinstonBot.Services
     {
         private Config _config;
         private string _configPath;
+        private ILogger<ConfigService> _logger;
 
         public Config Configuration { get => _config; }
 
-        public ConfigService(ILogger<BackgroundService> logger, IConfiguration configuration)
+        public ConfigService(ILogger<ConfigService> logger, IConfiguration configuration)
         {
+            _logger = logger;
             _configPath = configuration["guild_config_path"];
             if (_configPath == null) throw new ArgumentNullException("Failed to get guild_config_path from the config");
 
@@ -54,7 +56,7 @@ namespace WinstonBot.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Failed to read config file: " + ex.Message);
+                    logger.LogError("Failed to read config file: " + ex.Message);
                 }
             }
             else
@@ -68,7 +70,7 @@ namespace WinstonBot.Services
             _config = newConfig;
             string value = JsonConvert.SerializeObject(_config, Formatting.Indented);
             File.WriteAllText(_configPath, value);
-            Console.WriteLine("Updated config file");
+            _logger.LogInformation("Updated config file");
         }
 
         //protected override Task ExecuteAsync(CancellationToken stoppingToken)

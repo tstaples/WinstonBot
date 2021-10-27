@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
 using WinstonBot.Services;
@@ -7,7 +8,7 @@ using WinstonBot.Services;
 namespace WinstonBot.Commands
 {
     [Action("pvm-confirm-team")]
-    internal class ConfirmTeamAction : IAction
+    internal class ConfirmTeamAction : ActionBase
     {
         public static string ActionName = "pvm-confirm-team";
 
@@ -19,7 +20,11 @@ namespace WinstonBot.Commands
 
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
-        public async Task HandleAction(ActionContext actionContext)
+        public ConfirmTeamAction(ILogger logger) : base(logger)
+        {
+        }
+
+        public override async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
             if (context.OriginalMessageData == null || !context.IsMessageDataValid)

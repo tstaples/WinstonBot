@@ -1,19 +1,25 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
 using WinstonBot.Services;
 
 namespace WinstonBot.Commands
 {
     [Action("pvm-cancel-team-confirmation")]
-    internal class CancelTeamConfirmationAction : IAction
+    internal class CancelTeamConfirmationAction : ActionBase
     {
         public static string ActionName = "pvm-cancel-team-confirmation";
+
         public string Name => ActionName;
 
         [ActionParam]
         public long BossIndex { get; set; }
 
-        public async Task HandleAction(ActionContext actionContext)
+        public CancelTeamConfirmationAction(ILogger logger) : base(logger)
+        {
+        }
+
+        public override async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
             if (context.OriginalMessageData == null || !context.IsMessageDataValid)

@@ -140,7 +140,7 @@ namespace WinstonBot.Commands
                 var ids = HostHelpers.ParseNamesToIdList(names);
                 if (!ids.Contains(User.Id))
                 {
-                    Console.WriteLine($"{User.Mention} isn't signed up: ignoring.");
+                    Logger.LogDebug($"{User.Mention} isn't signed up: ignoring.");
                     await context.RespondAsync($"{User.Mention} isn't signed up.", ephemeral: true);
                     return;
                 }

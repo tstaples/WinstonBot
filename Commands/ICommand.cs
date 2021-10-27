@@ -46,4 +46,16 @@ namespace WinstonBot.Commands
             return new ActionContext(client, arg, services, owningCommand);
         }
     }
+
+    public abstract class ActionBase : IAction
+    {
+        protected ILogger Logger { get; }
+
+        public ActionBase(ILogger logger)
+        {
+            Logger = logger;
+        }
+
+        public abstract Task HandleAction(ActionContext context);
+    }
 }

@@ -5,11 +5,12 @@ using WinstonBot.Attributes;
 using WinstonBot.Data;
 using WinstonBot.Services;
 using WinstonBot.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace WinstonBot.Commands
 {
     [Action("pvm-complete-team")]
-    internal class CompleteTeamAction : IAction
+    internal class CompleteTeamAction : ActionBase
     {
         public static string ActionName = "pvm-complete-team";
 
@@ -18,7 +19,11 @@ namespace WinstonBot.Commands
 
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
-        public async Task HandleAction(ActionContext actionContext)
+        public CompleteTeamAction(ILogger logger) : base(logger)
+        {
+        }
+
+        public override async Task HandleAction(ActionContext actionContext)
         {
             var context = (HostActionContext)actionContext;
 
