@@ -227,8 +227,8 @@ namespace WinstonBot.Commands
                 .WithTitle($"{bossEntry.PrettyName}")
                 .WithDescription(String.Join(Environment.NewLine, names))
                 .WithThumbnailUrl(bossEntry.IconUrl)
-                .WithColor(bossEntry.EmbedColor)
-                .WithCurrentTimestamp(); // TODO: include event start timestamp
+                .WithColor(bossEntry.EmbedColor);
+                //.WithCurrentTimestamp(); // TODO: include event start timestamp
             if (editedByMention != null)
             {
                 builder.WithFooter($"Being edited by {editedByMention}");
