@@ -93,6 +93,7 @@ namespace WinstonBot.Services
         private struct HistoryRow
         {
             public DateTime Date;
+            public Guid Id;
             public ulong[] UsersForRoles;
         }
 
@@ -130,8 +131,8 @@ namespace WinstonBot.Services
         private const string UserSheetName = "Users";
         private const string HistorySheetName = "History";
         private const string UserDBRange = $"{UserSheetName}!A2:I";
-        private const string HistoryRange = $"{HistorySheetName}!A2:H";
-        private const string HistoryInsertRange = $"{HistorySheetName}!A2:H2";
+        private const string HistoryRange = $"{HistorySheetName}!A2:I";
+        private const string HistoryInsertRange = $"{HistorySheetName}!A2:I2";
         private const int UsersSheetId = 0;
         private const int HistorySheetId = 1447996968;
 
@@ -276,10 +277,13 @@ namespace WinstonBot.Services
             throw new UserNotFoundException(userId);
         }
 
-        public void AddTeamToHistory(Dictionary<string, ulong> team)
+        public Guid AddTeamToHistory(Dictionary<string, ulong> team)
         {
+            var guid = Guid.NewGuid();
+
             List<object> row = new();
             row.Add(DateTime.UtcNow.ToString("MM/dd/yyyy"));
+            row.Add(guid.ToString());
             foreach (string roleName in Enum.GetNames(typeof(Roles)))
             {
                 ulong id = 0;
@@ -325,6 +329,7 @@ namespace WinstonBot.Services
             {
                 BatchUpdateSpreadsheetResponse response = _sheetsService.Spreadsheets.BatchUpdate(r, spreadsheetId).Execute();
                 _logger.LogDebug($"Added team to history with tag: {response.ETag}");
+                return guid;
             }
             catch (Exception ex)
             {
@@ -332,15 +337,29 @@ namespace WinstonBot.Services
             }
         }
 
-        public void RemoveLastRowFromHistory()
+        public void RemoveRowFromHistory(Guid id)
         {
+            if (id == Guid.Empty)
+            {
+                _logger.LogError($"Invalid guid");
+                return;
+            }
+
+            var rows = GetHistoryRows(0);
+            int rowIndex = rows.FindIndex(row => row.Id == id);
+            if (rowIndex == -1)
+            {
+                _logger.LogWarning($"Couldn't remove history row for id {id} - couldn't find matching row.");
+                return;
+            }
+
             DeleteDimensionRequest deleteRow = new DeleteDimensionRequest();
             deleteRow.Range = new DimensionRange()
             {
                 SheetId = HistorySheetId,
                 Dimension = "ROWS",
-                StartIndex = 1,
-                EndIndex = 2
+                StartIndex = rowIndex + 1,
+                EndIndex = rowIndex + 2
             };
 
             BatchUpdateSpreadsheetRequest request = new BatchUpdateSpreadsheetRequest()
@@ -354,13 +373,43 @@ namespace WinstonBot.Services
             try
             {
                 _sheetsService.Spreadsheets.BatchUpdate(request, spreadsheetId).Execute();
-                _logger.LogDebug($"Deleted row");
+                _logger.LogDebug($"Deleted row {rowIndex + 2} from history");
             }
             catch (Exception ex)
             {
                 throw new DBOperationFailedException(ex.Message);
             }
         }
+
+        //public void RemoveLastRowFromHistory()
+        //{
+        //    DeleteDimensionRequest deleteRow = new DeleteDimensionRequest();
+        //    deleteRow.Range = new DimensionRange()
+        //    {
+        //        SheetId = HistorySheetId,
+        //        Dimension = "ROWS",
+        //        StartIndex = 1,
+        //        EndIndex = 2
+        //    };
+
+        //    BatchUpdateSpreadsheetRequest request = new BatchUpdateSpreadsheetRequest()
+        //    {
+        //        Requests = new List<Request>
+        //        {
+        //            new Request{ DeleteDimension = deleteRow },
+        //        }
+        //    };
+
+        //    try
+        //    {
+        //        _sheetsService.Spreadsheets.BatchUpdate(request, spreadsheetId).Execute();
+        //        _logger.LogDebug($"Deleted row");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new DBOperationFailedException(ex.Message);
+        //    }
+        //}
 
         public void RefreshDB()
         {
@@ -437,6 +486,11 @@ namespace WinstonBot.Services
             var rows = GetHistoryRows(numDays);
             foreach (HistoryRow row in rows)
             {
+                if (!IsHistoryRowValid(row))
+                {
+                    continue;
+                }
+
                 for (int i = 0; i < row.UsersForRoles.Length; ++i)
                 {
                     var id = row.UsersForRoles[i];
@@ -451,7 +505,7 @@ namespace WinstonBot.Services
         private List<HistoryRow> GetHistoryRows(int numRows)
         {
             string rowRange = numRows > 0 ? $"{numRows + 1}" : "";
-            String range = $"History!A2:H{rowRange}";
+            String range = $"{HistoryRange}{rowRange}";
             SpreadsheetsResource.ValuesResource.GetRequest request =
                     _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
 
@@ -467,12 +521,23 @@ namespace WinstonBot.Services
             foreach (var row in values)
             {
                 var entry = new HistoryRow();
-                entry.Date = DateTime.Parse((string)row[0]);
+                if (row.Count == 0)
+                {
+                    // Skip empty rows
+                    rows.Add(entry);
+                    continue;
+                }
+
+                DateTime.TryParse(row[0] as string, out entry.Date);
+                Guid.TryParse(row[1] as string, out entry.Id);
                 entry.UsersForRoles = new ulong[NumRoles];
+
+                int roleStartOffset = 2;
                 for (int i = 0; i < NumRoles; i++)
                 {
-                    int columnIndex = i + 1;
-                    if (!ulong.TryParse((string)row[columnIndex], out entry.UsersForRoles[i]))
+                    int columnIndex = i + roleStartOffset;
+                    if (columnIndex >= row.Count ||
+                        !ulong.TryParse((string)row[columnIndex], out entry.UsersForRoles[i]))
                     {
                         entry.UsersForRoles[i] = 0;
                     }
@@ -506,6 +571,11 @@ namespace WinstonBot.Services
                 }
             }
             return ExperienceType.Learner;
+        }
+
+        private static bool IsHistoryRowValid(HistoryRow row)
+        {
+            return row.UsersForRoles != null;
         }
     }
 }

@@ -112,12 +112,13 @@ namespace WinstonBot.Commands
             SocketGuild guild,
             string finalizedByMention,
             BossData.Entry bossEntry,
-            Dictionary<string, ulong> selectedNames)
+            Dictionary<string, ulong> selectedNames,
+            Guid historyId)
         {
             var builder = new EmbedBuilder()
                 .WithTitle($"Selected Team for {bossEntry.PrettyName}")
-                .WithDescription("__Suggested__ Roles based on fancy math and attendance.")
-                .WithFooter($"Team Finalized by {finalizedByMention}")
+                .WithDescription("__Suggested__ Roles based on \"fancy\" math and attendance.")
+                .WithFooter($"Finalized by {finalizedByMention} | {historyId}")
                 .WithColor(bossEntry.EmbedColor)
                 .WithThumbnailUrl(bossEntry.IconUrl);
 
@@ -235,6 +236,29 @@ namespace WinstonBot.Commands
                 builder.WithFooter($"Being edited by {editedByMention}");
             }
             return builder.Build();
+        }
+
+        public static Guid ParseHistoryIdFromFooter(string text)
+        {
+            var parts = text.Split('|');
+            if (parts.Length == 2)
+            {
+                Guid outGuid;
+                Guid.TryParse(parts[1], out outGuid);
+                return outGuid;
+            }
+            return Guid.Empty;
+        }
+
+        public static string UpdateHistoryIdInFooter(string text, Guid historyId)
+        {
+            var footerTextParts = text.Split('|');
+            if (footerTextParts.Length > 0)
+            {
+                string footerText = $"{footerTextParts[0]} | {historyId}";
+                return footerText;
+            }
+            return $" | {historyId}";
         }
     }
 }

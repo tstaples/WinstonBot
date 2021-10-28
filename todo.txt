@@ -1,11 +1,9 @@
-﻿- add logging support to actions.
-
-Multi-team;
-- read dates when looking at history so we can support multiple teams
+﻿Multi-team;
 - store a guid for each history row (and store it in the message) so we can delete more accurately.
 - each team should be a separate message so the pvm-signup commands still work.
 - when removing a history row, pass in the team and validate. Or add an id column to the row and store that in the message.
 - store signed up users in db so we don't have to worry about the bot restarting
+- ghost ping selected users in the channel so they can see the team.
 
 - button to preview the selected team
 - option for schedule to clear channel first (except pinned)
@@ -47,3 +45,5 @@ Done:
 - test multiple people hitting buttons at once
 - only register certain commands that i'm testing when running in debug mode 
 - button to revert the completed team back to a signup so we can add/remove people and re-calculate
+- add logging support to actions.
+- read dates when looking at history so we can support multiple teams

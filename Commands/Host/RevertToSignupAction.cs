@@ -37,12 +37,14 @@ namespace WinstonBot.Commands
                 await context.Channel.SendMessageAsync($"{context.User.Mention} Couldn't retrieve original signups for {context.Message.Id}: just using who was selected.");
             }
 
+            Guid historyId = HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text);
+
             var guild = ((SocketGuildChannel)context.Channel).Guild;
             var names = Utility.ConvertUserIdListToMentions(guild, ids);
 
             // TODO: make this general for any boss signup
             var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-            aodDb.RemoveLastRowFromHistory();
+            aodDb.RemoveRowFromHistory(historyId);
 
             await context.Channel.ModifyMessageAsync(context.Message.Id, msgProps =>
             {

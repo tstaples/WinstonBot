@@ -64,6 +64,8 @@ namespace WinstonBot.Commands
                 allIds = selectedIds.Values.ToList();
             }
 
+            Guid historyId = HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text);
+
             List<ulong> unselectedIds = allIds
                 .Where(id => !selectedIds.ContainsValue(id))
                 .ToList();
@@ -88,7 +90,7 @@ namespace WinstonBot.Commands
 
             // TODO: make this general for any boss signup
             var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-            aodDb.RemoveLastRowFromHistory();
+            aodDb.RemoveRowFromHistory(historyId);
 
             // TODO: do this via context instead?
             //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);

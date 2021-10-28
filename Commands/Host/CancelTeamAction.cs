@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
+using WinstonBot.Data;
 using WinstonBot.Services;
 
 namespace WinstonBot.Commands
@@ -38,12 +39,13 @@ namespace WinstonBot.Commands
             var names = HostHelpers.ParseNamesToList(originalMessage.Embeds.First().Description);
 
             // re-add the team to the history
+            Guid historyId = Guid.Empty;
             if (context.OriginalMessageData.TeamConfirmedBefore)
             {
                 // TODO: make this general for any boss signup
                 Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(originalMessage.Embeds.First());
                 var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-                aodDb.AddTeamToHistory(selectedIds);
+                historyId = aodDb.AddTeamToHistory(selectedIds);
             }
 
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
@@ -56,9 +58,12 @@ namespace WinstonBot.Commands
                 else
                 {
                     // Don't need to change the embed since it hasn't been modified yet.
+                    var builder = Utility.CreateBuilderForEmbed(originalMessage.Embeds.First());
+                    string footerText = HostHelpers.UpdateHistoryIdInFooter(builder.Footer.Text, historyId);
                     msgProps.Embed = Utility.CreateBuilderForEmbed(originalMessage.Embeds.First())
-                        .WithFooter(new Discord.EmbedFooterBuilder())
+                        .WithFooter(footerText)
                         .Build();
+
                     msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, false);
                 }
             });
