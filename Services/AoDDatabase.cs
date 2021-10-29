@@ -369,36 +369,6 @@ namespace WinstonBot.Services
             }
         }
 
-        //public void RemoveLastRowFromHistory()
-        //{
-        //    DeleteDimensionRequest deleteRow = new DeleteDimensionRequest();
-        //    deleteRow.Range = new DimensionRange()
-        //    {
-        //        SheetId = HistorySheetId,
-        //        Dimension = "ROWS",
-        //        StartIndex = 1,
-        //        EndIndex = 2
-        //    };
-
-        //    BatchUpdateSpreadsheetRequest request = new BatchUpdateSpreadsheetRequest()
-        //    {
-        //        Requests = new List<Request>
-        //        {
-        //            new Request{ DeleteDimension = deleteRow },
-        //        }
-        //    };
-
-        //    try
-        //    {
-        //        _sheetsService.Spreadsheets.BatchUpdate(request, spreadsheetId).Execute();
-        //        _logger.LogDebug($"Deleted row");
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new DBOperationFailedException(ex.Message);
-        //    }
-        //}
-
         public void UpdateHistory(Guid id, Dictionary<string, ulong> team)
         {
             if (id == Guid.Empty)
@@ -419,7 +389,8 @@ namespace WinstonBot.Services
                 Values = new List<IList<object>>() { MakeHistoryRow(id, team) }
             };
 
-            string range = $"{HistoryRange}!A{rowIndex + 2}";
+            int convertedRowIndex = rowIndex + 2;
+            string range = $"{HistorySheetName}!A{convertedRowIndex}:I{convertedRowIndex}";
             SpreadsheetsResource.ValuesResource.UpdateRequest request =
                 _sheetsService.Spreadsheets.Values.Update(requestBody, spreadsheetId, range);
             request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
