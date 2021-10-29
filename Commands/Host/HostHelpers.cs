@@ -236,7 +236,8 @@ namespace WinstonBot.Commands
                 .WithTitle($"{bossEntry.PrettyName}")
                 .WithDescription(String.Join(Environment.NewLine, names))
                 .WithThumbnailUrl(bossEntry.IconUrl)
-                .WithColor(bossEntry.EmbedColor);
+                .WithColor(bossEntry.EmbedColor)
+                .WithFooter($"{names.Count()} Signed up.");
                 //.WithCurrentTimestamp(); // TODO: include event start timestamp
             if (editedByMention != null)
             {

@@ -65,7 +65,8 @@ namespace WinstonBot.Commands
             }).Wait();
 
             // Footed will say "finalized by X" if it's been completed before.
-            bool hasBeenConfirmedBefore = currentEmbed.Footer.HasValue;
+            bool hasBeenConfirmedBefore = currentEmbed.Footer.HasValue &&
+                HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text) != Guid.Empty;
 
             var replyMessage = await context.User.SendMessageAsync(
                 "Confirm or edit the team." +
