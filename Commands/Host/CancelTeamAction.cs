@@ -40,7 +40,7 @@ namespace WinstonBot.Commands
 
             var embed = originalMessage.Embeds.First();
             Dictionary<string, ulong> team = embed.Fields.ToDictionary(ks => ks.Name, vs => Utility.GetUserIdFromMention((string)vs.Value));
-            var historyId = HostHelpers.ParseHistoryIdFromFooter(embed.Footer.Value.Text);
+            var historyId = context.OriginalMessageData.HistoryId;
 
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
@@ -51,7 +51,7 @@ namespace WinstonBot.Commands
                 }
                 else
                 {
-                    msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossData.Entries[BossIndex], team, historyId);
+                    msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossData.Entries[BossIndex], team, historyId.Value);
                     msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, false);
                 }
             });

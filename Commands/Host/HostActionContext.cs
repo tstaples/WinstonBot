@@ -83,7 +83,7 @@ namespace WinstonBot.Commands
         public static HostMessageMetadata? ParseMetadata(DiscordSocketClient client, string text)
         {
             var footerParts = text.Split(' ');
-            if (footerParts.Length != 4)
+            if (footerParts.Length < 4)
             {
                 return null;
             }
