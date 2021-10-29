@@ -28,41 +28,47 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            var currentEmbed = context.Message.Embeds.First();
-
-            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
-            if (!CanRunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds.Values))
+            int teamIndex = 0;
+            HashSet<ulong> allSelectedIds = new();
+            List<Embed> embeds = new();
+            foreach (var currentEmbed in context.Message.Embeds)
             {
-                // TODO: get reason from function
-                await context.RespondAsync("You cannot do that.", ephemeral:true);
-                return;
-            }
+                Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
+                if (CanRunActionForUser(MentionToAdd, currentEmbed.Fields, allSelectedIds.Concat(selectedIds.Values)))
+                {
+                    if (!context.OriginalSignupsForMessage.ContainsKey(context.OriginalMessageData.MessageId))
+                    {
+                        await context.RespondAsync($"No user data could be found for message {context.OriginalMessageData.MessageId}.\n" +
+                            $"This may be because the bot restarted while you were editing.\n" +
+                            $"Please click 'Confirm Team' on the original message to try again.",
+                            ephemeral: true);
+                        return;
+                    }
 
-            if (!context.OriginalSignupsForMessage.ContainsKey(context.OriginalMessageData.MessageId))
-            {
-                await context.RespondAsync($"No user data could be found for message {context.OriginalMessageData.MessageId}.\n" +
-                    $"This may be because the bot restarted while you were editing.\n" +
-                    $"Please click 'Confirm Team' on the original message to try again.",
-                    ephemeral: true);
-                return;
-            }
+                    RunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds);
+                }
 
-            RunActionForUser(MentionToAdd, currentEmbed.Fields, selectedIds);
+                allSelectedIds = allSelectedIds.Concat(selectedIds.Values).ToHashSet();
+
+                embeds.Add(HostHelpers.BuildTeamSelectionEmbed(
+                        context.Guild,
+                        context.OriginalMessageData.ChannelId,
+                        context.OriginalMessageData.MessageId,
+                        context.OriginalMessageData.HistoryIds[teamIndex],
+                        context.OriginalMessageData.TeamConfirmedBefore,
+                        BossEntry,
+                        selectedIds));
+
+                ++teamIndex;
+            }
 
             var unselectedUserIds = context.OriginalSignupsForMessage[context.OriginalMessageData.MessageId]
-                .Where(id => !selectedIds.ContainsValue(id));
+                        .Where(id => !allSelectedIds.Contains(id));
 
             await context.UpdateAsync(msgProps =>
             {
-                msgProps.Embed = HostHelpers.BuildTeamSelectionEmbed(
-                    context.Guild,
-                    context.OriginalMessageData.ChannelId,
-                    context.OriginalMessageData.MessageId,
-                    context.OriginalMessageData.HistoryId,
-                    context.OriginalMessageData.TeamConfirmedBefore,
-                    BossEntry,
-                    selectedIds);
-                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, BossIndex, selectedIds, unselectedUserIds);
+                msgProps.Embeds = embeds.ToArray();
+                msgProps.Components = HostHelpers.BuildTeamSelectionComponent(context.Guild, BossIndex, allSelectedIds, unselectedUserIds);
             });
         }
 

@@ -12,7 +12,7 @@ namespace WinstonBot.Commands
     {
         public IServiceProvider ServiceProvider { get; set; }
 
-        public Dictionary<string, ulong> SelectTeam(List<ulong> inputNames)
+        public Dictionary<string, ulong> SelectTeam(IEnumerable<ulong> inputNames)
         {
             AoDDatabase db = ServiceProvider.GetRequiredService<AoDDatabase>();
 
@@ -72,6 +72,22 @@ namespace WinstonBot.Commands
             }
 
             return userForRoleMap;
+        }
+
+        public Dictionary<string, ulong>[] SelectTeams(IEnumerable<ulong> inputNames, int numTeams)
+        {
+            var team1 = SelectTeam(inputNames);
+            var unselectedids = inputNames.Where(id => !team1.ContainsValue(id));
+            var team2 = SelectTeam(unselectedids);
+
+            for (int i = 1; i < Enum.GetValues(typeof(AoDDatabase.Roles)).Length; i+= 2)
+            {
+                var role = (AoDDatabase.Roles)i;
+                var temp = team2[role.ToString()];
+                team2[role.ToString()] = team1[role.ToString()];
+                team1[role.ToString()] = temp;
+            }
+            return new Dictionary<string, ulong>[] { team1, team2 };
         }
 
         private double CalculateUserScoreForRole(AoDDatabase.UserQueryEntry user, AoDDatabase.Roles role, int numDaysToConsider)

@@ -41,15 +41,8 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            var currentEmbed = message.Embeds.First();
-            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
-            if (selectedIds.Count == 0)
-            {
-                await context.RespondAsync("Not enough people signed up.", ephemeral: true);
-                return;
-            }
-
             var guild = ((SocketGuildChannel)context.Message.Channel).Guild;
+
             var allIds = new List<ulong>();
             if (context.OriginalSignupsForMessage.ContainsKey(context.Message.Id))
             {
@@ -58,33 +51,58 @@ namespace WinstonBot.Commands
             else
             {
                 Logger.LogWarning($"[EditCompletedTeamAction] Failed to find message data for {context.Message.Id}. Cannot retrieve original names." +
-                    $"Updating list with currently selected names.");
-
-                context.OriginalSignupsForMessage.TryAdd(context.Message.Id, new ReadOnlyCollection<ulong>(selectedIds.Values.ToArray()));
-                allIds = selectedIds.Values.ToList();
+                           $"Updating list with currently selected names.");
             }
 
-            Guid historyId = HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text);
+            HashSet<ulong> allSelectedIds = new();
+            List<Embed> teamSelectionEmbeds = new();
+            List<Embed> originalEmbeds = new();
+            foreach (var currentEmbed in message.Embeds)
+            {
+                Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
+
+                // Re-build the full id list
+                if (!context.OriginalSignupsForMessage.ContainsKey(context.Message.Id))
+                {
+                    allIds = allIds.Concat(selectedIds.Values).ToList();
+                }
+
+                allSelectedIds = allSelectedIds.Concat(selectedIds.Values).ToHashSet();
+
+                Guid historyId = HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text);
+                teamSelectionEmbeds.Add(HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, historyId, true, BossEntry, selectedIds));
+
+                originalEmbeds.Add(
+                    Utility.CreateBuilderForEmbed(currentEmbed)
+                    .WithFooter($"Being edited by {context.User.Username}")
+                    .Build());
+            }
+
+            // If we weren't able to recover the original signups then populate them now with all the people we know about.
+            if (!context.OriginalSignupsForMessage.ContainsKey(context.Message.Id))
+            {
+                context.OriginalSignupsForMessage.TryAdd(context.Message.Id, new ReadOnlyCollection<ulong>(allIds.ToArray()));
+            }
 
             List<ulong> unselectedIds = allIds
-                .Where(id => !selectedIds.ContainsValue(id))
+                .Where(id => !allSelectedIds.Contains(id))
                 .ToList();
 
+            // Update original message to set the "Edited by" footer and disable the buttons.
             await context.Message.ModifyAsync(msgProps =>
             {
-                msgProps.Embed = Utility.CreateBuilderForEmbed(currentEmbed)
-                .WithFooter($"Being edited by {context.User.Username}")
-                .Build();
+                msgProps.Embeds = originalEmbeds.ToArray();
                 msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, disabled:true);
             });
 
+            // Send a DM with the team selection menu
             var replyMessage = await context.User.SendMessageAsync(
                 "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
                 "\nPress cancel to discard this edit.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, historyId, true, BossEntry, selectedIds),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedIds));
+                embeds: teamSelectionEmbeds.ToArray(),
+                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, allSelectedIds, unselectedIds));
 
             // TODO: do this via context instead?
             //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);

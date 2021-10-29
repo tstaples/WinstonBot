@@ -54,8 +54,22 @@ namespace WinstonBot.Commands
             var names = Utility.ConvertUserIdListToMentions(guild, ids);
 
             ITeamBuilder builder = HostHelpers.GetTeamBuilder(context.ServiceProvider, BossEntry);
-            Dictionary<string, ulong> roleUserMap = builder.SelectTeam(ids);
-            var unselectedids = ids.Where(id => !roleUserMap.ContainsValue(id));
+            var teams = builder.SelectTeams(ids, 2); // TEMP
+
+            bool InTeam(ulong id)
+            {
+                foreach (var team in teams)
+                {
+                    if (team.ContainsValue(id))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            var unselectedids = ids.Where(id => !InTeam(id));
+            var selectedIds = ids.Where(id => !unselectedids.Contains(id));
 
             context.Message.ModifyAsync(msgProps =>
             {
@@ -68,13 +82,19 @@ namespace WinstonBot.Commands
             bool hasBeenConfirmedBefore = currentEmbed.Footer.HasValue &&
                 HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text) != Guid.Empty;
 
+            var embeds = new List<Embed>();
+            foreach (var team in teams)
+            {
+                embeds.Add(HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, null, hasBeenConfirmedBefore, BossEntry, team));
+            }
+
             var replyMessage = await context.User.SendMessageAsync(
                 "Confirm or edit the team." +
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
                 "\nPress cancel to discard this edit.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, null, hasBeenConfirmedBefore, BossEntry, roleUserMap),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, roleUserMap, unselectedids));
+                embeds: embeds.ToArray(),
+                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedids));
 
             // TODO: do this via context instead?
             //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);

@@ -98,8 +98,8 @@ namespace WinstonBot.Commands
                 .WithDescription("Suggested Roles based on fancy math and attendance.")
                 .WithFooter(footerText)
                 .WithThumbnailUrl(bossEntry.IconUrl)
-                .WithColor(bossEntry.EmbedColor)
-                .WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
+                .WithColor(bossEntry.EmbedColor);
+                //.WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
 
             foreach ((string role, ulong id) in selectedNames)
             {
@@ -144,11 +144,11 @@ namespace WinstonBot.Commands
         public static MessageComponent BuildTeamSelectionComponent(
             SocketGuild guild,
             long bossIndex,
-            Dictionary<string, ulong> selectedNames,
+            IEnumerable<ulong> selectedNames,
             IEnumerable<ulong> unselectedNames)
         {
             var builder = new ComponentBuilder();
-            foreach ((string role, ulong id) in selectedNames)
+            foreach (ulong id in selectedNames)
             {
                 var user = guild.GetUser(id);
                 if (user == null)
@@ -165,7 +165,7 @@ namespace WinstonBot.Commands
             }
 
             // Ensure the add buttons are never on the same row as the remove buttons.
-            int numSelectedNames = selectedNames.Where(pair => pair.Value != 0).Count();
+            int numSelectedNames = selectedNames.Where(id => id != 0).Count();
             int currentRow = (int)Math.Ceiling((float)numSelectedNames / 5);
 
             foreach (var id in unselectedNames)

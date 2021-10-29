@@ -31,11 +31,7 @@ namespace WinstonBot.Commands
 
         public HostMessageMetadata? GetOriginalMessageData()
         {
-            if (Message.Embeds.Any() && Message.Embeds.First().Footer.HasValue)
-            {
-                return HostMessageMetadata.ParseMetadata(Client, Message.Embeds.First().Footer.Value.Text);
-            }
-            return null;
+            return HostMessageMetadata.ParseMetadata(Message.Embeds);
         }
 
         public async Task<IMessage?> GetOriginalMessage()
@@ -78,10 +74,18 @@ namespace WinstonBot.Commands
         public ulong ChannelId { get; set; }
         public ulong MessageId { get; set; }
         public bool TeamConfirmedBefore { get; set; }
-        public Guid? HistoryId { get; set; }
+        public Guid?[] HistoryIds { get; set; }
 
-        public static HostMessageMetadata? ParseMetadata(DiscordSocketClient client, string text)
+        public static HostMessageMetadata? ParseMetadata(IReadOnlyCollection<IEmbed> embeds)
         {
+            if (!embeds.Any() || !embeds.First().Footer.HasValue)
+            {
+                return null;
+            }
+
+            // all the data except the history ids is the same.
+            string text = embeds.First().Footer.Value.Text;
+
             var footerParts = text.Split(',');
             if (footerParts.Length < 4)
             {
@@ -94,11 +98,6 @@ namespace WinstonBot.Commands
                 var channelId = ulong.Parse(footerParts[1]);
                 var originalMessageId = ulong.Parse(footerParts[2]);
                 var confirmedBefore = bool.Parse(footerParts[3]);
-                Guid? historyId = null;
-                if (footerParts.Length > 4)
-                {
-                    historyId = Guid.Parse(footerParts[4]);
-                }
 
                 return new HostMessageMetadata()
                 {
@@ -106,13 +105,34 @@ namespace WinstonBot.Commands
                     ChannelId = channelId,
                     MessageId = originalMessageId,
                     TeamConfirmedBefore = confirmedBefore,
-                    HistoryId = historyId
+                    HistoryIds = ParseHistoryIds(embeds)
                 };
             }
             catch (Exception)
             {
                 return null;
             }
+        }
+
+        private static Guid?[] ParseHistoryIds(IReadOnlyCollection<IEmbed> embeds)
+        {
+            Guid?[] historyIds = new Guid?[2];
+            for (int i = 0; i < embeds.Count; ++i)
+            {
+                var embed = embeds.ElementAt(i);
+
+                string footerText = embed.Footer.Value.Text;
+                var footerParts = footerText.Split(',');
+
+                Guid? parsedId = null;
+                if (footerParts.Length > 4)
+                {
+                    parsedId = Guid.Parse(footerParts[4]);
+                }
+
+                historyIds[i] = parsedId;
+            }
+            return historyIds;
         }
     }
 }

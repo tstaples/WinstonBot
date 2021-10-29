@@ -15,9 +15,6 @@ namespace WinstonBot.Commands
         [ActionParam]
         public long BossIndex { get; set; }
 
-        // TODO: have buttons for 1,2 etc teams.
-        public long NumberOfTeams { get; set; } = 1;
-
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public ConfirmTeamAction(ILogger logger) : base(logger)
@@ -40,26 +37,34 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            var currentEmbed = context.Message.Embeds.First();
-            Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
+            int teamIndex = 0;
+            List<Embed> embeds = new();
+            foreach (var currentEmbed in context.Message.Embeds)
+            {
+                Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(currentEmbed);
 
-            // TODO: make this general for any boss signup
-            var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-            Guid? historyId = context.OriginalMessageData.HistoryId;
-            if (historyId == null)
-            {
-                historyId = aodDb.AddTeamToHistory(selectedIds);
-            }
-            else
-            {
-                aodDb.UpdateHistory(historyId.Value, selectedIds);
+                // TODO: make this general for any boss signup
+                var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
+                Guid? historyId = context.OriginalMessageData.HistoryIds[teamIndex];
+                if (historyId == null)
+                {
+                    historyId = aodDb.AddTeamToHistory(selectedIds);
+                }
+                else
+                {
+                    aodDb.UpdateHistory(historyId.Value, selectedIds);
+                }
+
+                embeds.Add(HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds, historyId.Value));
+
+                ++teamIndex;
             }
 
             // TODO: ping the people that are going.
             // Should that be a separate message or should we just not use an embed for this?
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
-                msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds, historyId.Value);
+                msgProps.Embeds = embeds.ToArray();
                 msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex);
             });
 

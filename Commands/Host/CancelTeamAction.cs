@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Discord;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
@@ -36,25 +37,41 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            var names = HostHelpers.ParseNamesToList(originalMessage.Embeds.First().Description);
-
-            var embed = originalMessage.Embeds.First();
-            Dictionary<string, ulong> team = embed.Fields.ToDictionary(ks => ks.Name, vs => Utility.GetUserIdFromMention((string)vs.Value));
-            var historyId = context.OriginalMessageData.HistoryId;
-
-            await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
+            if (!context.OriginalMessageData.TeamConfirmedBefore)
             {
-                if (!context.OriginalMessageData.TeamConfirmedBefore)
+                // Re-construct the original signup form
+                var names = HostHelpers.ParseNamesToList(originalMessage.Embeds.First().Description);
+
+                await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
                 {
                     msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
                     msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex);
-                }
-                else
+                });
+            }
+            else
+            {
+                // Restore the original team embeds
+                List<Embed> embeds = new();
+                for (int teamIndex = 0; teamIndex < originalMessage.Embeds.Count; ++teamIndex)
                 {
-                    msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossData.Entries[BossIndex], team, historyId.Value);
-                    msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, false);
+                    var embed = originalMessage.Embeds.ElementAt(teamIndex);
+                    Dictionary<string, ulong> team = embed.Fields.ToDictionary(field => field.Name, field => Utility.GetUserIdFromMention(field.Value));
+
+                    var historyId = context.OriginalMessageData.HistoryIds[teamIndex];
+                    if (historyId == null)
+                    {
+                        throw new ArgumentNullException($"Invalid history ID for team {teamIndex}");
+                    }
+
+                    embeds.Add(HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossData.Entries[BossIndex], team, historyId.Value));
                 }
-            });
+
+                await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
+                {
+                    msgProps.Embeds = embeds.ToArray();
+                    msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, disabled:false);
+                });
+            }
 
             context.EditFinishedForMessage(context.OriginalMessageData.MessageId);
 

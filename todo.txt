@@ -8,7 +8,6 @@
 - host subcommand to view stats about users in the DB
 
 - ping people selected for team
-- add counter for number of people signed up
 
 - add type reader support
 
@@ -47,3 +46,4 @@ Done:
 - read dates when looking at history so we can support multiple teams
 - store a guid for each history row (and store it in the message) so we can delete more accurately.
 - when removing a history row, pass in the team and validate. Or add an id column to the row and store that in the message.
+- add counter for number of people signed up

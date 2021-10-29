@@ -23,28 +23,40 @@ namespace WinstonBot.Commands
         {
             var context = (HostActionContext)actionContext;
 
-            var currentEmbed = context.Message.Embeds.First();
-            if (currentEmbed == null)
-            {
-                throw new ArgumentNullException("Message is missing the embed");
-            }
-
+            // Get all the ids that signed up. If we don't have them stored then read them from the embed.
             ReadOnlyCollection<ulong> ids;
             if (!context.OriginalSignupsForMessage.TryGetValue(context.Message.Id, out ids))
             {
-                Logger.LogWarning($"{context.User.Mention} Couldn't retrieve original signups for {context.Message.Id}: just using who was selected.");
-                ids = new ReadOnlyCollection<ulong>(HostHelpers.ParseNamesToRoleIdMap(currentEmbed).Values.ToList());
                 await context.Channel.SendMessageAsync($"{context.User.Mention} Couldn't retrieve original signups for {context.Message.Id}: just using who was selected.");
+
+                List<ulong> allIds = new();
+                foreach (var currentEmbed in context.Message.Embeds)
+                {
+                    allIds = allIds.Concat(HostHelpers.ParseNamesToRoleIdMap(currentEmbed).Values).ToList();
+                }
+
+                // Remove any invalid ids as they won't be included in the signup
+                allIds.RemoveAll(id => id == 0);
+                ids = new ReadOnlyCollection<ulong>(allIds);
             }
 
-            Guid historyId = HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text);
+            // Remove the teams from the history
+            foreach (var currentEmbed in context.Message.Embeds)
+            {
+                if (!currentEmbed.Footer.HasValue)
+                {
+                    throw new ArgumentNullException($"Expected valid footer for in message");
+                }
+
+                Guid historyId = HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text);
+
+                // TODO: make this general for any boss signup
+                var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
+                aodDb.RemoveRowFromHistory(historyId);
+            }
 
             var guild = ((SocketGuildChannel)context.Channel).Guild;
             var names = Utility.ConvertUserIdListToMentions(guild, ids);
-
-            // TODO: make this general for any boss signup
-            var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-            aodDb.RemoveRowFromHistory(historyId);
 
             await context.Channel.ModifyMessageAsync(context.Message.Id, msgProps =>
             {

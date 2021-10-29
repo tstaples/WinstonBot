@@ -13,6 +13,9 @@ namespace WinstonBot.Commands
     {
         public IServiceProvider ServiceProvider { get; set; }
 
-        public Dictionary<string, ulong> SelectTeam(List<ulong> inputNames);
+        public Dictionary<string, ulong> SelectTeam(IEnumerable<ulong> inputNames);
+
+        public Dictionary<string, ulong>[] SelectTeams(IEnumerable<ulong> inputNames, int numTeams);
+
     }
 }
