@@ -477,10 +477,13 @@ namespace WinstonBot.Services
         {
             Dictionary<ulong, UserHistoryEntry> entries = new();
 
-            var rows = GetHistoryRows(numDays);
+            // Multiply by 2 as there shouldn't be more than 2 teams per day
+            var date = DateTimeOffset.UtcNow.AddDays(-numDays);
+            var rows = GetHistoryRows(numDays * 2);
             foreach (HistoryRow row in rows)
             {
-                if (!IsHistoryRowValid(row))
+                // Ignore invalid or rows that are too old
+                if (!IsHistoryRowValid(row) || row.Date < date)
                 {
                     continue;
                 }
