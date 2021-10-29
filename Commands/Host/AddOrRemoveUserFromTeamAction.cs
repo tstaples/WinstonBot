@@ -56,6 +56,7 @@ namespace WinstonBot.Commands
                         context.OriginalMessageData.MessageId,
                         context.OriginalMessageData.HistoryIds[teamIndex],
                         context.OriginalMessageData.TeamConfirmedBefore,
+                        teamIndex,
                         BossEntry,
                         selectedIds));
 

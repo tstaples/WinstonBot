@@ -55,7 +55,7 @@ namespace WinstonBot.Commands
                     aodDb.UpdateHistory(historyId.Value, selectedIds);
                 }
 
-                embeds.Add(HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds, historyId.Value));
+                embeds.Add(HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, teamIndex, selectedIds, historyId.Value));
 
                 ++teamIndex;
             }

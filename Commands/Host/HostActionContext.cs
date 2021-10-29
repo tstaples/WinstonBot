@@ -116,7 +116,7 @@ namespace WinstonBot.Commands
 
         private static Guid?[] ParseHistoryIds(IReadOnlyCollection<IEmbed> embeds)
         {
-            Guid?[] historyIds = new Guid?[2];
+            Guid?[] historyIds = new Guid?[embeds.Count];
             for (int i = 0; i < embeds.Count; ++i)
             {
                 var embed = embeds.ElementAt(i);

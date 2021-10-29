@@ -63,7 +63,7 @@ namespace WinstonBot.Commands
                         throw new ArgumentNullException($"Invalid history ID for team {teamIndex}");
                     }
 
-                    embeds.Add(HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossData.Entries[BossIndex], team, historyId.Value));
+                    embeds.Add(HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossData.Entries[BossIndex], teamIndex, team, historyId.Value));
                 }
 
                 await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>

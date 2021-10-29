@@ -83,6 +83,7 @@ namespace WinstonBot.Commands
             ulong messageId,
             Guid? historyId,
             bool confirmedBefore,
+            int teamIndex,
             BossData.Entry bossEntry,
             Dictionary<string, ulong> selectedNames)
         {
@@ -94,7 +95,7 @@ namespace WinstonBot.Commands
             }
 
             var builder = new EmbedBuilder()
-                .WithTitle($"Pending Team for {bossEntry.PrettyName}")
+                .WithTitle($"Pending Team ({teamIndex + 1}) for {bossEntry.PrettyName}")
                 .WithDescription("Suggested Roles based on fancy math and attendance.")
                 .WithFooter(footerText)
                 .WithThumbnailUrl(bossEntry.IconUrl)
@@ -119,12 +120,13 @@ namespace WinstonBot.Commands
             SocketGuild guild,
             string finalizedByMention,
             BossData.Entry bossEntry,
+            int teamIndex,
             Dictionary<string, ulong> selectedNames,
             Guid historyId)
         {
             var builder = new EmbedBuilder()
-                .WithTitle($"Selected Team for {bossEntry.PrettyName}")
-                .WithDescription("__Suggested__ Roles based on \"fancy\" math and attendance.")
+                .WithTitle($"Team {teamIndex + 1} for {bossEntry.PrettyName}")
+                .WithDescription("__Suggested__ Roles based on \"fancy\" math and attendance. Feel free to swap roles within your team.")
                 .WithFooter($"Finalized by {finalizedByMention} | {historyId}")
                 .WithColor(bossEntry.EmbedColor)
                 .WithThumbnailUrl(bossEntry.IconUrl);

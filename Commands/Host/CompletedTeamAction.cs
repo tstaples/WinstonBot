@@ -86,9 +86,10 @@ namespace WinstonBot.Commands
                 HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text) != Guid.Empty;
 
             var embeds = new List<Embed>();
-            foreach (var team in teams)
+            for (int teamIndex = 0; teamIndex < teams.Length; ++teamIndex)
             {
-                embeds.Add(HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, null, hasBeenConfirmedBefore, BossEntry, team));
+                var team = teams[teamIndex];
+                embeds.Add(HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, null, hasBeenConfirmedBefore, teamIndex, BossEntry, team));
             }
 
             var replyMessage = await context.User.SendMessageAsync(

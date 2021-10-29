@@ -54,6 +54,7 @@ namespace WinstonBot.Commands
                            $"Updating list with currently selected names.");
             }
 
+            int teamIndex = 0;
             HashSet<ulong> allSelectedIds = new();
             List<Embed> teamSelectionEmbeds = new();
             List<Embed> originalEmbeds = new();
@@ -70,12 +71,14 @@ namespace WinstonBot.Commands
                 allSelectedIds = allSelectedIds.Concat(selectedIds.Values).ToHashSet();
 
                 Guid historyId = HostHelpers.ParseHistoryIdFromFooter(currentEmbed.Footer.Value.Text);
-                teamSelectionEmbeds.Add(HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, historyId, true, BossEntry, selectedIds));
+                teamSelectionEmbeds.Add(HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, historyId, confirmedBefore:true, teamIndex, BossEntry, selectedIds));
 
                 originalEmbeds.Add(
                     Utility.CreateBuilderForEmbed(currentEmbed)
                     .WithFooter($"Being edited by {context.User.Username}")
                     .Build());
+
+                ++teamIndex;
             }
 
             // If we weren't able to recover the original signups then populate them now with all the people we know about.
