@@ -81,16 +81,23 @@ namespace WinstonBot.Commands
             SocketGuild guild,
             ulong channelId,
             ulong messageId,
+            Guid? historyId,
             bool confirmedBefore,
             BossData.Entry bossEntry,
             Dictionary<string, ulong> selectedNames)
         {
+            string footerText = $"{guild.Id} {channelId} {messageId} {confirmedBefore}";
+            if (historyId != null)
+            {
+                footerText += $" {historyId}";
+            }
+
             var builder = new EmbedBuilder()
                 .WithTitle($"Pending Team for {bossEntry.PrettyName}")
                 .WithDescription("Suggested Roles based on fancy math and attendance.")
                 // We use spaces as separators as commas cause it to be treated as a long string that can't be broken.
                 // This causes weird issues where the fields get super squished.
-                .WithFooter($"{guild.Id} {channelId} {messageId} {confirmedBefore}")
+                .WithFooter(footerText)
                 .WithThumbnailUrl(bossEntry.IconUrl)
                 .WithColor(bossEntry.EmbedColor)
                 .WithUrl(BuildMessageLink(guild.Id, channelId, messageId));

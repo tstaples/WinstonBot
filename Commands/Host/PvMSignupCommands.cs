@@ -285,11 +285,8 @@ namespace WinstonBot.Commands
                 {
                     var historyId = HostHelpers.ParseHistoryIdFromFooter(embed.Footer.Value.Text);
 
-                    // TODO: we should store the DB row in the message or validate the team names so 
                     var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-                    aodDb.RemoveRowFromHistory(historyId);
-
-                    historyId = aodDb.AddTeamToHistory(team);
+                    aodDb.UpdateHistory(historyId, team);
 
                     // Update the footer with the new id
                     string footerText = HostHelpers.UpdateHistoryIdInFooter(builder.Footer.Text, historyId);

@@ -75,9 +75,7 @@ namespace WinstonBot.Commands
                 msgProps.Embed = Utility.CreateBuilderForEmbed(currentEmbed)
                 .WithFooter($"Being edited by {context.User.Username}")
                 .Build();
-                msgProps.Components = new ComponentBuilder()
-                    .WithButton("Edit", $"{EditCompletedTeamAction.ActionName}_{BossIndex}", ButtonStyle.Danger, disabled: true)
-                    .Build();
+                msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, disabled:true);
             });
 
             var replyMessage = await context.User.SendMessageAsync(
@@ -85,12 +83,8 @@ namespace WinstonBot.Commands
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
                 "\nPress cancel to discard this edit.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, true, BossEntry, selectedIds),
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, historyId, true, BossEntry, selectedIds),
                 component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedIds));
-
-            // TODO: make this general for any boss signup
-            var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-            aodDb.RemoveRowFromHistory(historyId);
 
             // TODO: do this via context instead?
             //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);

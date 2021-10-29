@@ -45,13 +45,21 @@ namespace WinstonBot.Commands
 
             // TODO: make this general for any boss signup
             var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-            var historyId = aodDb.AddTeamToHistory(selectedIds);
+            Guid? historyId = context.OriginalMessageData.HistoryId;
+            if (historyId == null)
+            {
+                historyId = aodDb.AddTeamToHistory(selectedIds);
+            }
+            else
+            {
+                aodDb.UpdateHistory(historyId.Value, selectedIds);
+            }
 
             // TODO: ping the people that are going.
             // Should that be a separate message or should we just not use an embed for this?
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
-                msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds, historyId);
+                msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossEntry, selectedIds, historyId.Value);
                 msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex);
             });
 

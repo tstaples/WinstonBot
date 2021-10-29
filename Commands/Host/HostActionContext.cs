@@ -73,6 +73,7 @@ namespace WinstonBot.Commands
         public ulong ChannelId { get; set; }
         public ulong MessageId { get; set; }
         public bool TeamConfirmedBefore { get; set; }
+        public Guid? HistoryId { get; set; }
 
         public static HostMessageMetadata? ParseMetadata(DiscordSocketClient client, string text)
         {
@@ -88,13 +89,19 @@ namespace WinstonBot.Commands
                 var channelId = ulong.Parse(footerParts[1]);
                 var originalMessageId = ulong.Parse(footerParts[2]);
                 var confirmedBefore = bool.Parse(footerParts[3]);
+                Guid? historyId = null;
+                if (footerParts.Length > 4)
+                {
+                    historyId = Guid.Parse(footerParts[4]);
+                }
 
                 return new HostMessageMetadata()
                 {
                     GuildId = guildId,
                     ChannelId = channelId,
                     MessageId = originalMessageId,
-                    TeamConfirmedBefore = confirmedBefore
+                    TeamConfirmedBefore = confirmedBefore,
+                    HistoryId = historyId
                 };
             }
             catch (Exception)

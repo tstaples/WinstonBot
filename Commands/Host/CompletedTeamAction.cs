@@ -72,7 +72,7 @@ namespace WinstonBot.Commands
                 "\nClick the buttons to change who is selected to go." +
                 "\nOnce you're done click Confirm Team." +
                 "\nPress cancel to discard this edit.",
-                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, hasBeenConfirmedBefore, BossEntry, roleUserMap),
+                embed: HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, null, hasBeenConfirmedBefore, BossEntry, roleUserMap),
                 component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, roleUserMap, unselectedids));
 
             // TODO: do this via context instead?

@@ -38,15 +38,9 @@ namespace WinstonBot.Commands
 
             var names = HostHelpers.ParseNamesToList(originalMessage.Embeds.First().Description);
 
-            // re-add the team to the history
-            Guid historyId = Guid.Empty;
-            if (context.OriginalMessageData.TeamConfirmedBefore)
-            {
-                // TODO: make this general for any boss signup
-                Dictionary<string, ulong> selectedIds = HostHelpers.ParseNamesToRoleIdMap(originalMessage.Embeds.First());
-                var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
-                historyId = aodDb.AddTeamToHistory(selectedIds);
-            }
+            var embed = originalMessage.Embeds.First();
+            Dictionary<string, ulong> team = embed.Fields.ToDictionary(ks => ks.Name, vs => Utility.GetUserIdFromMention((string)vs.Value));
+            var historyId = HostHelpers.ParseHistoryIdFromFooter(embed.Footer.Value.Text);
 
             await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
             {
@@ -57,13 +51,7 @@ namespace WinstonBot.Commands
                 }
                 else
                 {
-                    // Don't need to change the embed since it hasn't been modified yet.
-                    var builder = Utility.CreateBuilderForEmbed(originalMessage.Embeds.First());
-                    string footerText = HostHelpers.UpdateHistoryIdInFooter(builder.Footer.Text, historyId);
-                    msgProps.Embed = Utility.CreateBuilderForEmbed(originalMessage.Embeds.First())
-                        .WithFooter(footerText)
-                        .Build();
-
+                    msgProps.Embed = HostHelpers.BuildFinalTeamEmbed(context.Guild, context.User.Username, BossData.Entries[BossIndex], team, historyId);
                     msgProps.Components = HostHelpers.BuildFinalTeamComponents(BossIndex, false);
                 }
             });

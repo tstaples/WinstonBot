@@ -281,19 +281,7 @@ namespace WinstonBot.Services
         {
             var guid = Guid.NewGuid();
 
-            List<object> row = new();
-            row.Add(DateTime.UtcNow.ToString("MM/dd/yyyy"));
-            row.Add(guid.ToString());
-            foreach (string roleName in Enum.GetNames(typeof(Roles)))
-            {
-                ulong id = 0;
-                if (!team.TryGetValue(roleName, out id))
-                {
-                    // Support lowercase role names for pvm-signup log-team
-                    team.TryGetValue(roleName.ToLower(), out id);
-                }
-                row.Add(id.ToString());
-            }
+            List<object> row = MakeHistoryRow(guid, team);
 
             InsertDimensionRequest insertRow = new InsertDimensionRequest();
             insertRow.Range = new DimensionRange()
@@ -410,6 +398,41 @@ namespace WinstonBot.Services
         //        throw new DBOperationFailedException(ex.Message);
         //    }
         //}
+
+        public void UpdateHistory(Guid id, Dictionary<string, ulong> team)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentNullException("Failed to update team history: invalid id.");
+            }
+
+            var rows = GetHistoryRows(0);
+            int rowIndex = rows.FindIndex(row => row.Id == id);
+            if (rowIndex == -1)
+            {
+                _logger.LogError($"Couldn't find history row for id {id}");
+                return;
+            }
+
+            ValueRange requestBody = new()
+            {
+                Values = new List<IList<object>>() { MakeHistoryRow(id, team) }
+            };
+
+            string range = $"{HistoryRange}!A{rowIndex + 2}";
+            SpreadsheetsResource.ValuesResource.UpdateRequest request =
+                _sheetsService.Spreadsheets.Values.Update(requestBody, spreadsheetId, range);
+            request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+
+            try
+            {
+                request.Execute();
+            }
+            catch (Exception ex)
+            {
+                throw new DBOperationFailedException(ex.Message);
+            }
+        }
 
         public void RefreshDB()
         {
@@ -554,6 +577,25 @@ namespace WinstonBot.Services
             row.Add(user.Name);
             row.Add(user.Id.ToString());
             user.RoleWeights.ToList().ForEach(w => row.Add(w));
+            return row;
+        }
+
+        // TODO: change this to just take a list of ulongs so it's not boss specific
+        private List<object> MakeHistoryRow(Guid guid, Dictionary<string, ulong> team)
+        {
+            List<object> row = new();
+            row.Add(DateTime.UtcNow.ToString("MM/dd/yyyy"));
+            row.Add(guid.ToString());
+            foreach (string roleName in Enum.GetNames(typeof(Roles)))
+            {
+                ulong id = 0;
+                if (!team.TryGetValue(roleName, out id))
+                {
+                    // Support lowercase role names for pvm-signup log-team
+                    team.TryGetValue(roleName.ToLower(), out id);
+                }
+                row.Add(id.ToString());
+            }
             return row;
         }
 
