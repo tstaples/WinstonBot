@@ -88,6 +88,7 @@ namespace WinstonBot.Commands
                 await channel.ModifyMessageAsync(messageId, msgProps =>
                 {
                     msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
+                    msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, names.Count));
                 });
 
                 await context.RespondAsync($"Added {User.Mention} to the signup!", ephemeral: true);
@@ -152,6 +153,7 @@ namespace WinstonBot.Commands
                 await channel.ModifyMessageAsync(messageId, msgProps =>
                 {
                     msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
+                    msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, names.Count));
                 });
 
                 await context.RespondAsync($"Removed {User.Mention} from the signup.", ephemeral: true);
