@@ -61,7 +61,7 @@ namespace WinstonBot.Commands
             await context.Channel.ModifyMessageAsync(context.Message.Id, msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
-                msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex);
+                msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, names.Count));
             });
 
             await context.DeferAsync();

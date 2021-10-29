@@ -80,11 +80,12 @@ namespace WinstonBot.Commands
             var bossPrettyName = BossData.Entries[BossIndex].PrettyName;
             string message = Message ?? $"Sign up for {bossPrettyName}"; // default message
 
-            var buttons = HostHelpers.BuildSignupButtons(BossIndex);
 #if DEBUG
             var embed = HostHelpers.BuildSignupEmbed(BossIndex, testNames);
+            var buttons = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, testNames.Count));
 #else
             var embed = HostHelpers.BuildSignupEmbed(BossIndex, new List<string>());
+            var buttons = HostHelpers.BuildSignupButtons(BossIndex, 1);
 #endif
 
             await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);

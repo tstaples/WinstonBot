@@ -17,6 +17,9 @@ namespace WinstonBot.Commands
         [ActionParam]
         public long BossIndex { get; set; }
 
+        [ActionParam]
+        public long NumTeams { get; set; }
+
         private BossData.Entry BossEntry => BossData.Entries[BossIndex];
 
         public CompleteTeamAction(ILogger logger) : base(logger)
@@ -54,7 +57,7 @@ namespace WinstonBot.Commands
             var names = Utility.ConvertUserIdListToMentions(guild, ids);
 
             ITeamBuilder builder = HostHelpers.GetTeamBuilder(context.ServiceProvider, BossEntry);
-            var teams = builder.SelectTeams(ids, 2); // TEMP
+            var teams = builder.SelectTeams(ids, (int)NumTeams);
 
             bool InTeam(ulong id)
             {
@@ -73,7 +76,7 @@ namespace WinstonBot.Commands
 
             context.Message.ModifyAsync(msgProps =>
             {
-                msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, true);
+                msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, names.Count), true);
                 // footers can't show mentions, so use the username.
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names, context.User.Username);
             }).Wait();

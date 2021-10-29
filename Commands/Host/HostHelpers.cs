@@ -99,6 +99,7 @@ namespace WinstonBot.Commands
                 .WithFooter(footerText)
                 .WithThumbnailUrl(bossEntry.IconUrl)
                 .WithColor(bossEntry.EmbedColor);
+                // TODO: url is currently bugged and causes only a single embed to appear.
                 //.WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
 
             foreach ((string role, ulong id) in selectedNames)
@@ -203,7 +204,7 @@ namespace WinstonBot.Commands
             return builder.Build();
         }
 
-        public static MessageComponent BuildSignupButtons(long bossIndex, bool disabled = false)
+        public static MessageComponent BuildSignupButtons(long bossIndex, int numTeams, bool disabled = false)
         {
             var builder = new ComponentBuilder()
                 .WithButton("Sign Up", $"{SignupAction.ActionName}_{bossIndex}", disabled: disabled)
@@ -211,12 +212,16 @@ namespace WinstonBot.Commands
                     .WithLabel("Unsign")
                     .WithDisabled(disabled)
                     .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
-                    .WithStyle(ButtonStyle.Danger))
-                .WithButton(new ButtonBuilder()
+                    .WithStyle(ButtonStyle.Danger));
+                
+            for (int i = 0; i < numTeams; i++)
+            {
+                builder.WithButton(new ButtonBuilder()
                     .WithDisabled(disabled)
-                    .WithLabel("Complete Team")
-                    .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}")
+                    .WithLabel($"Create {i + 1} Team{(i == 0 ? string.Empty : 's')}")
+                    .WithCustomId($"{CompleteTeamAction.ActionName}_{bossIndex}_{i + 1}")
                     .WithStyle(ButtonStyle.Success));
+            }
             return builder.Build();
         }
 
@@ -266,6 +271,20 @@ namespace WinstonBot.Commands
                 return footerText;
             }
             return $" | {historyId}";
+        }
+
+        public static int CalculateNumTeams(long bossIndex, int numUsers)
+        {
+            var entry = BossData.Entries[bossIndex];
+            int maxPlayers = (int)entry.MaxPlayersOnTeam;
+            int minPlayers = maxPlayers / 2;
+            int numTeams = numUsers / maxPlayers;
+            int remainder = numUsers % maxPlayers;
+            if (remainder >= minPlayers)
+            {
+                ++numTeams;
+            }
+            return Math.Max(numTeams, 1);
         }
     }
 }
