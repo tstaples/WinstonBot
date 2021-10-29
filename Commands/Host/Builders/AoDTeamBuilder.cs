@@ -12,18 +12,28 @@ namespace WinstonBot.Commands
     {
         public IServiceProvider ServiceProvider { get; set; }
 
-        public Dictionary<string, ulong> SelectTeam(IEnumerable<ulong> inputNames)
+        public Dictionary<string, ulong>[] SelectTeams(IEnumerable<ulong> inputNames, int numTeams)
         {
+            // TODO: pass in a generic db interface
             AoDDatabase db = ServiceProvider.GetRequiredService<AoDDatabase>();
 
             var bossEntry = BossData.Entries[(int)BossData.Boss.AoD];
             int numDaysToConsider = 5; // TODO: where should we store this?
             ImmutableArray<AoDDatabase.UserQueryEntry> users = db.GetUsers(inputNames, numDaysToConsider);
 
+            AoDDatabase.Roles GetRoleForCol(int columnIndex)
+            {
+                return (AoDDatabase.Roles)(columnIndex % AoDDatabase.NumRoles);
+            }
+
+            // Create a matrix where we calculate the score for every person in every role.
+            // 
+            int scaledRoleCount = AoDDatabase.NumRoles * numTeams;
+
             // each row is a name, each col is a role
             // For the algorithm to work we need the matrix to be square. The extra columns we just set to 0 and hope they don't affect anything.
-            int numCols = Math.Max(AoDDatabase.NumRoles, users.Length);
-            int numRows = Math.Max(AoDDatabase.NumRoles, users.Length);
+            int numCols = Math.Max(scaledRoleCount, users.Length);
+            int numRows = Math.Max(scaledRoleCount, users.Length);
             int[,] costs = new int[numRows, numCols];
             for (int row = 0; row < numRows; ++row)
             {
@@ -34,13 +44,13 @@ namespace WinstonBot.Commands
                 {
                     // We can have extra columns as we need the matrix to be square for the algorithm to work. So just 0 them out.
                     // We can also have extra rows if we have less people than the number of roles.
-                    if (col >= AoDDatabase.NumRoles || user == null)
+                    if (col >= scaledRoleCount || user == null)
                     {
                         costs[row, col] = 0;
                         continue;
                     }
 
-                    var role = (AoDDatabase.Roles)col;
+                    var role = GetRoleForCol(col);
                     double score = CalculateUserScoreForRole(user, role, numDaysToConsider);
                     costs[row, col] = (int)score;
                 }
@@ -53,54 +63,49 @@ namespace WinstonBot.Commands
             }
 
             // store in order of the role so we add them to the dict in the correct order, allowing them to appear in the embed in the right order.
-            ulong[] userForRole = new ulong[AoDDatabase.NumRoles];
+            ulong[] userForRole = new ulong[scaledRoleCount];
             for (int i = 0; i < users.Length; ++i)
             {
-                if (result[i] < AoDDatabase.NumRoles)
+                if (result[i] < scaledRoleCount)
                 {
                     var user = users[i];
-                    var role = (AoDDatabase.Roles)result[i];
                     int roleIndex = result[i];
                     userForRole[roleIndex] = user.Id;
                 }
             }
 
-            Dictionary<string, ulong> userForRoleMap = new();
+            Dictionary<string, ulong>[] userForRoleMap = new Dictionary<string, ulong>[numTeams];
+            for (int i = 0; i < numTeams; ++i)
+            {
+                userForRoleMap[i] = new Dictionary<string, ulong>();
+            }
+
             for (int i = 0; i < userForRole.Length; ++i)
             {
-                userForRoleMap.Add(((AoDDatabase.Roles)i).ToString(), userForRole[i]);
+                var role = GetRoleForCol(i);
+                var dict = userForRoleMap[i / AoDDatabase.NumRoles];
+                dict.Add(role.ToString(), userForRole[i]);
             }
 
             return userForRoleMap;
         }
 
-        public Dictionary<string, ulong>[] SelectTeams(IEnumerable<ulong> inputNames, int numTeams)
-        {
-            var team1 = SelectTeam(inputNames);
-            var unselectedids = inputNames.Where(id => !team1.ContainsValue(id));
-            var team2 = SelectTeam(unselectedids);
-
-            for (int i = 1; i < Enum.GetValues(typeof(AoDDatabase.Roles)).Length; i+= 2)
-            {
-                var role = (AoDDatabase.Roles)i;
-                var temp = team2[role.ToString()];
-                team2[role.ToString()] = team1[role.ToString()];
-                team1[role.ToString()] = temp;
-            }
-            return new Dictionary<string, ulong>[] { team1, team2 };
-        }
-
         private double CalculateUserScoreForRole(AoDDatabase.UserQueryEntry user, AoDDatabase.Roles role, int numDaysToConsider)
         {
             double attendanceScore = (double)user.TimesAttended / (double)numDaysToConsider;
-            // Ignore attendance score for the base role
-            double biasedAttendanceScore = role == AoDDatabase.Roles.Base ? 0.0f : attendanceScore;
+            double roleImportanceScore = ((double)role / (double)AoDDatabase.NumRoles) - 1.0;
+            double roleScore = (1.0f - user.GetRoleWeight(role));
 
             // Prefer learners for F
             double learnerScore = role == AoDDatabase.Roles.Fumus && user.Experience == AoDDatabase.ExperienceType.Learner ? -1 : 0f;
-            double roleScore = 1.0f - user.GetRoleWeight(role);
-            double score = (roleScore + biasedAttendanceScore + learnerScore) * 10.0f;
-            return score;
+
+            double score =
+                  (roleScore * 1.5)
+                + (attendanceScore * 3.0) // attendance is the biggest factor
+                + learnerScore
+                + roleImportanceScore;
+
+            return score * 10.0;
         }
     }
 }

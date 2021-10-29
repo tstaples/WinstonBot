@@ -1,5 +1,5 @@
 ﻿Multi-team;
-- each team should be a separate message so the pvm-signup commands still work.
+- add page to team selection to show score info for each person
 - store signed up users in db so we don't have to worry about the bot restarting
 - ghost ping selected users in the channel so they can see the team.
 
