@@ -59,7 +59,12 @@ namespace WinstonBot.Commands
             {
                 if (names != null)
                 {
-                    OriginalSignupsForMessage.TryAdd(messageId, new ReadOnlyCollection<ulong>(names));
+                    var collection = new ReadOnlyCollection<ulong>(names);
+                    if (!OriginalSignupsForMessage.TryAdd(messageId, collection))
+                    {
+                        // Update the collection
+                        OriginalSignupsForMessage[messageId] = collection;
+                    }
                 }
                 return true;
             }
