@@ -193,6 +193,8 @@ namespace WinstonBot.Commands
 
             // Ensure the confirm/cancel buttons are never on the same row as the other buttons.
             currentRow += (int)Math.Ceiling((float)unselectedNames.Count() / 5);
+            // Can't exceed max rows
+            currentRow = Math.Min(currentRow, ComponentBuilder.MaxActionRowCount - 1);
 
             builder.WithButton(new ButtonBuilder()
                     .WithLabel("Confirm Team")
