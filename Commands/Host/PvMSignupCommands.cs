@@ -82,6 +82,13 @@ namespace WinstonBot.Commands
                     return;
                 }
 
+                if ((ids.Count + 1) > HostHelpers.MaxSignupsAllowed)
+                {
+                    Logger.LogDebug($"Failed to sign up user {context.User.Mention}: Already at the maximum allowed sign up count.");
+                    await context.RespondAsync("The max number of sign ups has been reached.", ephemeral: true);
+                    return;
+                }
+
                 Logger.LogInformation($"{User.Mention} has signed up for {messageId}!");
                 names.Add(User.Mention);
 

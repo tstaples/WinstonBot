@@ -6,6 +6,9 @@ namespace WinstonBot.Commands
 {
     internal class HostHelpers
     {
+        // We can only have 25 buttons and we need 2 for confirm/cancel.
+        public const int MaxSignupsAllowed = ComponentBuilder.MaxActionRowCount * ActionRowBuilder.MaxChildCount;
+
         public static ITeamBuilder GetTeamBuilder(IServiceProvider serviceProvider, BossData.Entry entry)
         {
             if (entry.BuilderClass == null)
