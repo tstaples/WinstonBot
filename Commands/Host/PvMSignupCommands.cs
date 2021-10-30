@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using WinstonBot.Attributes;
 using WinstonBot.Data;
 using WinstonBot.Services;
-using WinstonBot.Data;
 
 namespace WinstonBot.Commands
 {
@@ -38,7 +37,7 @@ namespace WinstonBot.Commands
                 ulong messageId = 0;
                 if (!ulong.TryParse(TargetSignupMessageId, out messageId))
                 {
-                    throw new ArgumentNullException("Invalid message id");
+                    throw new InvalidCommandArgumentException("Invalid message id");
                 }
 
                 var channel = context.Guild.GetTextChannel(context.ChannelId);
@@ -125,7 +124,7 @@ namespace WinstonBot.Commands
                 ulong messageId = 0;
                 if (!ulong.TryParse(TargetSignupMessageId, out messageId))
                 {
-                    throw new ArgumentNullException("Invalid message id");
+                    throw new InvalidCommandArgumentException("Invalid message id");
                 }
 
                 var channel = context.Guild.GetTextChannel(context.ChannelId);
@@ -233,6 +232,9 @@ namespace WinstonBot.Commands
             [CommandOption("signup-message-id", "The id of the signup message to target")]
             public string TargetSignupMessageId { get; set; }
 
+            [CommandOption("team-number", "The team number to target (starting at 1)")]
+            public long TeamNumber { get; set; }
+
             [CommandOption("role", "The name of the role to set (case-insensitive)")]
             public string RoleName { get; set; }
 
@@ -248,7 +250,7 @@ namespace WinstonBot.Commands
                 ulong messageId = 0;
                 if (!ulong.TryParse(TargetSignupMessageId, out messageId))
                 {
-                    throw new ArgumentNullException("Invalid message id");
+                    throw new InvalidCommandArgumentException("Invalid message id");
                 }
 
                 // TODO: use semaphore
@@ -256,17 +258,18 @@ namespace WinstonBot.Commands
                 var message = await channel.GetMessageAsync(messageId);
                 if (message == null)
                 {
-                    throw new ArgumentNullException($"Signup message doesn't exist: id = {messageId}");
+                    throw new InvalidCommandArgumentException($"Signup message doesn't exist: id = {messageId}");
                 }
 
                 bool success = false;
-                IEmbed embed = message.Embeds.First();
-                if (embed == null)
+                int teamIndex = (int)TeamNumber - 1;
+                if (teamIndex >= message.Embeds.Count || teamIndex < 0)
                 {
-                    throw new ArgumentNullException("$Target message is missing an embed.");
+                    throw new InvalidCommandArgumentException($"Team number is out of bounds. Must be between 1 and {message.Embeds.Count}");
                 }
 
-                var builder = Utility.CreateBuilderForEmbed(embed);
+                EmbedBuilder[] builders = message.Embeds.Select(embed => Utility.CreateBuilderForEmbed(embed)).ToArray();
+                var builder = builders[teamIndex];
 
                 Dictionary<string, ulong> team = builder.Fields.ToDictionary(ks => ks.Name, vs => Utility.GetUserIdFromMention((string)vs.Value));
 
@@ -292,7 +295,7 @@ namespace WinstonBot.Commands
 
                 if (success)
                 {
-                    var historyId = HostHelpers.ParseHistoryIdFromFooter(embed.Footer.Value.Text);
+                    var historyId = HostHelpers.ParseHistoryIdFromFooter(builder.Footer.Text);
 
                     var aodDb = context.ServiceProvider.GetRequiredService<AoDDatabase>();
                     aodDb.UpdateHistory(historyId, team);
@@ -303,11 +306,11 @@ namespace WinstonBot.Commands
 
                     await channel.ModifyMessageAsync(messageId, props =>
                     {
-                        props.Embed = builder.Build();
+                        props.Embeds = builders.Select(builder => builder.Build()).ToArray();
                     });
 
-                    Logger.LogInformation($"Set role {RoleName} with {userToAddMention}.");
-                    await context.RespondAsync($"Set role {RoleName} with {userToAddMention}.", ephemeral: true);
+                    Logger.LogInformation($"Set role {RoleName} to {userToAddMention}.");
+                    await context.RespondAsync($"Set role {RoleName} to {userToAddMention}.", ephemeral: true);
                 }
                 else
                 {

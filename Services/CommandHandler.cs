@@ -420,6 +420,10 @@ namespace WinstonBot
             {
                 await commandInstance.HandleCommand(context);
             }
+            catch (InvalidCommandArgumentException ex)
+            {
+                await context.RespondAsync($"Invalid Command Argument: {ex.Message}", ephemeral: true);
+            }
             catch (Exception ex)
             {
                 EmbedBuilder builder = new();
@@ -547,7 +551,6 @@ namespace WinstonBot
             {
                 try
                 {
-                    Logger.LogDebug($"{action.Name} Requesting semaphore");
                     sem.WaitOne();
                     Logger.LogDebug($"{action.Name} executing");
                     await actionInstance.HandleAction(context);
