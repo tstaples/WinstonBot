@@ -54,6 +54,8 @@ namespace WinstonBot.Commands
                 return;
             }
 
+            await context.DeferAsync();
+
             var names = Utility.ConvertUserIdListToMentions(guild, ids);
 
             ITeamBuilder builder = HostHelpers.GetTeamBuilder(context.ServiceProvider, BossEntry);
@@ -92,18 +94,35 @@ namespace WinstonBot.Commands
                 embeds.Add(HostHelpers.BuildTeamSelectionEmbed(guild, context.Channel.Id, context.Message.Id, null, hasBeenConfirmedBefore, teamIndex, BossEntry, team));
             }
 
-            var replyMessage = await context.User.SendMessageAsync(
-                "Confirm or edit the team." +
-                "\nClick the buttons to change who is selected to go." +
-                "\nOnce you're done click Confirm Team." +
-                "\nPress cancel to discard this edit.",
-                embeds: embeds.ToArray(),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedids));
+            try
+            {
+                await context.User.SendMessageAsync(
+                    "Confirm or edit the team." +
+                    "\nClick the buttons to change who is selected to go." +
+                    "\nOnce you're done click Confirm Team." +
+                    "\nPress cancel to discard this edit.",
+                    embeds: embeds.ToArray(),
+                    component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedids));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Failed to send DM to user {ex.Message}");
+
+                context.EditFinishedForMessage(context.Message.Id);
+
+                // re-enable the buttons on the message
+                context.Channel.ModifyMessageAsync(context.Message.Id, msgProps =>
+                {
+                    msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
+                    msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, names.Count));
+                }).Wait();
+
+                // re-throw so the command handler can report it
+                throw;
+            }
 
             // TODO: do this via context instead?
             //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);
-
-            await context.DeferAsync();
         }
     }
 }

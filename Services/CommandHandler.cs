@@ -422,17 +422,15 @@ namespace WinstonBot
             }
             catch (InvalidCommandArgumentException ex)
             {
+                logger.LogError($"Invalid Command Argument: {ex.Message}");
                 await context.RespondAsync($"Invalid Command Argument: {ex.Message}", ephemeral: true);
             }
             catch (Exception ex)
             {
-                EmbedBuilder builder = new();
-                builder.WithTitle("A command threw an exception. Tell Catman: ")
-                    .WithDescription($"```{ex}```")
-                    .WithImageUrl("https://images-ext-2.discordapp.net/external/I0FROsQesBipYVjLKEyGYrwVJgeTnqR5_yr3jT2Z0Fw/https/media.discordapp.net/attachments/892631133219590174/902676707088146523/2e7175697eab40b392acf06d02002004cat-with-loading-sign-on-head.jpg");
-                Embed embed = builder.Build();
-
-                await context.RespondAsync(embed: embed, ephemeral: true);
+                logger.LogError($"Error running command {command.Name}: {ex}");
+#if !DEBUG
+                await context.SendMessageAsync(embed: BuildErrorEmbed(ex, context.User, $"Command {command.Name} threw an exception.", CommandOptionsToString(dataOptions)));
+#endif
             }
         }
 
@@ -558,6 +556,9 @@ namespace WinstonBot
                 catch (Exception ex)
                 {
                     Logger.LogError($"Error running action {action.Name}: {ex}");
+#if !DEBUG
+                    await component.Channel.SendMessageAsync(embed: BuildErrorEmbed(ex, component.User, $"Error running action {action.Name}"));
+#endif
                 }
                 finally
                 {
@@ -645,10 +646,12 @@ namespace WinstonBot
             return new List<ulong>();
         }
 
-        private string CommandOptionsToString(IEnumerable<CommandDataOption> options)
+        private static string CommandOptionsToString(IEnumerable<CommandDataOption>? options)
         {
-            void OptionsToStringInternal(IEnumerable<CommandDataOption> opts, StringBuilder builder)
+            void OptionsToStringInternal(IEnumerable<CommandDataOption>? opts, StringBuilder builder)
             {
+                if (opts == null) return;
+
                 foreach (CommandDataOption op in opts)
                 {
                     if (op.Type != ApplicationCommandOptionType.SubCommand && op.Type != ApplicationCommandOptionType.SubCommandGroup)
@@ -666,6 +669,18 @@ namespace WinstonBot
             StringBuilder builder = new();
             OptionsToStringInternal(options, builder);
             return builder.ToString();
+        }
+
+        private static Embed BuildErrorEmbed(Exception ex, IUser user, string title, string? args = null)
+        {
+            EmbedBuilder builder = new();
+            builder.WithTitle(title)
+                .WithAuthor(user)
+                .WithDescription($"**Exception:** {ex.Message}\n" +
+                $"{(args != null ? $"**Args:** {args}\n" : "")}" +
+                $"```{ ex}```");
+                //.WithImageUrl("https://images-ext-2.discordapp.net/external/I0FROsQesBipYVjLKEyGYrwVJgeTnqR5_yr3jT2Z0Fw/https/media.discordapp.net/attachments/892631133219590174/902676707088146523/2e7175697eab40b392acf06d02002004cat-with-loading-sign-on-head.jpg");
+            return builder.Build();
         }
     }
 }
