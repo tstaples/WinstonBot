@@ -46,6 +46,7 @@ namespace WinstonBot.Data
                 IconUrl = "https://runescape.wiki/images/b/b8/Yakamaru.png?18623",
                 MaxPlayersOnTeam = 10,
                 EmbedColor = Color.Blue,
+                RolesEnumType = typeof(Commands.HostPvm.RaidRole)
             },
         };
 
