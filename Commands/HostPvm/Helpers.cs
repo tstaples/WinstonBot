@@ -58,7 +58,8 @@ namespace WinstonBot.Commands.HostPvm
 
             builder.WithDescription(stringBuilder.ToString());
 
-            componentBuilder.WithButton(emote: new Emoji("✅"), customId: $"pvm-event-complete_{(int)entry.Id}", style: ButtonStyle.Success);
+            componentBuilder.WithButton(emote: new Emoji("✅"), customId: $"{CompleteTeamAction.Name}_{(int)entry.Id}", style: ButtonStyle.Success);
+            componentBuilder.WithButton(emote: new Emoji("📝"), customId: ListTeamAction.Name, style: ButtonStyle.Primary);
 
             embed = builder.Build();
             component = componentBuilder.Build();
