@@ -22,28 +22,6 @@ namespace WinstonBot.Commands.HostPvm
         [CommandOption("message", "An optional message to display.", required: false)]
         public string? Message { get; set; }
 
-        public static readonly RoleDefinition[] Roles = new RoleDefinition[]
-        {
-            new RoleDefinition(RaidRole.Base, "🛡", "Base"),
-            new RoleDefinition(RaidRole.MainStun, "💥", "Main Stun"),
-            new RoleDefinition(RaidRole.BackupStun, "⚡", "Backup Stun"),
-            new RoleDefinition(RaidRole.Backup, "🇧", "Backup"),
-            new RoleDefinition(RaidRole.Shark10, "🦈", "Shark 10"),
-            new RoleDefinition(RaidRole.JellyWrangler, "🐡", "Jelly Wrangler"),
-            new RoleDefinition(RaidRole.PT13, "1️⃣", "PT 1/3"),
-            new RoleDefinition(RaidRole.NorthTank, "🐍", "North Tank"),
-            new RoleDefinition(RaidRole.PoisonTank, "🤢", "Poison Tank"),
-            new RoleDefinition(RaidRole.PT2, "2️⃣", "PT 2"),
-            new RoleDefinition(RaidRole.Double, "🇩", "Double"),
-            new RoleDefinition(RaidRole.CPR, "❤️", "CPR"),
-            new RoleDefinition(RaidRole.NC, "🐕", "NC"),
-            new RoleDefinition(RaidRole.Stun5, "5️⃣", "Stun 5", max:2),
-            new RoleDefinition(RaidRole.Stun0, "0️⃣", "Stun 0"),
-            new RoleDefinition(RaidRole.DPS, "⚔️", "DPS", 5), // TODO: confirm max
-            new RoleDefinition(RaidRole.Fill, "🆓", "Fill", max:10),
-            new RoleDefinition(RaidRole.Reserve, "💭", "Reserve", max:10),
-        };
-
         public HostPvmCommand(ILogger logger) : base(logger)
         {
         }

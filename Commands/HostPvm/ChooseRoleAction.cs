@@ -25,18 +25,22 @@ namespace WinstonBot.Commands.HostPvm
 
         public override async Task HandleAction(ActionContext context)
         {
-            await context.DeferAsync();
-
             var runtimeRoles = Helpers.GetRuntimeRoles(context.Message.Embeds.FirstOrDefault());
             var role = runtimeRoles[RoleIndex];
 
-            string[] conflictingRoles;
+            if (Helpers.GetUserCount(runtimeRoles) >= Entry.MaxPlayersOnTeam)
+            {
+                await context.RespondAsync("Signup is full", ephemeral: true);
+                return;
+            }
+
+            List<RaidRole> conflictingRoles;
             if (role.HasUser(context.User.Id))
             {
                 Logger.LogInformation($"Removing {context.User} from role {role.Definition.Name} on {Entry.PrettyName} signup");
                 role.RemoveUser(context.User.Id);
             }
-            else if (Helpers.CanAddUserToRole(context.User.Id, runtimeRoles, out conflictingRoles))
+            else if (Helpers.CanAddUserToRole(context.User.Id, role.Definition.RoleType, runtimeRoles, out conflictingRoles))
             {
                 if (role.AddUser(context.User.Id))
                 {
@@ -55,6 +59,8 @@ namespace WinstonBot.Commands.HostPvm
             }
 
             var guild = (context.Message.Channel as SocketGuildChannel).Guild;
+
+            await context.DeferAsync();
 
             Embed embed;
             MessageComponent component;

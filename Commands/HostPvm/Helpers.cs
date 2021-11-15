@@ -8,6 +8,16 @@ namespace WinstonBot.Commands.HostPvm
 {
     internal static class Helpers
     {
+        public static int GetUserCount(IEnumerable<RuntimeRole> roles)
+        {
+            var users = new HashSet<ulong>();
+            foreach (RuntimeRole role in roles)
+            {
+                users = users.Concat(role.Users).ToHashSet();
+            }
+            return users.Count;
+        }
+
         public static void BuildSignup(IEnumerable<RuntimeRole> roles, BossData.Entry entry, SocketGuild guild, out Embed embed, out MessageComponent component)
         {
             var builder = new EmbedBuilder()
@@ -29,23 +39,43 @@ namespace WinstonBot.Commands.HostPvm
                     .WithCustomId($"{ChooseRoleAction.Name}_{(int)entry.Id}_{(int)role.Definition.RoleType}"));
             }
 
+            int userCount = GetUserCount(roles);
+            builder.WithDescription($"{userCount}/{entry.MaxPlayersOnTeam} Signed up");
+
             componentBuilder.WithButton(emote: new Emoji("✅"), customId: "pvm-event-complete", style: ButtonStyle.Success);
 
             embed = builder.Build();
             component = componentBuilder.Build();
         }
 
-        public static bool CanAddUserToRole(ulong id, IEnumerable<RuntimeRole> roles, out string[] conflictingRoles)
+        public static bool CanAddUserToRole(ulong id, RaidRole role, IEnumerable<RuntimeRole> roles, out List<RaidRole> conflictingRoles)
         {
-            // TODO
-            conflictingRoles = new string[0];
-            return true;
+            var rolesForUser = roles
+                .Where(runtimeRole => runtimeRole.HasUser(id))
+                .Select(runtimeRole => runtimeRole.Definition.RoleType);
+
+            conflictingRoles = new();
+            if (!rolesForUser.Any())
+            {
+                return true;
+            }
+
+            var roleMatrixRowIndex = (int)role;
+            foreach (RaidRole existingRole in rolesForUser)
+            {
+                if (!Data.RoleCompatibilityMatrix[roleMatrixRowIndex, (int)existingRole])
+                {
+                    conflictingRoles.Add(existingRole);
+                }
+            }
+
+            return conflictingRoles.Count == 0;
         }
 
         public static RuntimeRole[] GetRuntimeRoles(Embed? embed = null)
         {
-            var roles = new RuntimeRole[HostPvmCommand.Roles.Length];
-            for (int i = 0; i < HostPvmCommand.Roles.Length; ++i)
+            var roles = new RuntimeRole[Data.Roles.Length];
+            for (int i = 0; i < Data.Roles.Length; ++i)
             {
                 List<ulong>? users = null;
                 if (embed != null)
@@ -57,7 +87,7 @@ namespace WinstonBot.Commands.HostPvm
                     }
                 }
 
-                roles[i] = new RuntimeRole(HostPvmCommand.Roles[i], users);
+                roles[i] = new RuntimeRole(Data.Roles[i], users);
             }
             return roles;
         }
