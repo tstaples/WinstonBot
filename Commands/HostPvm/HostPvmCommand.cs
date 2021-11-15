@@ -12,6 +12,7 @@ namespace WinstonBot.Commands.HostPvm
     actions: new Type[] {
         typeof(ChooseRoleAction),
         typeof(CompleteTeamAction),
+        typeof(EditTeamAction)
     })]
     [ScheduableCommand]
     public class HostPvmCommand : CommandBase

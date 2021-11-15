@@ -6,17 +6,17 @@ using Discord.WebSocket;
 
 namespace WinstonBot.Commands.HostPvm
 {
-    [Action("pvm-event-complete")]
-    public class CompleteTeamAction : ActionBase
+    [Action("pvm-event-edit")]
+    public class EditTeamAction : ActionBase
     {
-        public static readonly string Name = "pvm-event-complete";
+        public static readonly string Name = "pvm-event-edit";
 
         [ActionParam]
         public long BossIndex { get; set; }
 
         private BossData.Entry Entry => BossData.Entries[BossIndex];
 
-        public CompleteTeamAction(ILogger logger) : base(logger)
+        public EditTeamAction(ILogger logger) : base(logger)
         {
         }
 
@@ -36,10 +36,6 @@ namespace WinstonBot.Commands.HostPvm
             Embed embed;
             MessageComponent component;
             Helpers.BuildSignup(runtimeRoles, Entry, guild, out embed, out component);
-
-            component = new ComponentBuilder()
-                .WithButton("Edit", $"{EditTeamAction.Name}_{BossIndex}", ButtonStyle.Danger)
-                .Build();
 
             await context.UpdateAsync(msgProps =>
             {
