@@ -41,6 +41,7 @@ namespace WinstonBot.Commands.HostPvm
 
             component = new ComponentBuilder()
                 .WithButton("Edit", $"{EditTeamAction.Name}_{BossIndex}", ButtonStyle.Danger)
+                .WithButton(emote: new Emoji("📝"), customId: ListTeamAction.Name, style: ButtonStyle.Primary)
                 .Build();
 
             await context.UpdateAsync(msgProps =>
