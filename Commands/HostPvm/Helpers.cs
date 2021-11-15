@@ -42,7 +42,7 @@ namespace WinstonBot.Commands.HostPvm
             int userCount = GetUserCount(roles);
             builder.WithDescription($"{userCount}/{entry.MaxPlayersOnTeam} Signed up");
 
-            componentBuilder.WithButton(emote: new Emoji("✅"), customId: "pvm-event-complete", style: ButtonStyle.Success);
+            componentBuilder.WithButton(emote: new Emoji("✅"), customId: $"pvm-event-complete_{(int)entry.Id}", style: ButtonStyle.Success);
 
             embed = builder.Build();
             component = componentBuilder.Build();

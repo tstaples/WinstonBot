@@ -25,6 +25,14 @@ namespace WinstonBot.Commands.HostPvm
 
         public override async Task HandleAction(ActionContext context)
         {
+            // TODO: user proper config
+            var guildUser = (context.User as SocketGuildUser);
+            if (guildUser == null || !Utility.DoesUserHaveAnyRequiredRole(guildUser, new ulong[] { 851165967106441256 }))
+            {
+                await context.RespondAsync($"Insufficient permissions: Please read the raid rules to get the <@&851165967106441256> role.", ephemeral: true);
+                return;
+            }
+
             var runtimeRoles = Helpers.GetRuntimeRoles(context.Message.Embeds.FirstOrDefault());
             var role = runtimeRoles[RoleIndex];
 
