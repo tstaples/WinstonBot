@@ -37,6 +37,7 @@ namespace WinstonBot.Commands
                 subComamnd.AddOption("start-timestamp", ApplicationCommandOptionType.Integer, "The UTC timestamp in seconds of when to start firing this command. 0 = now.", required:true);
                 subComamnd.AddOption("frequency", ApplicationCommandOptionType.String, "How often to run the command (eg 1 day, 1 hour, 30 minutes).", required: true);
                 subComamnd.AddOption("delete-previous", ApplicationCommandOptionType.Boolean, "Should the previous message be deleted when the command fires.", required: true);
+                subComamnd.AddOption("display-timestamp", ApplicationCommandOptionType.Integer, "The UTC timestamp in seconds of the display time. 0 = none", required: true);
 
                 var subCommands = CommandHandler.SubCommandEntries.Where(sub => sub.ParentCommandType == info.Type);
                 foreach (SubCommandInfo subCommandInfo in subCommands)
@@ -80,7 +81,8 @@ namespace WinstonBot.Commands
                 long startTimestamp = (long)remainingOptions.Find(opt => opt.Name == "start-timestamp").Value;
                 string frequencyString = (string)remainingOptions.Find(opt => opt.Name == "frequency").Value;
                 bool deletePreviousMessage = (bool)remainingOptions.Find(opt => opt.Name == "delete-previous").Value;
-                var args = remainingOptions.GetRange(3, remainingOptions.Count - 3);
+                long displayTimestamp = (long)remainingOptions.Find(opt => opt.Name == "display-timestamp").Value;
+                var args = remainingOptions.GetRange(4, remainingOptions.Count - 4);
 
                 var startDate = startTimestamp <= 0 ? DateTimeOffset.UtcNow : DateTimeOffset.FromUnixTimeSeconds(startTimestamp);
                 if (startTimestamp > 0 && startDate < DateTimeOffset.UtcNow)
@@ -106,7 +108,17 @@ namespace WinstonBot.Commands
                 }
 
                 var id = context.ServiceProvider.GetRequiredService<CommandScheduler>()
-                    .AddRecurringEvent(context.ServiceProvider, context.Guild.Id, context.User.Id, context.ChannelId, startDate, frequency, deletePreviousMessage, commandName, args);
+                    .AddRecurringEvent(
+                    context.ServiceProvider,
+                    context.Guild.Id,
+                    context.User.Id,
+                    context.ChannelId,
+                    startDate,
+                    frequency,
+                    deletePreviousMessage,
+                    commandName,
+                    args,
+                    displayTimestamp > 0 ? DateTimeOffset.FromUnixTimeSeconds(displayTimestamp) : null);
 
                 await context.RespondAsync($"Command Scheduled. Id: {id}", ephemeral: true);
             }

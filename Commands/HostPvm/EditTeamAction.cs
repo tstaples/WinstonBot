@@ -33,9 +33,11 @@ namespace WinstonBot.Commands.HostPvm
             var runtimeRoles = Helpers.GetRuntimeRoles(context.Message.Embeds.FirstOrDefault());
             var guild = (context.Message.Channel as SocketGuildChannel).Guild;
 
+            var timestamp = context.Message.Embeds.First().Timestamp;
+
             Embed embed;
             MessageComponent component;
-            Helpers.BuildSignup(runtimeRoles, Entry, guild, out embed, out component);
+            Helpers.BuildSignup(runtimeRoles, Entry, guild, timestamp, out embed, out component);
 
             await context.UpdateAsync(msgProps =>
             {

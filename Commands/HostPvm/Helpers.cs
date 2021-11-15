@@ -3,6 +3,7 @@ using WinstonBot.Data;
 using WinstonBot.Attributes;
 using Microsoft.Extensions.Logging;
 using Discord.WebSocket;
+using System.Text;
 
 namespace WinstonBot.Commands.HostPvm
 {
@@ -18,10 +19,16 @@ namespace WinstonBot.Commands.HostPvm
             return users.Count;
         }
 
-        public static void BuildSignup(IEnumerable<RuntimeRole> roles, BossData.Entry entry, SocketGuild guild, out Embed embed, out MessageComponent component)
+        public static void BuildSignup(IEnumerable<RuntimeRole> roles, BossData.Entry entry, SocketGuild guild, DateTimeOffset? displayTimestamp, out Embed embed, out MessageComponent component)
         {
             var builder = new EmbedBuilder()
-                .WithTitle(entry.PrettyName);
+                .WithTitle(entry.PrettyName)
+                .WithThumbnailUrl(entry.IconUrl)
+                .WithColor(entry.EmbedColor);
+            if (displayTimestamp != null)
+            {
+                builder.WithTimestamp(displayTimestamp.Value);
+            }
 
             var componentBuilder = new ComponentBuilder();
             foreach (RuntimeRole role in roles)
@@ -39,8 +46,17 @@ namespace WinstonBot.Commands.HostPvm
                     .WithCustomId($"{ChooseRoleAction.Name}_{(int)entry.Id}_{(int)role.Definition.RoleType}"));
             }
 
+            var stringBuilder = new StringBuilder();
+            if (displayTimestamp != null)
+            {
+                stringBuilder.Append($"Starts {TimestampTag.FromDateTime(displayTimestamp.Value.UtcDateTime, TimestampTagStyles.Relative)}");
+                stringBuilder.AppendLine();
+            }
+
             int userCount = GetUserCount(roles);
-            builder.WithDescription($"{userCount}/{entry.MaxPlayersOnTeam} Signed up");
+            stringBuilder.Append($"{userCount}/{entry.MaxPlayersOnTeam} Signed up");
+
+            builder.WithDescription(stringBuilder.ToString());
 
             componentBuilder.WithButton(emote: new Emoji("✅"), customId: $"pvm-event-complete_{(int)entry.Id}", style: ButtonStyle.Success);
 

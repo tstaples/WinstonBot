@@ -70,9 +70,11 @@ namespace WinstonBot.Commands.HostPvm
 
             await context.DeferAsync();
 
+            var timestamp = context.Message.Embeds.First().Timestamp;
+
             Embed embed;
             MessageComponent component;
-            Helpers.BuildSignup(runtimeRoles, Entry, guild, out embed, out component);
+            Helpers.BuildSignup(runtimeRoles, Entry, guild, timestamp, out embed, out component);
 
             await context.Message.ModifyAsync(msgProps =>
             {

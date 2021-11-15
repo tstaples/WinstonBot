@@ -31,12 +31,19 @@ namespace WinstonBot.Commands.HostPvm
         {
             var entry = BossData.Entries[BossIndex];
 
+            DateTimeOffset? displayTimestamp = null;
+            if (context is Services.CommandScheduler.ScheduledCommandContext scheduleContext &&
+                scheduleContext.DisplayTimestamp != null)
+            {
+                displayTimestamp = scheduleContext.DisplayTimestamp;
+            }
+
             Embed embed;
             MessageComponent component;
             var roles = Helpers.GetRuntimeRoles();
-            Helpers.BuildSignup(roles, entry, context.Guild, out embed, out component);
+            Helpers.BuildSignup(roles, entry, context.Guild, displayTimestamp, out embed, out component);
 
-            await context.RespondAsync(text:Message, embed: embed, component: component);
+            await context.RespondAsync(text: Message, embed: embed, component: component);
         }
     }
 }
