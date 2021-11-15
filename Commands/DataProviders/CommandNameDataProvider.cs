@@ -25,7 +25,8 @@ namespace WinstonBot.Commands
         {
             foreach (CommandInfo command in CommandHandler.CommandEntries.Values)
             {
-                if (command.Type.GetCustomAttribute<ConfigurableCommandAttribute>() != null)
+                if (command.Type.GetCustomAttribute<ConfigurableCommandAttribute>() != null &&
+                    command.Actions != null)
                 {
                     builder.AddChoice(command.Name, command.Name);
                 }
