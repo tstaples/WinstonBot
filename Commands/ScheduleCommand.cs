@@ -85,11 +85,11 @@ namespace WinstonBot.Commands
                 var args = remainingOptions.GetRange(4, remainingOptions.Count - 4);
 
                 var startDate = startTimestamp <= 0 ? DateTimeOffset.UtcNow : DateTimeOffset.FromUnixTimeSeconds(startTimestamp);
-                if (startTimestamp > 0 && startDate < DateTimeOffset.UtcNow)
-                {
-                    await context.RespondAsync("The provided start date is in the past.", ephemeral: true);
-                    return;
-                }
+                //if (startTimestamp > 0 && startDate < DateTimeOffset.UtcNow)
+                //{
+                //    await context.RespondAsync("The provided start date is in the past.", ephemeral: true);
+                //    return;
+                //}
 
                 var parser = new TimeParser();
                 TimeSpan frequency = parser.GetSpanFromString(frequencyString);
