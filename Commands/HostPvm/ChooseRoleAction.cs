@@ -76,11 +76,11 @@ namespace WinstonBot.Commands.HostPvm
             MessageComponent component;
             Helpers.BuildSignup(runtimeRoles, Entry, guild, timestamp, out embed, out component);
 
-            await context.Message.ModifyAsync(msgProps =>
+            context.Message.ModifyAsync(msgProps =>
             {
                 msgProps.Embed = embed;
                 msgProps.Components = component;
-            });
+            }).Wait();
         }
     }
 }
