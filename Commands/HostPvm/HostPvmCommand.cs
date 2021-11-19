@@ -44,7 +44,8 @@ namespace WinstonBot.Commands.HostPvm
             var roles = Helpers.GetRuntimeRoles();
             Helpers.BuildSignup(roles, entry, context.Guild, displayTimestamp, out embed, out component);
 
-            await context.RespondAsync(text: Message, embed: embed, component: component);
+            // TODO: figure out why this doesn't ping.
+            await context.RespondAsync(text: Message, embed: embed, component: component, allowedMentions: AllowedMentions.All);
         }
     }
 }

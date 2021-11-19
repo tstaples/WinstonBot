@@ -22,13 +22,27 @@ namespace WinstonBot.Commands.HostPvm
             var users = new HashSet<ulong>();
             foreach (RuntimeRole role in runtimeRoles)
             {
-                users = users.Concat(role.Users).ToHashSet();
+                if (role.Definition.RoleType != RaidRole.Reserve)
+                {
+                    users = users.Concat(role.Users).ToHashSet();
+                }
             }
 
-            var sorted = users.ToList();
-            sorted.Sort();
-
             var guild = (context.Message.Channel as SocketGuildChannel).Guild;
+
+            var sorted = users
+                .Where(id => guild.GetUser(id) != null)
+                .ToList();
+
+            sorted.Sort((a, b) =>
+            {
+                var userA = guild.GetUser(a);
+                var userB = guild.GetUser(b);
+                var nameA = userA.Nickname ?? userA.Username;
+                var nameB = userB.Nickname ?? userB.Username;
+                return nameA.CompareTo(nameB);
+            });
+
             var mentions = Utility.ConvertUserIdListToMentions(guild, sorted);
             await context.RespondAsync($"Invite:\n{String.Join("\n", mentions)}", ephemeral: true);
         }

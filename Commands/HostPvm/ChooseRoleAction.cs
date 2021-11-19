@@ -36,12 +36,6 @@ namespace WinstonBot.Commands.HostPvm
             var runtimeRoles = Helpers.GetRuntimeRoles(context.Message.Embeds.FirstOrDefault());
             var role = runtimeRoles[RoleIndex];
 
-            if (Helpers.GetUserCount(runtimeRoles) >= Entry.MaxPlayersOnTeam)
-            {
-                await context.RespondAsync("Signup is full", ephemeral: true);
-                return;
-            }
-
             List<RaidRole> conflictingRoles;
             if (role.HasUser(context.User.Id))
             {
@@ -50,6 +44,13 @@ namespace WinstonBot.Commands.HostPvm
             }
             else if (Helpers.CanAddUserToRole(context.User.Id, role.Definition.RoleType, runtimeRoles, out conflictingRoles))
             {
+                if (Helpers.GetUserCount(runtimeRoles) >= Entry.MaxPlayersOnTeam &&
+                    role.Definition.RoleType != RaidRole.Reserve)
+                {
+                    await context.RespondAsync("Signup is full", ephemeral: true);
+                    return;
+                }
+
                 if (role.AddUser(context.User.Id))
                 {
                     Logger.LogInformation($"Added {context.User} to role {role.Definition.Name} on {Entry.PrettyName} signup");
