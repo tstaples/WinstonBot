@@ -13,6 +13,7 @@ namespace WinstonBot.Commands
         public virtual ulong ChannelId => _slashCommand.Channel.Id;
         public virtual SocketGuild Guild => ((SocketGuildChannel)_slashCommand.Channel).Guild;
         public virtual IUser User => _slashCommand.User;
+        public SocketSlashCommand? SlashCommand => _slashCommand;
 
         protected virtual ISocketMessageChannel Channel => _slashCommand.Channel;
         private SocketSlashCommand? _slashCommand;
