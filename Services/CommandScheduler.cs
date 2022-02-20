@@ -29,6 +29,7 @@ namespace WinstonBot.Services
             public ulong ChannelId { get; set; }
             public string Command { get; set; }
             public List<CommandDataOption> Args { get; set; }
+            public DateTimeOffset? DisplayTimestamp { get; set; }
 
             // Set when the event is first run
             public DateTimeOffset LastRun { get; set; }
@@ -90,7 +91,8 @@ namespace WinstonBot.Services
             TimeSpan frequency,
             bool deletePreviousMessage,
             string command,
-            IEnumerable<CommandDataOption>? args)
+            IEnumerable<CommandDataOption>? args,
+            DateTimeOffset? displayTimestamp)
         {
             var entry = new Entry()
             {
@@ -102,6 +104,7 @@ namespace WinstonBot.Services
                 ChannelId = channelId,
                 Command = command,
                 Args = args != null ? args.ToList() : new(),
+                DisplayTimestamp = displayTimestamp,
                 LastRun = DateTimeOffset.MinValue
             };
 
@@ -236,7 +239,18 @@ namespace WinstonBot.Services
             var data = (TimerCommandData)state;
             Logger.LogDebug($"Timer elapsed for {data.GuildId}: {data.Entry.Command}");
 
-            var context = new ScheduledCommandContext(data.Entry, data.GuildId, Client, data.Services);
+            DateTimeOffset? displayTimestamp = data.Entry.DisplayTimestamp;
+            if (displayTimestamp != null)
+            {
+                // Calculate the updated display timestamp by getting the difference between the schedule 
+                // time and the display time, then adding that to the current time.
+                var diff = displayTimestamp.Value > data.Entry.StartDate
+                    ? displayTimestamp.Value - data.Entry.StartDate
+                    : data.Entry.StartDate - displayTimestamp.Value;
+                displayTimestamp = DateTime.Now + diff;
+            }
+
+            var context = new ScheduledCommandContext(data.Entry, data.GuildId, displayTimestamp, Client, data.Services);
             if (data.Entry.DeletePreviousMessage && data.Entry.PreviousMessageId != 0)
             {
                 Logger.LogDebug($"Deleting previous message {data.Entry.PreviousMessageId}");
@@ -328,24 +342,27 @@ namespace WinstonBot.Services
             Logger.LogInformation($"Scheduled Events - Loaded {_saveFilePath}");
         }
 
-        private class ScheduledCommandContext : CommandContext
+        public class ScheduledCommandContext : CommandContext
         {
             public override ulong ChannelId => _channel.Id;
             public override SocketGuild Guild => _guild;
             public override IUser User => Guild.GetUser(_entry.ScheduledBy);
+            public DateTimeOffset? DisplayTimestamp => _displayTimestamp;
 
             protected override ISocketMessageChannel Channel => _channel;
             private SocketGuild _guild;
             private ISocketMessageChannel _channel;
             private Entry _entry;
+            private DateTimeOffset? _displayTimestamp;
 
-            public ScheduledCommandContext(Entry entry, ulong guildId, DiscordSocketClient client, IServiceProvider serviceProvider)
+            public ScheduledCommandContext(Entry entry, ulong guildId, DateTimeOffset? displayTimestamp, DiscordSocketClient client, IServiceProvider serviceProvider)
                 : base(client, null, serviceProvider)
             {
                 _guild = client.GetGuild(guildId);
                 _channel = _guild.GetTextChannel(entry.ChannelId);
                 _commandName = entry.Command;
                 _entry = entry;
+                _displayTimestamp = displayTimestamp;
             }
 
             public override async Task RespondAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)
