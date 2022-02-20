@@ -19,7 +19,7 @@ namespace WinstonBot.Commands
             ScriptEngine engine = Python.CreateEngine();
             ScriptScope scope = engine.CreateScope();
             
-            engine.Execute(@"dxpscrape.py");
+            engine.ExecuteFile("dxpscrape.py");
             dynamic output = scope.GetVariable("allFormatted");
 
             // Need to FollowUpAsync() instead once DeferAsync() is added
