@@ -18,6 +18,9 @@ namespace WinstonBot.Commands
             await context.SlashCommand.DeferAsync();
 
             ScriptEngine engine = Python.CreateEngine();
+            var searchPaths = engine.GetSearchPaths();
+            searchPaths.Add("/usr/lib/python3/dist-packages");
+            engine.SetSearchPaths(searchPaths);
             ScriptScope scope = engine.CreateScope();
             
             engine.ExecuteFile(@"dxpscrape.py");
