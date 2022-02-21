@@ -674,9 +674,15 @@ namespace WinstonBot
         private static Embed BuildErrorEmbed(Exception ex, IUser user, string title, string? args = null)
         {
             EmbedBuilder builder = new();
+            var exceptionMessage = ex.Message;
+            if (exceptionMessage.Length > 4096)
+            {
+                exceptionMessage = exceptionMessage.Substring(0, 4096);
+            }
+
             builder.WithTitle(title)
                 .WithAuthor(user)
-                .WithDescription($"**Exception:** {ex.Message}\n" +
+                .WithDescription($"**Exception:** {exceptionMessage}\n" +
                 $"{(args != null ? $"**Args:** {args}\n" : "")}" +
                 $"```{ ex}```");
                 //.WithImageUrl("https://images-ext-2.discordapp.net/external/I0FROsQesBipYVjLKEyGYrwVJgeTnqR5_yr3jT2Z0Fw/https/media.discordapp.net/attachments/892631133219590174/902676707088146523/2e7175697eab40b392acf06d02002004cat-with-loading-sign-on-head.jpg");
