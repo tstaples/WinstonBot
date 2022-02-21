@@ -9,6 +9,7 @@ namespace WinstonBot.Services
     internal class FruitWarsDxpLeaderboardService : DiscordClientService
     {
         private System.Timers.Timer _timer;
+        private bool _oneHrIntervalSet = false;
         private ISocketMessageChannel _channel;
 
         public FruitWarsDxpLeaderboardService(DiscordSocketClient client, ILogger<FruitWarsDxpLeaderboardService> logger) : base(client, logger)
@@ -29,7 +30,7 @@ namespace WinstonBot.Services
             
 
             _timer = new System.Timers.Timer();
-            _timer.Interval = GetInterval();
+            _timer.Interval = GetInitialInterval();
             _timer.Elapsed += TimerElapsed;
             _timer.AutoReset = true;
             _timer.Start();
@@ -50,11 +51,16 @@ namespace WinstonBot.Services
                 await Commands.FruitWarsCommands.PostResults(_channel, Logger);
             }).Forget();
 
-            _timer.Interval = GetInterval();
+            if (!_oneHrIntervalSet)
+            {
+                _timer.Interval = 60 * 60 * 1000;
+                _oneHrIntervalSet = true;
+            }
+
             Logger.LogInformation($"Posting next update in {TimeSpan.FromMilliseconds(_timer.Interval)}");
         }
 
-        private double GetInterval()
+        private double GetInitialInterval()
         {
             var now = DateTime.UtcNow;
             var nextHour = now
