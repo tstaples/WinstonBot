@@ -64,7 +64,8 @@ public class Program
                 .AddHostedService<StatusService>()
                 .AddHostedService<BlavikenService>()
                 .AddSingleton<WatchCatDB>()
-                .AddHostedService<WatchCat>();
+                .AddHostedService<WatchCat>()
+                .AddHostedService<FruitWarsDxpLeaderboardService>();
 
             })
             .UseConsoleLifetime();

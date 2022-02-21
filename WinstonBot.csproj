@@ -13,7 +13,7 @@
     <PackageReference Include="Discord.Addons.Hosting" Version="4.0.2-labs" />
     <PackageReference Include="Discord.Net.Labs" Version="3.1.7" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.55.0.2371" />
-    <PackageReference Include="IronPython" Version="3.4.0-alpha1" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-rc.2.21480.5" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0-rc.2.21480.5" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-rc.2.21480.5" />
