@@ -24,10 +24,19 @@ namespace WinstonBot.Commands
             ScriptScope scope = engine.CreateScope();
             
             engine.ExecuteFile(@"dxpscrape.py");
-            dynamic output = scope.GetVariable("allFormatted");
+            List<dynamic> messages = new();
+            messages.Add(scope.GetVariable("grapeFormatted"));
+            messages.Add(scope.GetVariable("appleFormatted"));
+            messages.Add(scope.GetVariable("cherryFormatted"));
+            messages.Add(scope.GetVariable("peachFormatted"));
+            var channel = context.SlashCommand.Channel;
+            foreach (var message in messages)
+            {
+                await channel.SendMessageAsync(message);
+            }
 
             // Need to FollowUpAsync() instead once DeferAsync() is added
-            await context.SlashCommand.FollowupAsync($"{output}", ephemeral: true);
+            //await context.SlashCommand.FollowupAsync($"{output}", ephemeral: true);
         }
     }
 }
