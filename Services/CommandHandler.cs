@@ -675,9 +675,10 @@ namespace WinstonBot
         {
             EmbedBuilder builder = new();
             var exceptionMessage = ex.Message;
-            if (exceptionMessage.Length > 4096)
+            if (exceptionMessage.Length > 4032)
             {
-                exceptionMessage = exceptionMessage.Substring(0, 4096);
+                // max message length is 4096, make space for extra stuff
+                exceptionMessage = exceptionMessage.Substring(0, 4032);
             }
 
             builder.WithTitle(title)
