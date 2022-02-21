@@ -5,6 +5,7 @@ using WinstonBot.Attributes;
 using System.Net;
 using HtmlAgilityPack;
 using System.Text;
+using Discord.WebSocket;
 
 namespace WinstonBot.Commands
 {
@@ -101,65 +102,76 @@ namespace WinstonBot.Commands
 
             await context.RespondAsync("Calculating Results... Call Blaviken a boomer in the meantime.");
 
-            _httpClient = new HttpClient();
-            _httpClient.BaseAddress = new Uri("https://www.runeclan.com/");
-            _params = new FormUrlEncodedContent(new Dictionary<string, string>()
+            Task.Run(async () =>
+            {
+                await PostResults(context.SlashCommand.Channel, Logger);
+                Interlocked.Decrement(ref _running);
+            }).Forget();
+        }
+
+        public static async Task PostResults(ISocketMessageChannel channel, ILogger logger)
+        {
+            var httpClient = new HttpClient();
+            httpClient.BaseAddress = new Uri("https://www.runeclan.com/");
+            var requestArgs = new FormUrlEncodedContent(new Dictionary<string, string>()
             {
                 { "dxp_col", "dxp"}
             });
 
-            Task.Run(async () =>
+            List<KeyValuePair<int, string>> messageResults = new();
+
+            // Run the operation for each team in parallel
+            bool anySuccess = false;
+            foreach (var kvp in Teams)
             {
-                List<KeyValuePair<int, string>> messageResults = new();
+                // Query runeclan for each user in parallel
+                List<KeyValuePair<string, int>> rsnXpMap = new();
 
-                // Run the operation for each team in parallel
-                var tasks = Teams.Select(async kvp =>
+                // Go nice and slow so we don't annoy Runeclan too much.
+                foreach (string name in kvp.Value)
                 {
-                    // Query runeclan for each user in parallel
-                    List<KeyValuePair<string, int>> rsnXpMap = new();
-                    var teamTasks = kvp.Value.Select(async (string name) =>
-                    {
-                        string xp = await GetUserXp(name);
-                        Console.WriteLine($"{name} - {xp}");
+                    string xp = await GetUserXp(httpClient, requestArgs, name);
+                    anySuccess = xp != null ? true : anySuccess;
+                    xp = xp ?? "0";
 
-                        int xpVal = int.Parse(xp, System.Globalization.NumberStyles.AllowThousands);
-                        rsnXpMap.Add(new KeyValuePair<string, int>(name, xpVal));
-                    });
+                    logger.LogDebug($"{name} - {xp}");
 
-                    // Wait until everyone has been queried
-                    await Task.WhenAll(teamTasks);
+                    int xpVal = int.Parse(xp, System.Globalization.NumberStyles.AllowThousands);
+                    rsnXpMap.Add(new KeyValuePair<string, int>(name, xpVal));
 
-                    // Sort descending
-                    rsnXpMap.Sort((a, b) => a.Value.CompareTo(b.Value));
-                    rsnXpMap.Reverse();
-
-                    // Sum total xp
-                    int totalXp = 0;
-                    rsnXpMap.ForEach((kvp) => totalXp += kvp.Value);
-
-                    // Format the shit
-                    string message = GetFormattedTeamResult(kvp.Key, totalXp, rsnXpMap);
-                    messageResults.Add(new KeyValuePair<int, string>(totalXp, message));
-                });
-
-                // Wait for all work for all teams to be done
-                await Task.WhenAll(tasks);
-
-                messageResults.Sort((a, b) => a.Key.CompareTo(b.Key));
-                messageResults.Reverse();
-
-                foreach (var kvp in messageResults)
-                {
-                    await context.SlashCommand.Channel.SendMessageAsync(kvp.Value);
+                    Thread.Sleep(500);
                 }
 
-                Interlocked.Decrement(ref _running);
+                // Sort descending
+                rsnXpMap.Sort((a, b) => a.Value.CompareTo(b.Value));
+                rsnXpMap.Reverse();
 
-            }).Forget();
+                // Sum total xp
+                int totalXp = 0;
+                rsnXpMap.ForEach((kvp) => totalXp += kvp.Value);
+
+                // Format the shit
+                string message = GetFormattedTeamResult(kvp.Key, totalXp, rsnXpMap);
+                messageResults.Add(new KeyValuePair<int, string>(totalXp, message));
+            }
+
+            if (!anySuccess)
+            {
+                logger.LogWarning("Failed to retrieve data from RuneClan, site is likely down.");
+                await channel.SendMessageAsync("Failed to retrieve data from RuneClan, site is likely down.");
+                return;
+            }
+
+            messageResults.Sort((a, b) => a.Key.CompareTo(b.Key));
+            messageResults.Reverse();
+
+            foreach (var kvp in messageResults)
+            {
+                await channel.SendMessageAsync(kvp.Value);
+            }
         }
-
         
-        private string GetFormattedTeamResult(string teamName, int totalXp, List<KeyValuePair<string, int>> users)
+        private static string GetFormattedTeamResult(string teamName, int totalXp, List<KeyValuePair<string, int>> users)
         {
             var builder = new StringBuilder();
             builder
@@ -181,13 +193,13 @@ namespace WinstonBot.Commands
             return builder.ToString();
         }
 
-        private async Task<string> GetUserXp(string name)
+        private static async Task<string> GetUserXp(HttpClient httpClient, FormUrlEncodedContent requestArgs, string name)
         {
             var sanitizedName = name.Replace(' ', '+');
-            HttpResponseMessage response = await _httpClient.PostAsync($"/user/{sanitizedName}", _params);
+            HttpResponseMessage response = await httpClient.PostAsync($"/user/{sanitizedName}", requestArgs);
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                return "0";
+                return null;
             }
 
             var content = await response.Content.ReadAsStringAsync();
