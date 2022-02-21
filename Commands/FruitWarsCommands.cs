@@ -20,6 +20,7 @@ namespace WinstonBot.Commands
             ScriptEngine engine = Python.CreateEngine();
             var searchPaths = engine.GetSearchPaths();
             searchPaths.Add("/usr/lib/python3/dist-packages");
+            searchPaths.Add("/home/catman/.local/lib/python3.9/site-packages");
             engine.SetSearchPaths(searchPaths);
             ScriptScope scope = engine.CreateScope();
             
