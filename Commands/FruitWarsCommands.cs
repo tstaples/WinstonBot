@@ -92,6 +92,14 @@ namespace WinstonBot.Commands
             { "Peach", peach }
         };
 
+        private static Dictionary<string, List<KeyValuePair<string, int>>> LastTeamValues = new()
+        {
+            { "Grape", new List<KeyValuePair<string, int>>() },
+            { "Apple", new List<KeyValuePair<string, int>>() },
+            { "Cherry", new List<KeyValuePair<string, int>>() },
+            { "Peach", new List<KeyValuePair<string, int>>() },
+        };
+
         public async override Task HandleCommand(CommandContext context)
         {
             if (Interlocked.CompareExchange(ref _running, 1, 0) == 1)
@@ -104,12 +112,12 @@ namespace WinstonBot.Commands
 
             Task.Run(async () =>
             {
-                await PostResults(context.SlashCommand.Channel, Logger);
+                await PostResults(context.SlashCommand.Channel, Logger, autoPost: false);
                 Interlocked.Decrement(ref _running);
             }).Forget();
         }
 
-        public static async Task PostResults(ISocketMessageChannel channel, ILogger logger)
+        public static async Task PostResults(ISocketMessageChannel channel, ILogger logger, bool autoPost = true)
         {
             var httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri("https://www.runeclan.com/");
@@ -153,6 +161,11 @@ namespace WinstonBot.Commands
                 // Format the shit
                 string message = GetFormattedTeamResult(kvp.Key, totalXp, rsnXpMap);
                 messageResults.Add(new KeyValuePair<int, string>(totalXp, message));
+
+                if (autoPost)
+                {
+                    LastTeamValues[kvp.Key] = rsnXpMap;
+                }
             }
 
             if (!anySuccess)
@@ -173,6 +186,8 @@ namespace WinstonBot.Commands
         
         private static string GetFormattedTeamResult(string teamName, int totalXp, List<KeyValuePair<string, int>> users)
         {
+            var lastHourXp = LastTeamValues[teamName];
+
             var builder = new StringBuilder();
             builder
                 .AppendLine("```")
@@ -181,9 +196,14 @@ namespace WinstonBot.Commands
                 .AppendLine(lineSep);
             foreach (var kvp in users)
             {
-                string formattedName = String.Format("{0,-20}", kvp.Key);
-                string formattedXP = String.Format("{0:n0}", kvp.Value);
-                builder.AppendLine($"{formattedName}{formattedXP}");
+                int lastXp = lastHourXp.FirstOrDefault(pair => pair.Key == kvp.Key).Value;
+                int xpDiff = lastXp > 0 ? kvp.Value - lastXp : 0;
+
+                string formattedName = String.Format("{0,-15}", kvp.Key);
+                string formattedXP = String.Format("{0,-15:n0}", kvp.Value);
+                string formattedXPDiff = xpDiff > 0 ? String.Format("+{0:n0}", xpDiff) : "";
+
+                builder.AppendLine($"{formattedName}{formattedXP}{formattedXPDiff}");
             }
 
             builder
