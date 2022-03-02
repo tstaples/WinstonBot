@@ -107,7 +107,7 @@ namespace WinstonBot.Commands
             var buttons = HostHelpers.BuildSignupButtons(BossIndex, 1);
 #endif
 
-            await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.All);
+            await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.None);
         }
 
         public static new ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services, string owningCommand)
