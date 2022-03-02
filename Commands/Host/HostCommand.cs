@@ -97,9 +97,8 @@ namespace WinstonBot.Commands
                 return;
             }
 
-            var bossPrettyName = BossData.Entries[BossIndex].PrettyName;
-            string message = Message ?? $"Sign up for {bossPrettyName}"; // default message
-
+            string bossRoleMention = context.Guild.GetRole(BossData.Entries[BossIndex].BossRoleID).Mention;
+            string message = Message ?? ($"Sign up for {bossRoleMention}" + (BossData.Entries[BossIndex].HasDailyClanTime ? $" at {HostHelpers.GenerateDailyClanBossTime(BossIndex)}" : "")); // default message
 #if DEBUG
             var embed = HostHelpers.BuildSignupEmbed(BossIndex, testNames);
             var buttons = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, testNames.Count));
