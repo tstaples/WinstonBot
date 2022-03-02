@@ -97,6 +97,8 @@ namespace WinstonBot.Commands
                 return;
             }
 
+            bool messageParameterExists = !String.IsNullOrEmpty(Message);
+
             string bossRoleMention = context.Guild.GetRole(BossData.Entries[BossIndex].BossRoleID).Mention;
             string message = Message ?? ($"Sign up for {bossRoleMention}" + (BossData.Entries[BossIndex].HasDailyClanTime ? $" at {HostHelpers.GenerateDailyClanBossTime(BossIndex)}" : "")); // default message
 #if DEBUG
@@ -108,6 +110,9 @@ namespace WinstonBot.Commands
 #endif
 
             await context.RespondAsync(message, embed: embed, component: buttons, allowedMentions: AllowedMentions.None);
+
+            if (!messageParameterExists)
+                await context.SendMessageAsync($"{bossRoleMention} signup(s) posted", allowedMentions: AllowedMentions.All);
         }
 
         public static new ActionContext CreateActionContext(DiscordSocketClient client, SocketMessageComponent arg, IServiceProvider services, string owningCommand)
