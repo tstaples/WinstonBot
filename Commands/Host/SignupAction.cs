@@ -67,11 +67,11 @@ namespace WinstonBot.Commands
             Logger.LogInformation($"{context.User.Mention} has signed up for {context.Message.Id}!");
             names.Add(context.User.Mention);
 
-            context.UpdateAsync(msgProps =>
+            await context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
                 msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, names.Count));
-            }).Wait();
+            });
         }
     }
 }
