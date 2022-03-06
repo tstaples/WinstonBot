@@ -11,6 +11,7 @@ namespace WinstonBot.Commands
     internal class SignupAction : ActionBase
     {
         public static string ActionName = "pvm-team-signup";
+        private static string PvmRulesChannelMention = "<#884181220462841866>";
 
         [ActionParam]
         public long BossIndex { get; set; }
@@ -40,7 +41,7 @@ namespace WinstonBot.Commands
                 {
                     await context.RespondAsync(
                         $"You must have one of the following roles to sign up:\n{Utility.JoinRoleMentions(guild, rolesForBoss)}\n" +
-                        $"Please see #pvm-rules.", ephemeral: true);
+                        $"Please see {PvmRulesChannelMention}.", ephemeral: true);
                     return;
                 }
             }
