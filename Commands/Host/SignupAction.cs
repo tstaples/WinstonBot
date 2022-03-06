@@ -66,13 +66,15 @@ namespace WinstonBot.Commands
 
             Logger.LogInformation($"{context.User.Mention} has signed up for {context.Message.Id}!");
 
-            names.Add(HostHelpers.GetUniversalUserMention(context.User));
+            names.Add(context.User.Mention);
 
-            await context.UpdateAsync(msgProps =>
+            //The call to UpdateAsync().Wait() instead of await UpdateAsync() is on purpose so it doesn't release the semaphore until the message is updated.
+            //Don't listen to VS crying about it :>
+            context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);
                 msgProps.Components = HostHelpers.BuildSignupButtons(BossIndex, HostHelpers.CalculateNumTeams(BossIndex, names.Count));
-            });
+            }).Wait();
         }
     }
 }
