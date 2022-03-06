@@ -221,7 +221,7 @@ namespace WinstonBot.Commands
                     .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Danger))
                 .WithButton(new ButtonBuilder()
-                    .WithLabel("GlitchFix")
+                    .WithLabel("Fix Names")
                     .WithDisabled(disabled)
                     .WithCustomId($"{FixMentionsGlitchAction.ActionName}")
                     .WithStyle(ButtonStyle.Danger));
