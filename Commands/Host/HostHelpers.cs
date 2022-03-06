@@ -219,6 +219,11 @@ namespace WinstonBot.Commands
                     .WithLabel("Unsign")
                     .WithDisabled(disabled)
                     .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
+                    .WithStyle(ButtonStyle.Danger))
+                .WithButton(new ButtonBuilder()
+                    .WithLabel("GlitchFix")
+                    .WithDisabled(disabled)
+                    .WithCustomId($"{FixMentionsGlitchAction.ActionName}")
                     .WithStyle(ButtonStyle.Danger));
                 
             for (int i = 0; i < numTeams; i++)
@@ -292,22 +297,6 @@ namespace WinstonBot.Commands
                 ++numTeams;
             }
             return Math.Max(numTeams, 1);
-        }
-
-        // The Discord API returns two different forms of mentions for some reason,
-        // <@ID> and <@!ID>, the latter being when the user has a nickname set in the guild.
-        // As of the time of this writing (3/06/2022), the second format seems to have no
-        // observable benefit while only being an occassional hinderance (other users looking
-        // at the mention without the mentioned user downloaded into their Discord cache see
-        // the raw mention, rather than the username or nickname of the user the mention
-        // refers to, and thus have no idea who it is). Ultimately this doesn't affect 
-        // bot functionality, but it is a significant annoyance to not know who it is that
-        // is being mentioned in bot posts, which are usually supposed to be informational.
-        // Until Discord fixes this (client-side) bug, having bots use only the first (universal)
-        // format for user mentions seems to be a reasonable workaround.
-        public static string GetUniversalUserMention(IUser user)
-        {
-                return "<@" + user.Id + ">";
         }
     }
 }
