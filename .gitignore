@@ -368,3 +368,6 @@ Config/test_token.txt
 Config/google_credentials.json
 Config/appsettings.*.json
 Properties/launchSettings.json
+/Config/WatchCatDB.json
+/Config/ScheduledEvents.json
+/Config/config.json
