@@ -26,7 +26,7 @@ namespace WinstonBot.Commands
             return builder;
         }
 
-        public static List<string> ParseNamesToList(string text)
+        public static List<string> ParseMentionsStringToMentionList(string text)
         {
             if (text != null)
             {
@@ -37,7 +37,7 @@ namespace WinstonBot.Commands
 
         public static List<ulong> ParseNamesToIdList(string text)
         {
-            return ParseNamesToList(text)
+            return ParseMentionsStringToMentionList(text)
                 .Select(mention => Utility.GetUserIdFromMention(mention))
                 .ToList();
         }
@@ -54,13 +54,13 @@ namespace WinstonBot.Commands
 
         public static List<ulong> ParseNamesToIdListWithValidation(SocketGuild guild, string text)
         {
-            return ParseNamesToList(text)
+            return ParseMentionsStringToMentionList(text)
                 .Select(mention => Utility.GetUserIdFromMention(mention))
                 .Where(id => guild.GetUser(id) != null)
                 .ToList();
         }
 
-        public static List<ulong> ParseNamesToIdList(IEnumerable<string> nameList)
+        public static List<ulong> ParseMentionListToIdList(IEnumerable<string> nameList)
         {
             return nameList
                 .Select(mention => Utility.GetUserIdFromMention(mention))
@@ -292,6 +292,22 @@ namespace WinstonBot.Commands
                 ++numTeams;
             }
             return Math.Max(numTeams, 1);
+        }
+
+        // The Discord API returns two different forms of mentions for some reason,
+        // <@ID> and <@!ID>, the latter being when the user has a nickname set in the guild.
+        // As of the time of this writing (3/06/2022), the second format seems to have no
+        // observable benefit while only being an occassional hinderance (other users looking
+        // at the mention without the mentioned user downloaded into their Discord cache see
+        // the raw mention, rather than the username or nickname of the user the mention
+        // refers to, and thus have no idea who it is). Ultimately this doesn't affect 
+        // bot functionality, but it is a significant annoyance to not know who it is that
+        // is being mentioned in bot posts, which are usually supposed to be informational.
+        // Until Discord fixes this (client-side) bug, having bots use only the first (universal)
+        // format for user mentions seems to be a reasonable workaround.
+        public static string GetUniversalUserMention(IUser user)
+        {
+                return "<@" + user.Id + ">";
         }
     }
 }

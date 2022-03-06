@@ -72,8 +72,8 @@ namespace WinstonBot.Commands
                     }
                 }
 
-                var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
-                var ids = HostHelpers.ParseNamesToIdList(names);
+                var names = HostHelpers.ParseMentionsStringToMentionList(currentEmbed.Description);
+                var ids = HostHelpers.ParseMentionListToIdList(names);
                 if (ids.Contains(User.Id))
                 {
                     Logger.LogDebug($"{User.Mention} is already signed up: ignoring.");
@@ -143,8 +143,8 @@ namespace WinstonBot.Commands
                     return;
                 }
 
-                var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
-                var ids = HostHelpers.ParseNamesToIdList(names);
+                var names = HostHelpers.ParseMentionsStringToMentionList(currentEmbed.Description);
+                var ids = HostHelpers.ParseMentionListToIdList(names);
                 if (!ids.Contains(User.Id))
                 {
                     Logger.LogDebug($"{User.Mention} isn't signed up: ignoring.");

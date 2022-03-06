@@ -48,8 +48,8 @@ namespace WinstonBot.Commands
 
             var currentEmbed = message.Embeds.First();
 
-            var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
-            var ids = HostHelpers.ParseNamesToIdList(names);
+            var names = HostHelpers.ParseMentionsStringToMentionList(currentEmbed.Description);
+            var ids = HostHelpers.ParseMentionListToIdList(names);
             if (ids.Contains(context.User.Id))
             {
                 Logger.LogDebug($"{context.User.Mention} {context.Message.Id} is already signed up: ignoring.");
@@ -65,7 +65,8 @@ namespace WinstonBot.Commands
             }
 
             Logger.LogInformation($"{context.User.Mention} has signed up for {context.Message.Id}!");
-            names.Add(context.User.Mention);
+
+            names.Add(HostHelpers.GetUniversalUserMention(context.User));
 
             await context.UpdateAsync(msgProps =>
             {

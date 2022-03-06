@@ -40,7 +40,7 @@ namespace WinstonBot.Commands
             if (!context.OriginalMessageData.TeamConfirmedBefore)
             {
                 // Re-construct the original signup form
-                var names = HostHelpers.ParseNamesToList(originalMessage.Embeds.First().Description);
+                var names = HostHelpers.ParseMentionsStringToMentionList(originalMessage.Embeds.First().Description);
 
                 await context.OriginalChannel.ModifyMessageAsync(context.OriginalMessageData.MessageId, msgProps =>
                 {
