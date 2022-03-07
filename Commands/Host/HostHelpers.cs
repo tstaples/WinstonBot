@@ -103,8 +103,8 @@ namespace WinstonBot.Commands
                 .WithFooter(footerText)
                 .WithThumbnailUrl(bossEntry.IconUrl)
                 .WithColor(bossEntry.EmbedColor);
-                // TODO: url is currently bugged and causes only a single embed to appear.
-                //.WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
+            // TODO: url is currently bugged and causes only a single embed to appear.
+            //.WithUrl(BuildMessageLink(guild.Id, channelId, messageId));
 
             foreach ((string role, ulong id) in selectedNames)
             {
@@ -220,7 +220,7 @@ namespace WinstonBot.Commands
                     .WithDisabled(disabled)
                     .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
                     .WithStyle(ButtonStyle.Danger));
-                
+
             for (int i = 0; i < numTeams; i++)
             {
                 builder.WithButton(new ButtonBuilder()
@@ -249,7 +249,7 @@ namespace WinstonBot.Commands
                 .WithThumbnailUrl(bossEntry.IconUrl)
                 .WithColor(bossEntry.EmbedColor)
                 .WithFooter($"{names.Count()} Signed up.");
-                //.WithCurrentTimestamp(); // TODO: include event start timestamp
+            //.WithCurrentTimestamp(); // TODO: include event start timestamp
             if (editedByMention != null)
             {
                 builder.WithFooter($"Being edited by {editedByMention}");
@@ -292,6 +292,37 @@ namespace WinstonBot.Commands
                 ++numTeams;
             }
             return Math.Max(numTeams, 1);
+        }
+
+        public static string GenerateDailyClanBossTime(long bossIndex)
+        {
+            // Get current date and time
+            DateTime timeNow = DateTime.Now;
+
+            BossData.Entry bossEntry = BossData.Entries[bossIndex];
+            // Set the initial target date to today (as per excution date) and its time to our normal AoD time (6pm) with offset PST to account for server location.
+            // This should theoretically take care of daylight savings time requirement, changing it between 1am and 2am UTC based on the server's local time zone info.
+            DateTimeOffset boss_dto = new(timeNow.Year, timeNow.Month, timeNow.Day
+                , bossEntry.DailyClanBossHour, bossEntry.DailyClanBossMinute, 0
+                , BossData.ServerTimeZone.BaseUtcOffset);
+
+            // Any true condition here means that we should add a day because it's later than the time of the event already
+            // If the hour is greater, then we should add regardless of minute
+            if (timeNow.Hour > bossEntry.DailyClanBossHour)
+            {
+                boss_dto = boss_dto.AddDays(1);
+            }
+            // If the hour is the same, then we need to compare the minute
+            else if (timeNow.Hour == bossEntry.DailyClanBossHour)
+            {
+                // If the minute is greater than, we should add
+                if (timeNow.Minute > bossEntry.DailyClanBossMinute)
+                {
+                    boss_dto = boss_dto.AddDays(1);
+                }
+            }
+            // Otherwise, we're already done.
+            return $"<t:{boss_dto.ToUnixTimeSeconds()}:f>";
         }
     }
 }
