@@ -26,8 +26,8 @@ namespace WinstonBot.Commands
             }
 
             var currentEmbed = message.Embeds.First();
-            var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
-            var ids = HostHelpers.ParseNamesToIdList(names);
+            var names = HostHelpers.ParseMentionsStringToMentionList(currentEmbed.Description);
+            var ids = HostHelpers.ParseMentionListToIdList(names);
             if (!ids.Contains(context.User.Id))
             {
                 Logger.LogDebug($"{context.User.Mention} {context.Message.Id} isn't signed up: ignoring.");

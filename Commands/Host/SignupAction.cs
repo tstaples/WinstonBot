@@ -11,6 +11,7 @@ namespace WinstonBot.Commands
     internal class SignupAction : ActionBase
     {
         public static string ActionName = "pvm-team-signup";
+        private static string PvmRulesChannelMention = "<#884181220462841866>";
 
         [ActionParam]
         public long BossIndex { get; set; }
@@ -40,15 +41,15 @@ namespace WinstonBot.Commands
                 {
                     await context.RespondAsync(
                         $"You must have one of the following roles to sign up:\n{Utility.JoinRoleMentions(guild, rolesForBoss)}\n" +
-                        $"Please see #pvm-rules.", ephemeral: true);
+                        $"Please see {PvmRulesChannelMention}.", ephemeral: true);
                     return;
                 }
             }
 
             var currentEmbed = message.Embeds.First();
 
-            var names = HostHelpers.ParseNamesToList(currentEmbed.Description);
-            var ids = HostHelpers.ParseNamesToIdList(names);
+            var names = HostHelpers.ParseMentionsStringToMentionList(currentEmbed.Description);
+            var ids = HostHelpers.ParseMentionListToIdList(names);
             if (ids.Contains(context.User.Id))
             {
                 Logger.LogDebug($"{context.User.Mention} {context.Message.Id} is already signed up: ignoring.");
@@ -64,8 +65,11 @@ namespace WinstonBot.Commands
             }
 
             Logger.LogInformation($"{context.User.Mention} has signed up for {context.Message.Id}!");
+
             names.Add(context.User.Mention);
 
+            //The call to UpdateAsync().Wait() instead of await UpdateAsync() is on purpose so it doesn't release the semaphore until the message is updated.
+            //Don't listen to VS crying about it :>
             context.UpdateAsync(msgProps =>
             {
                 msgProps.Embed = HostHelpers.BuildSignupEmbed(BossIndex, names);

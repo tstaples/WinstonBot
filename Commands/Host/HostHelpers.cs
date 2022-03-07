@@ -26,7 +26,7 @@ namespace WinstonBot.Commands
             return builder;
         }
 
-        public static List<string> ParseNamesToList(string text)
+        public static List<string> ParseMentionsStringToMentionList(string text)
         {
             if (text != null)
             {
@@ -37,7 +37,7 @@ namespace WinstonBot.Commands
 
         public static List<ulong> ParseNamesToIdList(string text)
         {
-            return ParseNamesToList(text)
+            return ParseMentionsStringToMentionList(text)
                 .Select(mention => Utility.GetUserIdFromMention(mention))
                 .ToList();
         }
@@ -54,13 +54,13 @@ namespace WinstonBot.Commands
 
         public static List<ulong> ParseNamesToIdListWithValidation(SocketGuild guild, string text)
         {
-            return ParseNamesToList(text)
+            return ParseMentionsStringToMentionList(text)
                 .Select(mention => Utility.GetUserIdFromMention(mention))
                 .Where(id => guild.GetUser(id) != null)
                 .ToList();
         }
 
-        public static List<ulong> ParseNamesToIdList(IEnumerable<string> nameList)
+        public static List<ulong> ParseMentionListToIdList(IEnumerable<string> nameList)
         {
             return nameList
                 .Select(mention => Utility.GetUserIdFromMention(mention))
@@ -219,6 +219,11 @@ namespace WinstonBot.Commands
                     .WithLabel("Unsign")
                     .WithDisabled(disabled)
                     .WithCustomId($"{QuitAction.ActionName}_{bossIndex}")
+                    .WithStyle(ButtonStyle.Danger))
+                .WithButton(new ButtonBuilder()
+                    .WithLabel("Fix Names")
+                    .WithDisabled(disabled)
+                    .WithCustomId($"{FixMentionsGlitchAction.ActionName}")
                     .WithStyle(ButtonStyle.Danger));
 
             for (int i = 0; i < numTeams; i++)

@@ -21,7 +21,8 @@ namespace WinstonBot.Commands
             typeof(EditCompletedTeamAction),
             typeof(AddUserToTeamAction),
             typeof(RemoveUserFromTeamAction),
-            typeof(RevertToSignupAction)
+            typeof(RevertToSignupAction),
+            typeof(FixMentionsGlitchAction)
         }
     )]
     [ScheduableCommand]
