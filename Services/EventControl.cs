@@ -12,9 +12,6 @@ namespace WinstonBot.Services
         private readonly ILogger<EventControl> _logger;
         private EventControlDB _database;
 
-        public event Action<SocketGuildUser, string, DateTime> UserSuspended;
-        public event Action<SocketGuildUser> UserUnsuspended;
-
         public EventControl(ILogger<EventControl> logger, EventControlDB db)
         {
             _logger = logger;
@@ -56,8 +53,6 @@ namespace WinstonBot.Services
 
             await user.AddRoleAsync(SuspendedRole);
 
-            UserSuspended(user, reason, expiry);
-
             return SuspendResult.Success;
         }
 
@@ -83,8 +78,6 @@ namespace WinstonBot.Services
                     _logger.LogError($"Failed to DM user {user.Id} - {user.Username} about suspension removal: {ex.Message}");
                 }
             }
-
-            UserUnsuspended(user);
         }
 
         public void ResetCount(SocketGuildUser user)
