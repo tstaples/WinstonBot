@@ -15,6 +15,14 @@ namespace WinstonBot.Services
 
     internal class EventControlDB
     {
+        internal enum Version
+        {
+            Initial,
+
+            Count,
+            Current = Count - 1
+        }
+
         internal class UserEntry
         {
             public DateTime SuspensionExpiry { get; set; }
@@ -29,6 +37,7 @@ namespace WinstonBot.Services
 
         internal class Database
         {
+            Version Version { get; set; } = Version.Current;
             public Dictionary<ulong, GuildStorage> Guilds { get; set; } = new();
         }
 
@@ -121,6 +130,22 @@ namespace WinstonBot.Services
                     if (guildStorage.Users.ContainsKey(user.Id))
                     {
                         guildStorage.Users[user.Id].TimesSuspended = 0;
+                        Save();
+                    }
+                }
+            }
+        }
+
+        public void ClearExpirationForUser(SocketGuildUser user)
+        {
+            lock (_database)
+            {
+                if (_database.Guilds.ContainsKey(user.Guild.Id))
+                {
+                    var guildStorage = _database.Guilds[user.Guild.Id];
+                    if (guildStorage.Users.ContainsKey(user.Id))
+                    {
+                        guildStorage.Users[user.Id].SuspensionExpiry = DateTime.MinValue;
                         Save();
                     }
                 }

@@ -23,8 +23,8 @@ namespace WinstonBot.Commands
             [CommandOption("reason", "The reason the user was suspended")]
             public string Reason { get; set; }
 
-            [CommandOption("expiry-date", "Override the default expiration date with a custom one", required: false)]
-            public string? ExpirationDate { get; set; }
+            [CommandOption("days-to-suspend", "Override the default expiration date with a custom number of days", required: false)]
+            public long CustomNumberOfDays { get; set; } = 0;
 
             public Suspend(ILogger logger) : base(logger)
             {
@@ -33,31 +33,27 @@ namespace WinstonBot.Commands
             public override async Task HandleCommand(CommandContext context)
             {
                 DateTime? expiry = null;
-                if (ExpirationDate != null)
+                if (CustomNumberOfDays > 0)
                 {
-                    try
-                    {
-                        expiry = DateTime.Parse(ExpirationDate);
-                    }
-                    catch (FormatException ex)
-                    {
-                        Logger.LogError($"Failed to parse expiry {ExpirationDate}: {ex.Message}");
-                        await context.RespondAsync($"Failed to parse expiry {ExpirationDate}: {ex.Message}", ephemeral: true);
-                        return;
-                    }
+#if DEBUG
+                    expiry = DateTime.UtcNow + TimeSpan.FromMinutes(CustomNumberOfDays);
+#else
+                    expiry = DateTime.UtcNow + TimeSpan.FromDays(CustomNumberOfDays);
+#endif
                 }
 
-                var eventSuspension = context.ServiceProvider.GetRequiredService<EventControl>();
-                var result = await eventSuspension.SuspendUser(User, Reason, expiry);
+                var eventControl = context.ServiceProvider.GetRequiredService<EventControl>();
+                var result = await eventControl.SuspendUser(User, Reason, expiry);
                 if (result == EventControl.SuspendResult.AlreadySuspended)
                 {
                     await context.RespondAsync($"{User.Mention} is already suspended", ephemeral: true);
                 }
                 else
                 {
-                    var info = eventSuspension.GetSuspensionInfo(User);
+                    var info = eventControl.GetSuspensionInfo(User);
                     var formattedExpiry = Discord.TimestampTag.FromDateTime(info.Value.Expiry);
-                    await context.RespondAsync($"{User.Mention} has been suspended until {formattedExpiry}", ephemeral: true);
+                    var formattedRelativeTime = Discord.TimestampTag.FromDateTime(info.Value.Expiry, Discord.TimestampTagStyles.Relative);
+                    await context.RespondAsync($"{User.Mention} has been suspended until {formattedExpiry} and will be un-suspended {formattedRelativeTime}", ephemeral: true);
                 }
             }
         }
@@ -68,15 +64,25 @@ namespace WinstonBot.Commands
             [CommandOption("user", "The user to unsuspend")]
             public SocketGuildUser User { get; set; }
 
+            [CommandOption("notify-user", "DM the user to tell them they've been unsuspended", required: false)]
+            public bool NotifyUser { get; set; } = true;
+
             public Unsuspend(ILogger logger) : base(logger)
             {
             }
 
             public override async Task HandleCommand(CommandContext context)
             {
-                var eventSuspension = context.ServiceProvider.GetRequiredService<EventControl>();
-                await eventSuspension.RemoveSuspensionFromUser(User);
-                await context.RespondAsync($"{User.Mention} unsuspended", ephemeral: true);
+                var eventControl = context.ServiceProvider.GetRequiredService<EventControl>();
+                if (eventControl.IsUserSuspended(User))
+                {
+                    await eventControl.RemoveSuspensionFromUser(User, NotifyUser);
+                    await context.RespondAsync($"{User.Mention} unsuspended", ephemeral: true);
+                }
+                else
+                {
+                    await context.RespondAsync($"{User.Mention} isn't suspended", ephemeral: true);
+                }
             }
         }
 
@@ -89,18 +95,22 @@ namespace WinstonBot.Commands
 
             public override async Task HandleCommand(CommandContext context)
             {
-                var eventSuspension = context.ServiceProvider.GetRequiredService<EventControl>();
-                var suspendedUsers = eventSuspension.GetSuspendedUsers(context.Guild.Id);
+                var eventControl = context.ServiceProvider.GetRequiredService<EventControl>();
+                var suspendedUsers = eventControl.GetSuspendedUsers(context.Guild.Id);
 
                 StringBuilder sb = new StringBuilder();
                 foreach (var info in suspendedUsers)
                 {
-                    var user = context.Guild.GetUser(info.UserId);
-                    var formattedExpiry = Discord.TimestampTag.FromDateTime(info.Expiry);
-                    sb.AppendLine($"* {user.Mention} Expires: {formattedExpiry} Times Suspended: {info.TimesSuspended}, Last Reason: {info.Reason}");
+                    if (info.Expiry > DateTime.UtcNow)
+                    {
+                        var user = context.Guild.GetUser(info.UserId);
+                        var formattedExpiry = Discord.TimestampTag.FromDateTime(info.Expiry);
+                        var formattedRelativeTime = Discord.TimestampTag.FromDateTime(info.Expiry, Discord.TimestampTagStyles.Relative);
+                        sb.AppendLine($"* {user.Mention} Expires: {formattedExpiry}({formattedRelativeTime}) Times Suspended: {info.TimesSuspended}, Last Reason: {info.Reason}");
+                    }
                 }
 
-                if (suspendedUsers.Any())
+                if (sb.Length > 0)
                 {
                     await context.RespondAsync(sb.ToString(), ephemeral: true);
                 }
@@ -123,9 +133,39 @@ namespace WinstonBot.Commands
 
             public override async Task HandleCommand(CommandContext context)
             {
-                var eventSuspension = context.ServiceProvider.GetRequiredService<EventControl>();
-                eventSuspension.ResetCount(User);
+                var eventControl = context.ServiceProvider.GetRequiredService<EventControl>();
+                eventControl.ResetCount(User);
                 await context.RespondAsync($"Reset suspension count for {User.Mention}", ephemeral: true);
+            }
+        }
+
+        [SubCommand("check-suspension-expiry", "Shows when your suspension will expire.", parentCommand: typeof(EventControlCommand), defaultPermissionOverride: DefaultPermission.Everyone)]
+        internal class CheckSuspensionExpiry : CommandBase
+        {
+            public CheckSuspensionExpiry(ILogger logger) : base(logger)
+            {
+            }
+
+            public override async Task HandleCommand(CommandContext context)
+            {
+                var eventControl = context.ServiceProvider.GetRequiredService<EventControl>();
+                var user = (SocketGuildUser)context.User;
+                if (eventControl.IsUserSuspended(user))
+                {
+                    var info = eventControl.GetSuspensionInfo(user);
+                    if (info != null)
+                    {
+                        var formattedExpiry = Discord.TimestampTag.FromDateTime(info.Value.Expiry);
+                        var formattedRelativeTime = Discord.TimestampTag.FromDateTime(info.Value.Expiry, Discord.TimestampTagStyles.Relative);
+                        await context.RespondAsync($"Your suspension expires on {formattedExpiry}({formattedRelativeTime}).\n" +
+                            $"Suspension reason: {info.Value.Reason}.\n" +
+                            $"Suspension count: {info.Value.TimesSuspended}", ephemeral: true);
+                    }
+                }
+                else
+                {
+                    await context.RespondAsync($"You are not currently suspended.", ephemeral: true);
+                }
             }
         }
     }

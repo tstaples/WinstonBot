@@ -7,16 +7,23 @@ namespace WinstonBot.Services
 {
     internal class EventControlService : DiscordClientService
     {
-        private EventControl _eventControl;
-        private EventControlDB _database;
-        private List<Timer> _timers = new();
-
         private struct TimerData
         {
             public ulong GuildId;
             public ulong UserId;
             public string Reason;
         }
+
+        private struct TimerEntry
+        {
+            public ulong GuildId;
+            public ulong UserId;
+            public Timer Timer;
+        }
+
+        private EventControl _eventControl;
+        private EventControlDB _database;
+        private List<TimerEntry> _timers = new();
 
         public EventControlService(DiscordSocketClient client, ILogger<EventControlService> logger, EventControl eventControl, EventControlDB database)
             : base(client, logger)
@@ -28,6 +35,9 @@ namespace WinstonBot.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             await _database.Initialize();
+
+            _eventControl.UserSuspended += OnUserSuspended;
+            _eventControl.UserUnsuspended += OnUserUnsuspended;
 
             await Client.WaitForReadyAsync(stoppingToken);
 
@@ -53,20 +63,7 @@ namespace WinstonBot.Services
 
                     if (userInfo.Expiry > DateTime.UtcNow)
                     {
-                        TimerData data = new TimerData()
-                        {
-                            GuildId = guild.Id,
-                            UserId = userInfo.UserId,
-                            Reason = userInfo.Reason
-                        };
-
-                        Logger.LogInformation($"{user.Nickname}-{user.Id} currently suspended until {userInfo.Expiry}, starting timer");
-
-                        _timers.Add(new Timer(
-                            Timer_Elapsed,
-                            data,
-                            userInfo.Expiry.TimeOfDay,
-                            Timeout.InfiniteTimeSpan));
+                        AddSuspensionTimer(user, userInfo.Reason, userInfo.Expiry);
                     }
                     else
                     {
@@ -76,13 +73,55 @@ namespace WinstonBot.Services
             }
         }
 
+        private void AddSuspensionTimer(SocketGuildUser user, string reason, DateTime expiry)
+        {
+            if (expiry < DateTime.UtcNow)
+            {
+                Logger.LogWarning($"Suspension expiry for {user.Nickname}-{user.Id} is in the past. Ignoring");
+                return;
+            }
+
+            TimerData data = new TimerData()
+            {
+                GuildId = user.Guild.Id,
+                UserId = user.Id,
+                Reason = reason
+            };
+
+            Logger.LogInformation($"{user.Nickname}-{user.Id} currently suspended until {expiry}, starting timer");
+
+            TimeSpan interval = expiry - DateTime.UtcNow;
+
+            _timers.Add(new TimerEntry()
+            {
+                GuildId = user.Guild.Id,
+                UserId = user.Id,
+                Timer = new Timer(
+                    Timer_Elapsed,
+                    data,
+                    interval,
+                    Timeout.InfiniteTimeSpan)
+            });
+        }
+
+        private void RemoveSuspensionTimer(ulong guildId, ulong userId)
+        {
+            int index = _timers.FindIndex((TimerEntry entry) => { return entry.GuildId == guildId && entry.UserId == userId; });
+            if (index != -1)
+            {
+                _timers[index].Timer.Dispose();
+                _timers.RemoveAt(index);
+            }
+        }
+
         private void Timer_Elapsed(object? state)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
 
+            var data = (TimerData)state;
+
             Task.Run(async () =>
             {
-                var data = (TimerData)state;
                 Logger.LogInformation($"Expiration timer for {data.UserId} expired.");
 
                 var guild = Client.GetGuild(data.GuildId);
@@ -106,6 +145,18 @@ namespace WinstonBot.Services
                 }
                 await _eventControl.RemoveSuspensionFromUser(user);
             });
+
+            RemoveSuspensionTimer(data.GuildId, data.UserId);
+        }
+
+        private void OnUserSuspended(SocketGuildUser user, string reason, DateTime expiry)
+        {
+            AddSuspensionTimer(user, reason, expiry);
+        }
+
+        private void OnUserUnsuspended(SocketGuildUser user)
+        {
+            RemoveSuspensionTimer(user.Guild.Id, user.Id);
         }
     }
 }

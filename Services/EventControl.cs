@@ -12,6 +12,9 @@ namespace WinstonBot.Services
         private readonly ILogger<EventControl> _logger;
         private EventControlDB _database;
 
+        public event Action<SocketGuildUser, string, DateTime> UserSuspended;
+        public event Action<SocketGuildUser> UserUnsuspended;
+
         public EventControl(ILogger<EventControl> logger, EventControlDB db)
         {
             _logger = logger;
@@ -37,13 +40,13 @@ namespace WinstonBot.Services
         public async Task<SuspendResult> SuspendUser(SocketGuildUser user, string reason, DateTime? expiryOverride)
         {
             var info = _database.GetUserEntry(user);
-            if (info != null && info.Value.Expiry > DateTime.Now)
+            if (info != null && info.Value.Expiry > DateTime.UtcNow)
             {
                 return SuspendResult.AlreadySuspended;
             }
 
-            DateTime calculatedExpiry = DateTime.Now + (info.HasValue
-                ? TimeSpan.FromDays(DefaultSuspensionDays * Math.Min(info.Value.TimesSuspended, 1))
+            DateTime calculatedExpiry = DateTime.UtcNow + (info.HasValue
+                ? TimeSpan.FromDays(DefaultSuspensionDays * (info.Value.TimesSuspended + 1))
                 : DefaultDuration);
             DateTime expiry = expiryOverride ?? calculatedExpiry;
 
@@ -53,27 +56,35 @@ namespace WinstonBot.Services
 
             await user.AddRoleAsync(SuspendedRole);
 
+            UserSuspended(user, reason, expiry);
+
             return SuspendResult.Success;
         }
 
-        public async Task RemoveSuspensionFromUser(SocketGuildUser user)
+        public async Task RemoveSuspensionFromUser(SocketGuildUser user, bool notify = true)
         {
             var info = _database.GetUserEntry(user);
             if (info == null) throw new ArgumentNullException(nameof(info));
 
             _logger.LogInformation($"Removing suspension from {user.Nickname}");
 
-            // TODO: we need to update expiry or something in the DB too
+            _database.ClearExpirationForUser(user);
             await user.RemoveRoleAsync(SuspendedRole);
-            try
+
+            if (notify)
             {
-                var channel = await user.CreateDMChannelAsync();
-                await channel.SendMessageAsync($"Your event suspension in {user.Guild.Name} for reason: '{info.Value.Reason}' has expired. You may sign up again.");
+                try
+                {
+                    var channel = await user.CreateDMChannelAsync();
+                    await channel.SendMessageAsync($"Your event suspension in {user.Guild.Name} for reason: '{info.Value.Reason}' has expired. You may sign up again.");
+                }
+                catch (Discord.Net.HttpException ex)
+                {
+                    _logger.LogError($"Failed to DM user {user.Id} - {user.Username} about suspension removal: {ex.Message}");
+                }
             }
-            catch (Discord.Net.HttpException ex)
-            {
-                _logger.LogError($"Failed to DM user {user.Id} - {user.Username} about suspension removal: {ex.Message}");
-            }
+
+            UserUnsuspended(user);
         }
 
         public void ResetCount(SocketGuildUser user)
