@@ -14,8 +14,6 @@ namespace WinstonBot.Commands
     {
         public FruitWarsCommands(ILogger logger) : base(logger) { }
 
-        private HttpClient _httpClient;
-        private FormUrlEncodedContent _params;
         private static int _running = 0;
 
         private const string lineSep = "---------------------------------------------";
