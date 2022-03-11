@@ -162,43 +162,43 @@ namespace WinstonBot.Commands
                 await context.RespondAsync($"Reset warning count for {User.Mention}", ephemeral: true);
             }
         }
+    }
 
-        [SubCommand("check-suspension-expiry", "Shows when your suspension will expire.", parentCommand: typeof(EventControlCommand), defaultPermissionOverride: DefaultPermission.Everyone)]
-        internal class CheckSuspensionExpiry : CommandBase
+    [Command("check-pvm-suspension", "Shows when your suspension will expire.")]
+    internal class CheckSuspensionExpiry : CommandBase
+    {
+        public CheckSuspensionExpiry(ILogger logger) : base(logger)
         {
-            public CheckSuspensionExpiry(ILogger logger) : base(logger)
-            {
-            }
+        }
 
-            public override async Task HandleCommand(CommandContext context)
+        public override async Task HandleCommand(CommandContext context)
+        {
+            var eventControl = context.ServiceProvider.GetRequiredService<EventControl>();
+            var user = (SocketGuildUser)context.User;
+            var info = eventControl.GetSuspensionInfo(user);
+            if (info != null)
             {
-                var eventControl = context.ServiceProvider.GetRequiredService<EventControl>();
-                var user = (SocketGuildUser)context.User;
-                var info = eventControl.GetSuspensionInfo(user);
-                if (info != null)
+                if (eventControl.IsUserSuspended(user))
                 {
-                    if (eventControl.IsUserSuspended(user))
+                    if (info != null)
                     {
-                        if (info != null)
-                        {
-                            var formattedExpiry = Discord.TimestampTag.FromDateTime(info.Value.Expiry);
-                            var formattedRelativeTime = Discord.TimestampTag.FromDateTime(info.Value.Expiry, Discord.TimestampTagStyles.Relative);
-                            await context.RespondAsync($"Your suspension expires on {formattedExpiry}({formattedRelativeTime}).\n" +
-                                $"Suspension reason: {info.Value.Reason}.\n" +
-                                $"Suspension count: {info.Value.TimesSuspended}\n" +
-                                $"Warning count: {info.Value.TimesWarned}",
-                                ephemeral: true);
-                        }
-                    }
-                    else
-                    {
-                        await context.RespondAsync($"You are not currently suspended and have {info.Value.TimesWarned} warning(s)", ephemeral: true);
+                        var formattedExpiry = Discord.TimestampTag.FromDateTime(info.Value.Expiry);
+                        var formattedRelativeTime = Discord.TimestampTag.FromDateTime(info.Value.Expiry, Discord.TimestampTagStyles.Relative);
+                        await context.RespondAsync($"Your suspension expires on {formattedExpiry}({formattedRelativeTime}).\n" +
+                            $"Suspension reason: {info.Value.Reason}.\n" +
+                            $"Suspension count: {info.Value.TimesSuspended}\n" +
+                            $"Warning count: {info.Value.TimesWarned}",
+                            ephemeral: true);
                     }
                 }
                 else
                 {
-                    await context.RespondAsync($"You are not currently suspended and have 0 warnings :)", ephemeral: true);
+                    await context.RespondAsync($"You are not currently suspended and have {info.Value.TimesWarned} warning(s)", ephemeral: true);
                 }
+            }
+            else
+            {
+                await context.RespondAsync($"You are not currently suspended and have 0 warnings :)", ephemeral: true);
             }
         }
     }
