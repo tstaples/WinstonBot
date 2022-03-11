@@ -11,6 +11,7 @@ namespace WinstonBot.Services
         public DateTime Expiry;
         public string Reason;
         public int TimesSuspended;
+        public int TimesWarned;
     }
 
     internal class EventControlDB
@@ -25,8 +26,9 @@ namespace WinstonBot.Services
 
         internal class UserEntry
         {
-            public DateTime SuspensionExpiry { get; set; }
-            public int TimesSuspended { get; set; }
+            public DateTime SuspensionExpiry { get; set; } = DateTime.MinValue;
+            public int TimesSuspended { get; set; } = 0;
+            public int TimesWarned { get; set; } = 0;
             public string LastSuspensionReason { get; set; }
         }
 
@@ -99,7 +101,8 @@ namespace WinstonBot.Services
                             UserId = user.Id,
                             Expiry = entry.SuspensionExpiry,
                             Reason = entry.LastSuspensionReason,
-                            TimesSuspended = entry.TimesSuspended
+                            TimesSuspended = entry.TimesSuspended,
+                            TimesWarned = entry.TimesWarned,
                         };
                     }
                 }
@@ -120,24 +123,47 @@ namespace WinstonBot.Services
             }
         }
 
-        public void ResetCountForUser(SocketGuildUser user)
+        public void ResetSuspensionCountForUser(SocketGuildUser user)
         {
-            lock (_database)
+            VisitUserEntryIfExists(user, (UserEntry entry) =>
             {
-                if (_database.Guilds.ContainsKey(user.Guild.Id))
-                {
-                    var guildStorage = _database.Guilds[user.Guild.Id];
-                    if (guildStorage.Users.ContainsKey(user.Id))
-                    {
-                        guildStorage.Users[user.Id].TimesSuspended = 0;
-                        Save();
-                    }
-                }
-            }
+                entry.TimesSuspended = 0;
+                return true;
+            });
+        }
+
+        public void ResetWarningCountForUser(SocketGuildUser user)
+        {
+            VisitUserEntryIfExists(user, (UserEntry entry) =>
+            {
+                entry.TimesWarned = 0;
+                return true;
+            });
         }
 
         public void ClearExpirationForUser(SocketGuildUser user)
         {
+            VisitUserEntryIfExists(user, (UserEntry entry) =>
+            {
+                entry.SuspensionExpiry = DateTime.MinValue;
+                return true;
+            });
+        }
+
+        public int IncrementWarningCountForUser(SocketGuildUser user)
+        {
+            lock (_database)
+            {
+                var storage = Utility.GetOrAdd(_database.Guilds, user.Guild.Id);
+                var entry = Utility.GetOrAdd(storage.Users, user.Id);
+                ++entry.TimesWarned;
+                Save();
+                return entry.TimesWarned;
+            }
+        }
+
+        private void VisitUserEntryIfExists(SocketGuildUser user, Func<UserEntry, bool> visitor)
+        {
             lock (_database)
             {
                 if (_database.Guilds.ContainsKey(user.Guild.Id))
@@ -145,8 +171,10 @@ namespace WinstonBot.Services
                     var guildStorage = _database.Guilds[user.Guild.Id];
                     if (guildStorage.Users.ContainsKey(user.Id))
                     {
-                        guildStorage.Users[user.Id].SuspensionExpiry = DateTime.MinValue;
-                        Save();
+                        if (visitor.Invoke(guildStorage.Users[user.Id]))
+                        {
+                            Save();
+                        }
                     }
                 }
             }
