@@ -54,8 +54,11 @@ namespace WinstonBot.Services
 
             await user.AddRoleAsync(SuspendedRole);
 
-            var formattedExpiry = Discord.TimestampTag.FromDateTime(expiry);
-            await SendDirectMessage(user, $"You have been suspended from PVM Events until {formattedExpiry} for reason: {reason}");
+            if (notifyUser)
+            {
+                var formattedExpiry = Discord.TimestampTag.FromDateTime(expiry);
+                await SendDirectMessage(user, $"You have been suspended from PVM Events until {formattedExpiry} for reason: {reason}");
+            }
 
             return SuspendResult.Success;
         }
