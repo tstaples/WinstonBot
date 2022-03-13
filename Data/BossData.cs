@@ -30,8 +30,6 @@ namespace WinstonBot.Data
             public int DailyClanBossMinute { get; set; } = 0;
         }
 
-        public static long ServerTimeZone { get; } = TimeZoneInfo.FindSystemTimeZoneById("US/Pacific").BaseUtcOffset.Ticks;
-
         public static readonly Entry[] Entries = new Entry[]
         {
             new Entry()
