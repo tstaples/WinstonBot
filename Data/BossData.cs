@@ -24,11 +24,11 @@ namespace WinstonBot.Data
             public Type? RolesEnumType { get; set; }
             public ulong BossRoleID { get; set; } = 0;
             public bool HasDailyClanTime { get; set; } = false;
+            
+            // NOTE: Time set is in local time of the server, in our current case, PST.
             public int DailyClanBossHour { get; set; }
             public int DailyClanBossMinute { get; set; } = 0;
         }
-
-        public static TimeZoneInfo ServerTimeZone { get; } = TimeZoneInfo.FindSystemTimeZoneById("US/Pacific");
 
         public static readonly Entry[] Entries = new Entry[]
         {

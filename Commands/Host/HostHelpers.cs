@@ -301,15 +301,19 @@ namespace WinstonBot.Commands
 
         public static string GenerateDailyClanBossTime(long bossIndex)
         {
-            // Get current date and time
+            // Get current date and time 
             DateTime timeNow = DateTime.Now;
+            // Get current date (at 00:00 midnight)
+            DateTime today = DateTime.Today;
 
+            // Get the boss data
             BossData.Entry bossEntry = BossData.Entries[bossIndex];
-            // Set the initial target date to today (as per excution date) and its time to our normal AoD time (6pm) with offset PST to account for server location.
-            // This should theoretically take care of daylight savings time requirement, changing it between 1am and 2am UTC based on the server's local time zone info.
-            DateTimeOffset boss_dto = new(timeNow.Year, timeNow.Month, timeNow.Day
-                , bossEntry.DailyClanBossHour, bossEntry.DailyClanBossMinute, 0
-                , BossData.ServerTimeZone.BaseUtcOffset);
+
+            // Set the initial target date to today (as per excution date) and its time to our normal boss time (as per bossEntry).
+            // DateTime.Now and DateTime.Today manage daylight savings time for us automatically, so as long as we don't introduce any magic numbers, everything will be fine. 
+            DateTime bossTime = today.Add(new(bossEntry.DailyClanBossHour, bossEntry.DailyClanBossMinute, 0));
+            // Convert to a DateTimeOffset to support Unix epoch timestamps
+            DateTimeOffset boss_dto = new(bossTime);
 
             // Any true condition here means that we should add a day because it's later than the time of the event already
             // If the hour is greater, then we should add regardless of minute
