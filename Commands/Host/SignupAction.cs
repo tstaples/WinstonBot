@@ -46,6 +46,17 @@ namespace WinstonBot.Commands
                 }
             }
 
+            // Check if the user is suspended from pvm events
+            var eventSuspensionService = context.ServiceProvider.GetRequiredService<EventControl>();
+            if (eventSuspensionService.IsUserSuspended((SocketGuildUser)context.User))
+            {
+                var suspensionInfo = eventSuspensionService.GetSuspensionInfo((SocketGuildUser)context.User);
+                await context.RespondAsync(
+                    $"You are currently suspended from PvM events until {Discord.TimestampTag.FromDateTime(suspensionInfo.Value.Expiry)} for reason: {suspensionInfo.Value.Reason}",
+                    ephemeral: true);
+                return;
+            }
+
             var currentEmbed = message.Embeds.First();
 
             var names = HostHelpers.ParseMentionsStringToMentionList(currentEmbed.Description);
