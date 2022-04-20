@@ -46,6 +46,7 @@ namespace WinstonBot.Data
                 BossRoleID = 792538753762590790,
                 HasDailyClanTime = true,
                 DailyClanBossHour = 18
+                
             },
             new Entry()
             {
@@ -58,7 +59,7 @@ namespace WinstonBot.Data
                 RolesEnumType = typeof(Commands.HostPvm.RaidRole),
                 BossRoleID = 792539064536530945,
                 HasDailyClanTime = true,
-                DailyClanBossHour = 17,
+                DailyClanBossHour = 17
             },
         };
 

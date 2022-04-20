@@ -1,4 +1,5 @@
 ﻿using Discord;
+
 using WinstonBot.Data;
 
 namespace WinstonBot.Commands
@@ -9,7 +10,10 @@ namespace WinstonBot.Commands
         {
             foreach (var entry in BossData.Entries)
             {
-                builder.AddChoice(entry.CommandName, (int)entry.Id);
+                if (!entry.SupportsSignup)
+                {
+                    builder.AddChoice(entry.CommandName, (int)entry.Id);
+                }
             }
         }
     }
