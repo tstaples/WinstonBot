@@ -196,7 +196,7 @@ namespace WinstonBot.Commands
 
                     foreach (var role in Enum.GetNames(entry.RolesEnumType))
                     {
-                        entryBuilder.AddOption(role.ToLower(), ApplicationCommandOptionType.User, "The user for this role", required: false);
+                        entryBuilder.AddOption(role.ToLower(), ApplicationCommandOptionType.User, "The user for this role", isRequired: false);
                     }
 
                     builder.AddOption(entryBuilder);

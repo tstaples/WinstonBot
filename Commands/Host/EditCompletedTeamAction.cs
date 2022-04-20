@@ -105,7 +105,7 @@ namespace WinstonBot.Commands
                 "\nOnce you're done click Confirm Team." +
                 "\nPress cancel to discard this edit.",
                 embeds: teamSelectionEmbeds.ToArray(),
-                component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, allSelectedIds, unselectedIds));
+                components: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, allSelectedIds, unselectedIds));
 
             // TODO: do this via context instead?
             //context.ServiceProvider.GetRequiredService<InteractionService>().AddInteraction(context.OwningCommand, message.Id);
