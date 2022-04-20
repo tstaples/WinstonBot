@@ -102,7 +102,7 @@ namespace WinstonBot.Commands
                     "\nOnce you're done click Confirm Team." +
                     "\nPress cancel to discard this edit.",
                     embeds: embeds.ToArray(),
-                    component: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedids));
+                    components: HostHelpers.BuildTeamSelectionComponent(guild, BossIndex, selectedIds, unselectedids));
             }
             catch (Exception ex)
             {

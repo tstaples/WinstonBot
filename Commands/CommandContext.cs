@@ -1,7 +1,9 @@
 ﻿using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using WinstonBot.Services;
 
 namespace WinstonBot.Commands
@@ -39,14 +41,14 @@ namespace WinstonBot.Commands
             if (component != null)
             {
                 await _slashCommand.DeferAsync();
-                var message = await _slashCommand.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
+                var message = await _slashCommand.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, component, embed, options);
 
                 //var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
                 //interactionService.AddInteraction(_commandName, message.Id);
             }
             else
             {
-                await _slashCommand.RespondAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
+                await _slashCommand.RespondAsync(text, embeds, isTTS, ephemeral, allowedMentions, component, embed, options);
             }
         }
 
@@ -88,14 +90,14 @@ namespace WinstonBot.Commands
             if (component != null)
             {
                 await Component.DeferAsync();
-                var message = await Component.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
+                var message = await Component.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, component, embed, options);
 
                 //var interactionService = ServiceProvider.GetRequiredService<InteractionService>();
                 //interactionService.AddInteraction(_commandName, message.Id);
             }
             else
             {
-                await Component.RespondAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
+                await Component.RespondAsync(text, embeds, isTTS, ephemeral, allowedMentions, component, embed, options);
             }
         }
 

@@ -31,7 +31,7 @@ namespace WinstonBot.Commands.Config
             }
 
             return commandEntries[commandName];
-        }
+        } 
 
         [SubCommand("add-role", "Add a role requirement to a command.", typeof(ConfigureCommandSubCommand))]
         private class AddRoleOperation : CommandBase
